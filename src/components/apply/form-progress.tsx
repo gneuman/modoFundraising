@@ -12,14 +12,14 @@ export function FormProgress({ currentStep, totalSteps, stepLabels }: FormProgre
   return (
     <div className="w-full mb-8">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-medium text-zinc-600">
+        <span className="text-sm font-medium text-white/60">
           Sección {currentStep} de {totalSteps}: {stepLabels[currentStep - 1]}
         </span>
-        <span className="text-sm font-semibold text-blue-600">{percent}%</span>
+        <span className="text-sm font-semibold text-[#00e5c0]">{percent}%</span>
       </div>
-      <div className="w-full bg-zinc-100 rounded-full h-2">
+      <div className="w-full bg-white/10 rounded-full h-2">
         <div
-          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+          className="bg-[#00e5c0] h-2 rounded-full transition-all duration-500"
           style={{ width: `${percent}%` }}
         />
       </div>
