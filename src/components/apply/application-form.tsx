@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { cn } from "@/lib/utils";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -169,8 +170,8 @@ export function ApplicationForm({ onSuccess }: Props) {
     }
   }
 
-  const inputClass = "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
-  const errorClass = "border-red-300 focus:ring-red-400";
+  const inputClass = "w-full rounded-lg border border-white/20 bg-white/10 text-white placeholder-white/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00e5c0] focus:border-transparent";
+  const errorClass = "border-red-400/60 focus:ring-red-400";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto">
@@ -179,23 +180,23 @@ export function ApplicationForm({ onSuccess }: Props) {
       {/* ── Sección 1: Founder ─────────────────────────────────────────────── */}
       {step === 1 && (
         <div className="space-y-5">
-          <h2 className="text-xl font-bold text-zinc-800 mb-6">Datos del Founder</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Datos del Founder</h2>
           <div className="grid grid-cols-2 gap-4">
             <FieldWrapper label="Nombre" required error={errors.first_name?.message}>
-              <Input {...register("first_name")} placeholder="Gabriel" className={errors.first_name ? errorClass : ""} />
+              <Input {...register("first_name")} placeholder="Gabriel" className={cn(inputClass, errors.first_name && errorClass)} />
             </FieldWrapper>
             <FieldWrapper label="Apellido" required error={errors.last_name?.message}>
-              <Input {...register("last_name")} placeholder="Neuman" className={errors.last_name ? errorClass : ""} />
+              <Input {...register("last_name")} placeholder="Neuman" className={cn(inputClass, errors.last_name && errorClass)} />
             </FieldWrapper>
           </div>
           <FieldWrapper label="Email" required error={errors.email?.message}>
-            <Input {...register("email")} type="email" placeholder="tu@startup.com" className={errors.email ? errorClass : ""} />
+            <Input {...register("email")} type="email" placeholder="tu@startup.com" className={cn(inputClass, errors.email && errorClass)} />
           </FieldWrapper>
           <FieldWrapper label="Número de WhatsApp (con código de país)" required error={errors.whatsapp?.message} help="Ejemplo: +56912345678">
-            <Input {...register("whatsapp")} placeholder="+56912345678" className={errors.whatsapp ? errorClass : ""} />
+            <Input {...register("whatsapp")} placeholder="+56912345678" className={cn(inputClass, errors.whatsapp && errorClass)} />
           </FieldWrapper>
           <FieldWrapper label="URL de tu LinkedIn" required error={errors.linkedin_founder?.message}>
-            <Input {...register("linkedin_founder")} placeholder="https://linkedin.com/in/..." className={errors.linkedin_founder ? errorClass : ""} />
+            <Input {...register("linkedin_founder")} placeholder="https://linkedin.com/in/..." className={cn(inputClass, errors.linkedin_founder && errorClass)} />
           </FieldWrapper>
           <FieldWrapper label="Rol en la startup" required error={errors.founder_role?.message}>
             <Controller
@@ -229,15 +230,15 @@ export function ApplicationForm({ onSuccess }: Props) {
       {/* ── Sección 2: Startup ─────────────────────────────────────────────── */}
       {step === 2 && (
         <div className="space-y-5">
-          <h2 className="text-xl font-bold text-zinc-800 mb-6">Datos de la Startup</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Datos de la Startup</h2>
           <FieldWrapper label="Nombre de la startup" required error={errors.startup_name?.message}>
-            <Input {...register("startup_name")} placeholder="Mi Startup" className={errors.startup_name ? errorClass : ""} />
+            <Input {...register("startup_name")} placeholder="Mi Startup" className={cn(inputClass, errors.startup_name && errorClass)} />
           </FieldWrapper>
           <FieldWrapper label="Website de la startup" required error={errors.startup_website?.message} help="Incluir https://">
-            <Input {...register("startup_website")} placeholder="https://miastartup.com" className={errors.startup_website ? errorClass : ""} />
+            <Input {...register("startup_website")} placeholder="https://miastartup.com" className={cn(inputClass, errors.startup_website && errorClass)} />
           </FieldWrapper>
           <FieldWrapper label="LinkedIn de la startup" required error={errors.startup_linkedin?.message}>
-            <Input {...register("startup_linkedin")} placeholder="https://linkedin.com/company/..." className={errors.startup_linkedin ? errorClass : ""} />
+            <Input {...register("startup_linkedin")} placeholder="https://linkedin.com/company/..." className={cn(inputClass, errors.startup_linkedin && errorClass)} />
           </FieldWrapper>
           <div className="grid grid-cols-2 gap-4">
             <FieldWrapper label="País principal de operaciones" required error={errors.startup_country_ops?.message} help="Donde está tu centro de operaciones">
@@ -253,7 +254,7 @@ export function ApplicationForm({ onSuccess }: Props) {
               />
             </FieldWrapper>
             <FieldWrapper label="Tamaño equipo full-time" required error={errors.startup_team_size?.message}>
-              <Input {...register("startup_team_size")} type="number" min="1" placeholder="5" className={errors.startup_team_size ? errorClass : ""} />
+              <Input {...register("startup_team_size")} type="number" min="1" placeholder="5" className={cn(inputClass, errors.startup_team_size && errorClass)} />
             </FieldWrapper>
           </div>
           <FieldWrapper label="Países donde operan o quieren operar (18 meses)" required error={errors.startup_countries_expansion?.message} help="Selecciona todos los que apliquen">
@@ -273,7 +274,7 @@ export function ApplicationForm({ onSuccess }: Props) {
                 const len = field.value?.length ?? 0;
                 return (
                   <div>
-                    <Textarea {...field} placeholder="¿Qué problema resuelven y para quién?" maxLength={300} rows={3} className={errors.startup_description ? errorClass : ""} />
+                    <Textarea {...field} placeholder="¿Qué problema resuelven y para quién?" maxLength={300} rows={3} className={cn(inputClass, errors.startup_description && errorClass)} />
                     <p className="text-xs text-zinc-400 text-right mt-1">{len}/300</p>
                   </div>
                 );
@@ -329,7 +330,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("founder_team_women")} value={opt} className="accent-blue-600" />
+                  <input type="radio" {...register("founder_team_women")} value={opt} className="accent-[#00e5c0]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -339,7 +340,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No", "Ya operamos en USA"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("startup_usa_intl")} value={opt} className="accent-blue-600" />
+                  <input type="radio" {...register("startup_usa_intl")} value={opt} className="accent-[#00e5c0]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -351,12 +352,12 @@ export function ApplicationForm({ onSuccess }: Props) {
       {/* ── Sección 3: Tracción ────────────────────────────────────────────── */}
       {step === 3 && (
         <div className="space-y-5">
-          <h2 className="text-xl font-bold text-zinc-800 mb-6">Tracción</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Tracción</h2>
           <FieldWrapper label="MRR actual (USD)" required error={errors.startup_mrr?.message} help="Monthly Recurring Revenue. Si no tienes modelo recurrente, pon 0.">
-            <Input {...register("startup_mrr")} type="number" min="0" placeholder="0" className={errors.startup_mrr ? errorClass : ""} />
+            <Input {...register("startup_mrr")} type="number" min="0" placeholder="0" className={cn(inputClass, errors.startup_mrr && errorClass)} />
           </FieldWrapper>
           <FieldWrapper label="Ventas / facturación últimos 12 meses (USD)" required error={errors.startup_sales_12m?.message} help="Suma total de ventas de los últimos 12 meses">
-            <Input {...register("startup_sales_12m")} type="number" min="0" placeholder="0" className={errors.startup_sales_12m ? errorClass : ""} />
+            <Input {...register("startup_sales_12m")} type="number" min="0" placeholder="0" className={cn(inputClass, errors.startup_sales_12m && errorClass)} />
           </FieldWrapper>
         </div>
       )}
@@ -364,12 +365,12 @@ export function ApplicationForm({ onSuccess }: Props) {
       {/* ── Sección 4: Capital ─────────────────────────────────────────────── */}
       {step === 4 && (
         <div className="space-y-5">
-          <h2 className="text-xl font-bold text-zinc-800 mb-6">Historial de Capital</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Historial de Capital</h2>
           <FieldWrapper label="¿Han levantado capital anteriormente?" required error={errors.prior_fundraising?.message}>
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No (esta sería nuestra primera ronda)"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("prior_fundraising")} value={opt} className="accent-blue-600" />
+                  <input type="radio" {...register("prior_fundraising")} value={opt} className="accent-[#00e5c0]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -377,7 +378,7 @@ export function ApplicationForm({ onSuccess }: Props) {
           </FieldWrapper>
           {priorFundraising === "Sí" && (
             <FieldWrapper label="¿Cuánto han levantado en total hasta hoy? (USD)" required error={errors.prior_fundraising_amount?.message} help="Suma de todas las rondas previas (FFF, ángeles, pre-seed, seed, etc.)">
-              <Input {...register("prior_fundraising_amount")} type="number" min="0" placeholder="500000" className={errors.prior_fundraising_amount ? errorClass : ""} />
+              <Input {...register("prior_fundraising_amount")} type="number" min="0" placeholder="500000" className={cn(inputClass, errors.prior_fundraising_amount && errorClass)} />
             </FieldWrapper>
           )}
         </div>
@@ -386,12 +387,12 @@ export function ApplicationForm({ onSuccess }: Props) {
       {/* ── Sección 5: Ronda ──────────────────────────────────────────────── */}
       {step === 5 && (
         <div className="space-y-5">
-          <h2 className="text-xl font-bold text-zinc-800 mb-6">Ronda Actual</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Ronda Actual</h2>
           <FieldWrapper label="¿Están levantando ronda actualmente?" required error={errors.round_open?.message}>
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No (pero la iniciaremos en los próximos 12 meses)"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("round_open")} value={opt} className="accent-blue-600" />
+                  <input type="radio" {...register("round_open")} value={opt} className="accent-[#00e5c0]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -411,7 +412,7 @@ export function ApplicationForm({ onSuccess }: Props) {
               />
             </FieldWrapper>
             <FieldWrapper label="Tamaño objetivo de la ronda (USD)" required error={errors.round_size?.message} help="Monto total que buscan levantar">
-              <Input {...register("round_size")} type="number" min="0" placeholder="1000000" className={errors.round_size ? errorClass : ""} />
+              <Input {...register("round_size")} type="number" min="0" placeholder="1000000" className={cn(inputClass, errors.round_size && errorClass)} />
             </FieldWrapper>
           </div>
           <FieldWrapper label="Rango de ticket que buscan" required error={errors.round_tickets?.message} help="Ticket por inversor, no monto total">
@@ -424,7 +425,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             />
           </FieldWrapper>
           <FieldWrapper label="Runway actual (meses)" required error={errors.runway?.message} help="Cuántos meses pueden operar con la caja actual">
-            <Input {...register("runway")} type="number" min="0" placeholder="12" className={errors.runway ? errorClass : ""} />
+            <Input {...register("runway")} type="number" min="0" placeholder="12" className={cn(inputClass, errors.runway && errorClass)} />
           </FieldWrapper>
         </div>
       )}
@@ -432,9 +433,9 @@ export function ApplicationForm({ onSuccess }: Props) {
       {/* ── Sección 6: Deck ───────────────────────────────────────────────── */}
       {step === 6 && (
         <div className="space-y-5">
-          <h2 className="text-xl font-bold text-zinc-800 mb-6">Pitch Deck</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Pitch Deck</h2>
           <FieldWrapper label="Link a tu Pitch Deck" required error={errors.deck_url?.message} help="Google Drive, Dropbox, Notion o similar. Asegúrate que el link tenga permisos abiertos para ver.">
-            <Input {...register("deck_url")} placeholder="https://drive.google.com/..." className={errors.deck_url ? errorClass : ""} />
+            <Input {...register("deck_url")} placeholder="https://drive.google.com/..." className={cn(inputClass, errors.deck_url && errorClass)} />
           </FieldWrapper>
         </div>
       )}
@@ -442,7 +443,7 @@ export function ApplicationForm({ onSuccess }: Props) {
       {/* ── Sección 7: Recomendadores ─────────────────────────────────────── */}
       {step === 7 && (
         <div className="space-y-5">
-          <h2 className="text-xl font-bold text-zinc-800 mb-6">Recomendadores</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Recomendadores</h2>
           <FieldWrapper label="¿Tienes código de referido? (opcional)" help="Ejemplo: ALUMNIMF. Descuentos aplicados post-admisión.">
             <Input {...register("referral_code")} placeholder="ALUMNIMF" className="uppercase" />
           </FieldWrapper>
@@ -450,7 +451,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("has_referrals")} value={opt} className="accent-blue-600" />
+                  <input type="radio" {...register("has_referrals")} value={opt} className="accent-[#00e5c0]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -460,9 +461,9 @@ export function ApplicationForm({ onSuccess }: Props) {
           {hasReferrals === "Sí" && (
             <div className="space-y-6">
               {[1, 2, 3].slice(0, referralCount).map((n) => (
-                <div key={n} className="border border-zinc-200 rounded-xl p-4 space-y-4">
+                <div key={n} className="border border-white/20 rounded-xl p-4 space-y-4 bg-white/5">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-zinc-700">Recomendador {n}</h3>
+                    <h3 className="font-semibold text-white/80">Recomendador {n}</h3>
                     {n > 1 && n === referralCount && (
                       <button type="button" onClick={() => setReferralCount((c) => c - 1)} className="text-red-500 hover:text-red-700">
                         <Trash2 className="h-4 w-4" />
@@ -492,7 +493,7 @@ export function ApplicationForm({ onSuccess }: Props) {
                 <button
                   type="button"
                   onClick={() => setReferralCount((c) => c + 1)}
-                  className="flex items-center gap-2 text-blue-600 text-sm font-medium hover:text-blue-700"
+                  className="flex items-center gap-2 text-[#00e5c0] text-sm font-medium hover:text-[#00c9aa]"
                 >
                   <Plus className="h-4 w-4" /> Agregar otro recomendador
                 </button>
@@ -505,7 +506,7 @@ export function ApplicationForm({ onSuccess }: Props) {
       {/* ── Sección 8: Programa ───────────────────────────────────────────── */}
       {step === 8 && (
         <div className="space-y-5">
-          <h2 className="text-xl font-bold text-zinc-800 mb-6">Programa</h2>
+          <h2 className="text-xl font-bold text-white mb-6">Programa</h2>
           <FieldWrapper label="¿Cómo supiste de Modo Fundraising 2026?" required error={errors.program_source?.message}>
             <Controller
               name="program_source"
@@ -527,7 +528,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("ias_interested")} value={opt} className="accent-blue-600" />
+                  <input type="radio" {...register("ias_interested")} value={opt} className="accent-[#00e5c0]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -535,15 +536,15 @@ export function ApplicationForm({ onSuccess }: Props) {
           </FieldWrapper>
 
           <FieldWrapper label="Logo de tu startup" error={errors.startup_logo_url?.message} help="PNG, JPG o SVG. Máx 5MB. Preferible fondo transparente.">
-            <div className="border-2 border-dashed border-zinc-200 rounded-xl p-6 text-center">
+            <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center bg-white/5">
               {logoFile ? (
                 <div className="flex items-center justify-center gap-3">
-                  <span className="text-sm text-zinc-600">{logoFile.name}</span>
+                  <span className="text-sm text-white/70">{logoFile.name}</span>
                   <button type="button" onClick={() => setLogoFile(null)} className="text-red-500 text-xs">Eliminar</button>
                 </div>
               ) : (
                 <label className="cursor-pointer">
-                  <span className="text-sm text-zinc-500">Arrastra tu logo aquí o <span className="text-blue-600 font-medium">haz clic para seleccionar</span></span>
+                  <span className="text-sm text-white/40">Arrastra tu logo aquí o <span className="text-[#00e5c0] font-medium">haz clic para seleccionar</span></span>
                   <input
                     type="file"
                     className="hidden"
@@ -574,12 +575,12 @@ export function ApplicationForm({ onSuccess }: Props) {
                     id="legal"
                     className="mt-0.5"
                   />
-                  <label htmlFor="legal" className="text-sm text-zinc-600 cursor-pointer">
+                  <label htmlFor="legal" className="text-sm text-white/60 cursor-pointer">
                     He leído y acepto las{" "}
                     <a
                       href="/bases-legales"
                       target="_blank"
-                      className="text-blue-600 underline"
+                      className="text-[#00e5c0] underline"
                     >
                       Bases Legales de Modo Fundraising 2026
                     </a>
@@ -593,22 +594,22 @@ export function ApplicationForm({ onSuccess }: Props) {
       )}
 
       {/* ── Navegación ────────────────────────────────────────────────────── */}
-      <div className="flex justify-between mt-8 pt-6 border-t border-zinc-100">
+      <div className="flex justify-between mt-8 pt-6 border-t border-white/10">
         {step > 1 ? (
-          <Button type="button" variant="outline" onClick={prevStep} className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={prevStep} className="flex items-center gap-2 border-white/20 text-white hover:bg-white/10 hover:text-white">
             <ChevronLeft className="h-4 w-4" /> Anterior
           </Button>
         ) : <div />}
 
         {step < TOTAL_STEPS ? (
-          <Button type="button" onClick={nextStep} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+          <Button type="button" onClick={nextStep} className="flex items-center gap-2 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-bold">
             Siguiente <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
           <Button
             type="submit"
             disabled={submitting || uploadingLogo}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8"
+            className="flex items-center gap-2 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-bold px-8"
           >
             {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : "Enviar postulación 🚀"}
           </Button>

@@ -19,7 +19,7 @@ export function MultiSelect({ options, value, onChange, error }: MultiSelectProp
   };
 
   return (
-    <div className={cn("flex flex-wrap gap-2", error && "border border-red-300 rounded-lg p-2")}>
+    <div className={cn("flex flex-wrap gap-2", error && "border border-red-400/40 rounded-lg p-2")}>
       {options.map((opt) => (
         <button
           key={opt}
@@ -28,8 +28,8 @@ export function MultiSelect({ options, value, onChange, error }: MultiSelectProp
           className={cn(
             "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
             value.includes(opt)
-              ? "bg-blue-600 text-white border-blue-600"
-              : "bg-white text-zinc-600 border-zinc-200 hover:border-blue-300"
+              ? "bg-[#00e5c0] text-[#0a0e1a] border-[#00e5c0]"
+              : "bg-white/5 text-white/60 border-white/20 hover:border-[#00e5c0]/50 hover:text-white"
           )}
         >
           {opt}

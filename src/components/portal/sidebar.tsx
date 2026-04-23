@@ -21,7 +21,7 @@ export function PortalSidebar({ email }: { email: string }) {
     <aside className="w-60 bg-white border-r border-zinc-100 flex flex-col shrink-0">
       <div className="p-5 border-b border-zinc-100">
         <div className="space-y-2">
-          <Image src="/logo-mf.png" alt="Modo Fundraising" width={120} height={40} className="object-contain" />
+          <Image src="/logo-mf.png" alt="Modo Fundraising" width={120} height={40} className="object-contain brightness-0 invert" />
           <p className="text-xs text-zinc-400 truncate">{email}</p>
         </div>
       </div>

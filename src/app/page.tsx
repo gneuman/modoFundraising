@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -56,26 +56,43 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
 }
 
 function WordCarousel() {
-  const [index, setIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
+  const [wordIdx, setWordIdx] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [phase, setPhase] = useState<"typing" | "pause" | "deleting">("typing");
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => {
-        setIndex(i => (i + 1) % ROTATING_WORDS.length);
-        setVisible(true);
-      }, 300);
-    }, 1800);
-    return () => clearInterval(interval);
-  }, []);
+    const word = ROTATING_WORDS[wordIdx];
+
+    if (phase === "typing") {
+      if (displayed.length < word.length) {
+        const t = setTimeout(() => setDisplayed(word.slice(0, displayed.length + 1)), 60);
+        return () => clearTimeout(t);
+      } else {
+        const t = setTimeout(() => setPhase("pause"), 1400);
+        return () => clearTimeout(t);
+      }
+    }
+
+    if (phase === "pause") {
+      const t = setTimeout(() => setPhase("deleting"), 200);
+      return () => clearTimeout(t);
+    }
+
+    if (phase === "deleting") {
+      if (displayed.length > 0) {
+        const t = setTimeout(() => setDisplayed(d => d.slice(0, -1)), 35);
+        return () => clearTimeout(t);
+      } else {
+        setWordIdx(i => (i + 1) % ROTATING_WORDS.length);
+        setPhase("typing");
+      }
+    }
+  }, [phase, displayed, wordIdx]);
 
   return (
-    <span
-      className="block text-[#00e5c0] transition-opacity duration-300"
-      style={{ opacity: visible ? 1 : 0 }}
-    >
-      {ROTATING_WORDS[index]}
+    <span className="text-[#00e5c0] inline-flex items-center">
+      {displayed}
+      <span className="ml-1 w-[3px] h-[0.85em] bg-[#00e5c0] inline-block animate-pulse rounded-sm" />
     </span>
   );
 }
@@ -99,7 +116,7 @@ export default function LandingPage() {
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-50 bg-[#0a0e1a]/95 backdrop-blur border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Image src="/logo-mf.png" alt="Modo Fundraising" width={120} height={40} className="object-contain" />
+          <Image src="/logo-mf.png" alt="Modo Fundraising" width={80} height={50} className="object-contain brightness-0 invert" />
           <div className="hidden md:flex items-center gap-6 text-sm text-white/70">
             <a href="#programa" className="hover:text-white transition-colors">Programa</a>
             <a href="#requisitos" className="hover:text-white transition-colors">Requisitos</a>
@@ -121,15 +138,11 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)]" />
         <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-36">
           <div className="max-w-3xl">
+            <Image src="/ifsp/master-logo.svg" alt="IFSP" width={480} height={120} className="object-contain mb-8 max-w-full" />
             <div className="inline-flex items-center gap-2 bg-[#00e5c0]/10 border border-[#00e5c0]/30 rounded-full px-4 py-1.5 text-sm text-[#00e5c0] mb-8">
               <span className="w-2 h-2 bg-[#00e5c0] rounded-full animate-pulse" />
               5ta edición · Inicia 20 de mayo 2026
             </div>
-            <h1 className="text-5xl md:text-7xl font-black leading-none mb-6 tracking-tight">
-              MODO<br />
-              <span className="text-[#00e5c0]">FUNDRAISING</span><br />
-              <span className="text-white/40 text-4xl md:text-5xl font-light">2026</span>
-            </h1>
             <p className="text-xl md:text-2xl text-white/80 mb-4 font-medium">
               Diseña tu propia estrategia de fundraising y aprende las herramientas, técnicas y tácticas
               que usan los mejores para levantar ronda tras ronda.
@@ -190,28 +203,13 @@ export default function LandingPage() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            {
-              icon: "🚀",
-              text: "Aprende a levantar capital en este programa diseñado por Founders que lo han hecho con los VCs más relevantes del mundo y/o que han vendido compañías en valuaciones entre U$20M y +U$1B.",
-            },
-            {
-              icon: "🛠",
-              text: "Sube tu nivel de fundraising y suma a los mejores VC que podrías tener, según la etapa de tu startup.",
-            },
-            {
-              icon: "🧠",
-              text: "Adquiere conocimiento importantísimo para jugar el juego del VC y moverte en ligas mayores, y aprende como llevar tu startup a la valuación que merece.",
-            },
-            {
-              icon: "⚡",
-              text: "Inspírate con los founders más cracks del ecosistema, que fueron capaces de llevar a sus compañías al siguiente nivel.",
-            },
-          ].map(({ icon, text }) => (
-            <div
-              key={icon}
-              className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all"
-            >
-              <div className="text-3xl mb-4">{icon}</div>
+            { img: "/ifsp/hl-1.webp", text: "Aprende a levantar capital en este programa diseñado por Founders que lo han hecho con los VCs más relevantes del mundo y/o que han vendido compañías en valuaciones entre U$20M y +U$1B." },
+            { img: "/ifsp/hl-2.webp", text: "Sube tu nivel de fundraising y suma a los mejores VC que podrías tener, según la etapa de tu startup." },
+            { img: "/ifsp/hl-3.webp", text: "Adquiere conocimiento importantísimo para jugar el juego del VC y moverte en ligas mayores, y aprende como llevar tu startup a la valuación que merece." },
+            { img: "/ifsp/hl-4.webp", text: "Inspírate con los founders más cracks del ecosistema, que fueron capaces de llevar a sus compañías al siguiente nivel." },
+          ].map(({ img, text }) => (
+            <div key={img} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all">
+              <Image src={img} alt="" width={80} height={80} className="mb-4 object-contain" />
               <p className="text-white/70 text-sm leading-relaxed">{text}</p>
             </div>
           ))}
@@ -241,14 +239,14 @@ export default function LandingPage() {
         <p className="text-[#00e5c0] text-3xl font-black mb-12">del Programa</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { n: "01", text: "Enseñarte a que tu compañía tenga un tamaño de interés mayor a lo que quieres levantar." },
-            { n: "02", text: "Darte la posibilidad de que puedas escoger a los mejores inversores en tus próximas rondas." },
-            { n: "03", text: "Hacer tu compañía más atractiva y visible en el ecosistema de los inversionistas." },
-            { n: "04", text: "Construir las compañías que el planeta necesita." },
-          ].map(({ n, text }) => (
-            <div key={n} className="relative bg-white/5 border border-white/10 rounded-2xl p-6 overflow-hidden group hover:border-[#00e5c0]/40 transition-all">
-              <div className="absolute -top-4 -right-2 text-8xl font-black text-white/5 group-hover:text-[#00e5c0]/10 transition-colors select-none">{n}</div>
-              <p className="text-white/70 text-sm leading-relaxed relative z-10">{text}</p>
+            { img: "/ifsp/obj-a.webp", text: "Enseñarte a que tu compañía tenga un tamaño de interés mayor a lo que quieres levantar." },
+            { img: "/ifsp/obj-b.webp", text: "Darte la posibilidad de que puedas escoger a los mejores inversores en tus próximas rondas." },
+            { img: "/ifsp/obj-c.webp", text: "Hacer tu compañía más atractiva y visible en el ecosistema de los inversionistas." },
+            { img: "/ifsp/obj-d.webp", text: "Construir las compañías que el planeta necesita." },
+          ].map(({ img, text }) => (
+            <div key={img} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/40 transition-all flex flex-col items-center text-center gap-4">
+              <Image src={img} alt="" width={80} height={80} className="object-contain" />
+              <p className="text-white/70 text-sm leading-relaxed">{text}</p>
             </div>
           ))}
         </div>
@@ -262,16 +260,16 @@ export default function LandingPage() {
           </h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-6">
             {[
-              { icon: "📚", label: "Conocimiento" },
-              { icon: "🤝", label: "Network" },
-              { icon: "🌍", label: "Comunidad" },
-              { icon: "📈", label: "Crecimiento" },
-              { icon: "👁", label: "Visibilidad" },
-              { icon: "🏆", label: "Reconocimiento" },
-            ].map(({ icon, label }) => (
+              { img: "/ifsp/icon-conocimiento.webp", label: "Conocimiento" },
+              { img: "/ifsp/icon-networking.webp", label: "Network" },
+              { img: "/ifsp/icon-comunidad.webp", label: "Comunidad" },
+              { img: "/ifsp/icon-crecimiento.webp", label: "Crecimiento" },
+              { img: "/ifsp/icon-visibilidad.webp", label: "Visibilidad" },
+              { img: "/ifsp/icon-reconocimiento.webp", label: "Reconocimiento" },
+            ].map(({ img, label }) => (
               <div key={label} className="flex flex-col items-center gap-3 text-center group">
-                <div className="w-16 h-16 rounded-full bg-[#00e5c0]/10 border border-[#00e5c0]/20 flex items-center justify-center text-2xl group-hover:bg-[#00e5c0]/20 transition-colors">
-                  {icon}
+                <div className="w-20 h-20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Image src={img} alt={label} width={80} height={80} className="object-contain" />
                 </div>
                 <span className="text-sm font-semibold text-white/80">{label}</span>
               </div>
@@ -484,7 +482,7 @@ export default function LandingPage() {
       {/* ── Footer ── */}
       <footer className="border-t border-white/10 py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-white/30">
-          <Image src="/logo-mf.png" alt="Modo Fundraising" width={80} height={24} className="object-contain opacity-50" />
+          <Image src="/logo-mf.png" alt="Modo Fundraising" width={60} height={38} className="object-contain brightness-0 invert opacity-40" />
           <p>© 2026 Impacta VC · hello@impacta.vc</p>
           <div className="flex gap-4">
             <span>Santiago</span>
