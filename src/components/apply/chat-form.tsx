@@ -16,6 +16,29 @@ import { ALL_COUNTRIES } from "@/lib/countries";
 
 const STORAGE_KEY = "mf2026_chat";
 
+const PHONE_CODES = [
+  { code: "+56", label: "🇨🇱 +56 Chile" },
+  { code: "+54", label: "🇦🇷 +54 Argentina" },
+  { code: "+55", label: "🇧🇷 +55 Brasil" },
+  { code: "+57", label: "🇨🇴 +57 Colombia" },
+  { code: "+52", label: "🇲🇽 +52 México" },
+  { code: "+51", label: "🇵🇪 +51 Perú" },
+  { code: "+58", label: "🇻🇪 +58 Venezuela" },
+  { code: "+593", label: "🇪🇨 +593 Ecuador" },
+  { code: "+595", label: "🇵🇾 +595 Paraguay" },
+  { code: "+598", label: "🇺🇾 +598 Uruguay" },
+  { code: "+591", label: "🇧🇴 +591 Bolivia" },
+  { code: "+1", label: "🇺🇸 +1 USA / Canadá" },
+  { code: "+34", label: "🇪🇸 +34 España" },
+  { code: "+44", label: "🇬🇧 +44 Reino Unido" },
+  { code: "+49", label: "🇩🇪 +49 Alemania" },
+  { code: "+33", label: "🇫🇷 +33 Francia" },
+  { code: "+39", label: "🇮🇹 +39 Italia" },
+  { code: "+972", label: "🇮🇱 +972 Israel" },
+  { code: "+971", label: "🇦🇪 +971 Emiratos" },
+  { code: "+65", label: "🇸🇬 +65 Singapur" },
+];
+
 const INDUSTRIES = [
   "AgriTech", "BioTech", "CleanTech", "ClimaTech", "ConstructionTech",
   "EdTech", "EnergyTech", "FinTech", "FoodTech", "GovTech", "HealthTech",
@@ -33,7 +56,7 @@ type InternalKeys = "_add_ref_2" | "_add_ref_3";
 type FormState = Partial<ApplicationFormData> & { [K in InternalKeys]?: "Sí" | "No" };
 
 type QuestionType =
-  | "text" | "email" | "tel" | "number" | "url"
+  | "text" | "email" | "tel" | "phone" | "number" | "url"
   | "textarea" | "select" | "radio" | "multiselect"
   | "file" | "checkbox";
 
@@ -52,10 +75,10 @@ const QUESTIONS: Question[] = [
   { id: "first_name", text: "¡Hola! Soy el asistente de postulación de Impacta VC.\n\n¿Cuál es tu nombre?", type: "text" },
   { id: "last_name", text: "¿Y tu apellido?", type: "text" },
   { id: "email", text: "¿Cuál es tu email de contacto?", type: "email" },
-  { id: "whatsapp", text: "¿Número de WhatsApp? (con código de país)", type: "tel", help: "Ejemplo: +56912345678" },
+  { id: "whatsapp", text: "¿Cuál es tu número de WhatsApp?", type: "phone" },
   { id: "linkedin_founder", text: "¿URL de tu perfil de LinkedIn?", type: "url", help: "https://linkedin.com/in/..." },
   { id: "founder_role", text: "¿Cuál es tu rol en la startup?", type: "radio", options: ["CEO", "CTO", "COO", "CMO", "CFO", "Co-founder", "Otro"] },
-  { id: "country_residence", text: "¿En qué país vivís actualmente?", type: "select", options: ALL_COUNTRIES },
+  { id: "country_residence", text: "¿En qué país vives actualmente?", type: "select", options: ALL_COUNTRIES },
 
   // S2 — Startup
   { id: "startup_name", text: "¿Cómo se llama tu startup?", type: "text" },
@@ -63,11 +86,11 @@ const QUESTIONS: Question[] = [
   { id: "startup_linkedin", text: "¿LinkedIn de la startup?", type: "url", help: "https://linkedin.com/company/..." },
   { id: "startup_country_ops", text: "¿Cuál es el país principal de operaciones?", type: "select", options: ALL_COUNTRIES },
   { id: "startup_countries_expansion", text: "¿En qué países operan o quieren operar en los próximos 18 meses?", type: "multiselect", options: ALL_COUNTRIES, help: "Selecciona todos los que apliquen" },
-  { id: "startup_description", text: "Describí tu startup en 1–2 frases. ¿Qué problema resuelven y para quién?", type: "textarea" },
+  { id: "startup_description", text: "Describe tu startup en 1–2 frases. ¿Qué problema resuelven y para quién?", type: "textarea" },
   { id: "startup_industries", text: "¿En qué verticales o industrias operan?", type: "multiselect", options: INDUSTRIES, help: "Selecciona todas las que apliquen" },
-  { id: "startup_industry_other", text: "¿Cuál es la vertical? Especificá.", type: "text", optional: true, condition: (d) => Array.isArray(d.startup_industries) && d.startup_industries.includes("Otro") },
+  { id: "startup_industry_other", text: "¿Cuál es la vertical? Especifica.", type: "text", optional: true, condition: (d) => Array.isArray(d.startup_industries) && d.startup_industries.includes("Otro") },
   { id: "business_model", text: "¿Cuál es el modelo de negocio?", type: "radio", options: ["B2B", "B2C", "B2B2C", "Marketplace", "SaaS", "Otro"] },
-  { id: "business_model_other", text: "¿Cuál es el modelo? Especificá.", type: "text", optional: true, condition: (d) => d.business_model === "Otro" },
+  { id: "business_model_other", text: "¿Cuál es el modelo? Especifica.", type: "text", optional: true, condition: (d) => d.business_model === "Otro" },
   { id: "startup_stage", text: "¿En qué etapa está la startup?", type: "radio", options: ["Idea / Patent", "Prototype / MVP", "Early Revenue / Product Market-Fit", "Scaling / Go-To-Market", "Growth / Expansion"] },
   { id: "founder_team_women", text: "¿Hay al menos una mujer en el founding team?", type: "radio", options: ["Sí", "No"] },
   { id: "startup_usa_intl", text: "¿Tienen intención de internacionalizarse a USA en los próximos 18 meses?", type: "radio", options: ["Sí", "No", "Ya operamos en USA"] },
@@ -85,44 +108,42 @@ const QUESTIONS: Question[] = [
   { id: "round_open", text: "¿Están levantando ronda actualmente?", type: "radio", options: ["Sí", "No (pero la iniciaremos en los próximos 12 meses)"] },
   { id: "round_series", text: "¿Qué tipo de ronda es?", type: "radio", options: ["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"] },
   { id: "round_size", text: "¿Cuál es el tamaño objetivo de la ronda (USD)?", type: "number", help: "Monto total que buscan levantar" },
+  { id: "startup_valuation", text: "¿Cuál es la valuación actual de tu startup (USD)?", type: "number", optional: true, help: "Pre-money. Si no tienen valuación definida, puedes saltarlo." },
   { id: "round_tickets", text: "¿Qué rango de ticket buscan por inversor?", type: "multiselect", options: TICKET_SIZES },
   { id: "runway", text: "¿Cuántos meses de runway tienen actualmente?", type: "number", help: "Meses que pueden operar con la caja actual" },
 
   // S6 — Deck
-  { id: "deck_url", text: "¿Dónde está tu Pitch Deck?", type: "url", help: "Google Drive, Dropbox, Notion. Asegurate que el link sea público." },
+  { id: "deck_url", text: "Sube tu deck acá:", type: "url", help: "Google Drive, Dropbox, Notion. Asegúrate de que el link sea público." },
 
   // S7 — Recomendadores
-  { id: "referral_code", text: "¿Tenés un código de referido? (opcional)", type: "text", optional: true, help: "Ejemplo: ALUMNIMF. Podés saltearlo." },
-  { id: "has_referrals", text: "¿Querés sumar recomendadores a tu postulación? Suma puntos al perfil.", type: "radio", options: ["Sí", "No"] },
+  { id: "referral_code", text: "¿Tienes un código de referido? (opcional)", type: "text", optional: true, help: "Puedes saltarlo si no tienes." },
+  { id: "has_referrals", text: "¿Quieres sumar recomendadores a tu postulación? Suma puntos al perfil.", type: "radio", options: ["Sí", "No"] },
 
   // Referral 1
-  { id: "referral_1_name", text: "Nombre del primer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" },
-  { id: "referral_1_lastname", text: "Apellido del primer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" },
+  { id: "referral_1_name", text: "Nombre y apellido del primer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" },
   { id: "referral_1_email", text: "Email del primer recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" },
   { id: "referral_1_linkedin", text: "LinkedIn del primer recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" },
-  { id: "referral_1_relation", text: "¿Quién es y cómo lo conocés?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" },
-  { id: "_add_ref_2", text: "¿Querés agregar otro recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" },
+  { id: "referral_1_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" },
+  { id: "_add_ref_2", text: "¿Quieres agregar otro recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" },
 
   // Referral 2
-  { id: "referral_2_name", text: "Nombre del segundo recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
-  { id: "referral_2_lastname", text: "Apellido", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
+  { id: "referral_2_name", text: "Nombre y apellido del segundo recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
   { id: "referral_2_email", text: "Email del segundo recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
   { id: "referral_2_linkedin", text: "LinkedIn del segundo recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
-  { id: "referral_2_relation", text: "¿Quién es y cómo lo conocés?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
-  { id: "_add_ref_3", text: "¿Querés agregar un tercer recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
+  { id: "referral_2_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
+  { id: "_add_ref_3", text: "¿Quieres agregar un tercer recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
 
   // Referral 3
-  { id: "referral_3_name", text: "Nombre del tercer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
-  { id: "referral_3_lastname", text: "Apellido", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
+  { id: "referral_3_name", text: "Nombre y apellido del tercer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
   { id: "referral_3_email", text: "Email del tercer recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
   { id: "referral_3_linkedin", text: "LinkedIn del tercer recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
-  { id: "referral_3_relation", text: "¿Quién es y cómo lo conocés?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
+  { id: "referral_3_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
 
   // S8 — Programa
   { id: "program_source", text: "¿Cómo supiste de Modo Fundraising 2026?", type: "radio", options: ["Redes sociales", "Recomendación personal", "Ambassador", "Newsletter", "Evento", "Prensa / medios", "Otro"] },
-  { id: "ias_interested", text: "¿Querés ser considerado para IAS — sesiones 1:1 pagadas con mentor?", type: "radio", options: ["Sí", "No"], help: "Sesiones de 30 min semanales con mentor del equipo Impacta VC. Detalle y costo se comparte post-admisión." },
-  { id: "startup_logo_url", text: "¿Querés subir el logo de tu startup? (opcional)", type: "file", optional: true, help: "PNG, JPG o SVG. Máx 5MB. Preferible fondo transparente." },
-  { id: "accept_legal_terms", text: "Último paso: leé y aceptá las Bases Legales de Modo Fundraising 2026 para enviar tu postulación.", type: "checkbox" },
+  { id: "ias_interested", text: "¿Quieres ser considerado para IAS — sesiones 1:1 pagadas con mentor?", type: "radio", options: ["Sí", "No"], help: "Sesiones de 30 min semanales con mentor del equipo Impacta VC. Detalle y costo se comparte post-admisión." },
+  { id: "startup_logo_url", text: "¿Quieres subir el logo de tu startup? (opcional)", type: "file", optional: true, help: "PNG, JPG o SVG. Máx 5MB. Preferible fondo transparente." },
+  { id: "accept_legal_terms", text: "Último paso: lee y acepta las Bases Legales de Modo Fundraising 2026 para enviar tu postulación.", type: "checkbox" },
 ];
 
 function validateField(q: Question, val: unknown): string | null {
@@ -180,6 +201,8 @@ export function ChatForm({ onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [phoneCode, setPhoneCode] = useState("+56");
+  const [phoneNum, setPhoneNum] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -201,7 +224,7 @@ export function ChatForm({ onSuccess }: Props) {
     const initMessages: Message[] = [];
 
     if (startIdx > 0 && firstIdx < QUESTIONS.length) {
-      initMessages.push({ from: "bot", text: "¡Bienvenido de nuevo! Retomamos tu postulación donde la dejaste 👋" });
+      initMessages.push({ from: "bot", text: "¡Bienvenido de nuevo! Retomamos tu postulación donde la dejaste." });
     }
 
     if (firstIdx < QUESTIONS.length) {
@@ -298,7 +321,7 @@ export function ChatForm({ onSuccess }: Props) {
         if (err.code === "DUPLICATE_EMAIL") {
           toast.error("Ya existe una postulación con este email.");
         } else {
-          toast.error("Error al enviar. Intentá nuevamente.");
+          toast.error("Error al enviar. Intenta nuevamente.");
         }
         setSubmitting(false);
         return;
@@ -307,7 +330,7 @@ export function ChatForm({ onSuccess }: Props) {
       localStorage.removeItem(STORAGE_KEY);
       onSuccess();
     } catch {
-      toast.error("Error de conexión. Intentá nuevamente.");
+      toast.error("Error de conexión. Intenta nuevamente.");
       setSubmitting(false);
     }
   }
@@ -334,6 +357,39 @@ export function ChatForm({ onSuccess }: Props) {
             className={inputCls}
             autoFocus
           />
+        );
+
+      case "phone":
+        return (
+          <div className="flex gap-2">
+            <select
+              value={phoneCode}
+              onChange={(e) => {
+                setPhoneCode(e.target.value);
+                setInputVal(`${e.target.value}${phoneNum}`);
+                setError(null);
+              }}
+              className="rounded-lg border border-white/20 bg-slate-800 text-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/30 w-44 flex-shrink-0"
+            >
+              {PHONE_CODES.map((c) => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
+            </select>
+            <Input
+              type="text"
+              value={phoneNum}
+              onChange={(e) => {
+                const num = e.target.value.replace(/\D/g, "");
+                setPhoneNum(num);
+                setInputVal(`${phoneCode}${num}`);
+                setError(null);
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleNext(); }}
+              placeholder="912345678"
+              className={inputCls}
+              autoFocus
+            />
+          </div>
         );
 
       case "number":
@@ -368,7 +424,7 @@ export function ChatForm({ onSuccess }: Props) {
             onChange={(e) => { setInputVal(e.target.value); setError(null); }}
             className="w-full rounded-lg border border-white/20 bg-slate-800 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
           >
-            <option value="">Seleccioná una opción</option>
+            <option value="">Selecciona una opción</option>
             {q.options?.map((o) => (
               <option key={o} value={o}>{o}</option>
             ))}
@@ -418,8 +474,8 @@ export function ChatForm({ onSuccess }: Props) {
             ) : (
               <label className="cursor-pointer">
                 <span className="text-sm text-white/60">
-                  Arrastrá tu logo aquí o{" "}
-                  <span className="text-blue-400 font-medium">hacé clic para seleccionar</span>
+                  Arrastra tu logo aquí o{" "}
+                  <span className="text-blue-400 font-medium">haz clic para seleccionar</span>
                 </span>
                 <input
                   type="file"
