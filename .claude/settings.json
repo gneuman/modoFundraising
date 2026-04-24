@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pandoc --version)",
+      "Bash(md-to-pdf --version)",
+      "Bash(npx --yes md-to-pdf --version)",
+      "Bash(pandoc docs/setup-stripe.md -o docs/setup-stripe.pdf --pdf-engine=wkhtmltopdf)",
+      "Bash(pandoc docs/setup-stripe.md -o docs/setup-stripe.pdf)",
+      "Bash(where pandoc *)",
+      "Bash(where wkhtmltopdf *)",
+      "Bash(where chromium *)",
+      "Bash(where google-chrome *)",
+      "Bash(npx md-to-pdf *)"
+    ]
+  }
+}
