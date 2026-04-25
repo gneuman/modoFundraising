@@ -28,11 +28,14 @@ export async function verificarTokenMagic(token: string): Promise<string | null>
   }
 }
 
-// ── Cookie de sesión (7 días) ─────────────────────────────────────────────────
+// ── Cookie de sesión (90 días, renovación automática) ────────────────────────
+const DURACION_SESION_DIAS = 90;
+const DURACION_SESION_SEGUNDOS = 60 * 60 * 24 * DURACION_SESION_DIAS;
+
 export async function crearSesion(payload: PayloadSesion) {
   const token = await new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
+    .setExpirationTime(`${DURACION_SESION_DIAS}d`)
     .setIssuedAt()
     .sign(SECRETO_SESION);
 
@@ -41,7 +44,7 @@ export async function crearSesion(payload: PayloadSesion) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: DURACION_SESION_SEGUNDOS,
     path: "/",
   });
 }
@@ -52,7 +55,24 @@ export async function obtenerSesion(): Promise<PayloadSesion | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, SECRETO_SESION);
-    return payload as unknown as PayloadSesion;
+    const sesion: PayloadSesion = {
+      email: payload.email as string,
+      role: payload.role as "admin" | "founder",
+      recordId: payload.recordId as string | undefined,
+    };
+
+    // Renovación deslizante: si la cookie tiene más de 1 día, renovar
+    const emitidoEn = (payload.iat as number | undefined) ?? 0;
+    const ahora = Math.floor(Date.now() / 1000);
+    if (ahora - emitidoEn > 60 * 60 * 24) {
+      try {
+        await crearSesion(sesion);
+      } catch {
+        // No bloquear la request si falla la renovación
+      }
+    }
+
+    return sesion;
   } catch {
     return null;
   }
