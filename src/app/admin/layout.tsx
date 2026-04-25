@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { obtenerSesion } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/sidebar";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await obtenerSesion();
   if (!session || session.role !== "admin") redirect("/auth/login");
