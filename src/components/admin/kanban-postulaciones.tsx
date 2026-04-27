@@ -181,7 +181,7 @@ function KanbanCard({
 // ─── Drop Column ──────────────────────────────────────────────────────────────
 
 function DropColumn({
-  col, cards, onAdmit, onReject, onSinRespuesta, onActions, updating, onDragStart, onDrop, dragOver, setDragOver,
+  col, cards, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, updating, onDragStart, onDrop, dragOver, setDragOver,
 }: {
   col: typeof COLUMNS[0];
   cards: ApplicationRecord[];
