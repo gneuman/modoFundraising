@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { Search, ExternalLink, CheckCircle, XCircle, X, Loader2 } from "lucide-react";
+import { Search, ExternalLink, CheckCircle, XCircle, X, Loader2, BellOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,8 +11,8 @@ import type { ApplicationRecord, ApplicationStatus } from "@/lib/airtable";
 const STATUS_TABS: { label: string; value: ApplicationStatus | "all" }[] = [
   { label: "Todas", value: "all" },
   { label: "Nuevas", value: "Nueva postulación" },
-  { label: "En revisión", value: "En revisión" },
   { label: "Admitidas", value: "Admitida" },
+  { label: "Sin respuesta", value: "Sin Respuesta" },
   { label: "Rechazadas", value: "Rechazada" },
   { label: "Inscritas", value: "Inscrita" },
   { label: "Churn", value: "Churn" },
@@ -71,6 +71,24 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
       founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(),
       reason: "",
     });
+  }
+
+  async function marcarSinRespuesta(a: ApplicationRecord) {
+    setUpdating(a.id!);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: a.id, status: "Sin Respuesta" }),
+      });
+      if (!res.ok) throw new Error();
+      setData((prev) => prev.map((r) => r.id === a.id ? { ...r, status: "Sin Respuesta" } : r));
+      toast.success(`${a.startup_name} marcada como Sin respuesta`);
+    } catch {
+      toast.error("Error al actualizar estado");
+    } finally {
+      setUpdating(null);
+    }
   }
 
   async function confirmAction() {
@@ -202,26 +220,38 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {(a.status === "Nueva postulación" || a.status === "En revisión") && (
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      {a.status === "Nueva postulación" && (
+                        <>
+                          <button
+                            onClick={() => openModal("Admitida", a)}
+                            disabled={updating === a.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium transition-colors"
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            Admitir
+                          </button>
+                          <button
+                            onClick={() => openModal("Rechazada", a)}
+                            disabled={updating === a.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium transition-colors"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            Rechazar
+                          </button>
+                        </>
+                      )}
+                      {a.status === "Admitida" && (
                         <button
-                          onClick={() => openModal("Admitida", a)}
+                          onClick={() => marcarSinRespuesta(a)}
                           disabled={updating === a.id}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium transition-colors"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 text-xs font-medium transition-colors"
                         >
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          Admitir
+                          <BellOff className="h-3.5 w-3.5" />
+                          Sin respuesta
                         </button>
-                        <button
-                          onClick={() => openModal("Rechazada", a)}
-                          disabled={updating === a.id}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium transition-colors"
-                        >
-                          <XCircle className="h-3.5 w-3.5" />
-                          Rechazar
-                        </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-zinc-400">
                     {a.created_at ? new Date(a.created_at as string).toLocaleDateString("es") : "-"}

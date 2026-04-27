@@ -4,7 +4,7 @@ import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   ExternalLink, CheckCircle, XCircle, X, Loader2,
-  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2,
+  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,7 @@ function getAlerts(a: ApplicationRecord, days: number): Alert[] {
 // ─── Modals ───────────────────────────────────────────────────────────────────
 
 interface StatusModal {
-  type: "Admitida" | "Rechazada";
+  type: "Admitida" | "Rechazada" | "Rechazada por founder";
   recordId: string;
   startupName: string;
   founderName: string;
@@ -63,11 +63,13 @@ interface ActionsModal {
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 function KanbanCard({
-  a, onAdmit, onReject, onActions, updating, onDragStart,
+  a, onAdmit, onReject, onSinRespuesta, onActions, updating, onDragStart,
 }: {
   a: ApplicationRecord;
   onAdmit: (a: ApplicationRecord) => void;
   onReject: (a: ApplicationRecord) => void;
+  onSinRespuesta: (a: ApplicationRecord) => void;
+  onRechazadoFounder: (a: ApplicationRecord) => void;
   onActions: (a: ApplicationRecord) => void;
   updating: string | null;
   onDragStart: (id: string) => void;
@@ -145,18 +147,32 @@ function KanbanCard({
           <span className="text-xs text-zinc-300">{days}d</span>
         </div>
 
-        {canAct && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => onAdmit(a)} disabled={updating === a.id} title="Admitir"
-              className="p-1.5 rounded-lg hover:bg-blue-50 text-zinc-300 hover:text-blue-600 transition-colors">
-              <CheckCircle className="h-4 w-4" />
-            </button>
-            <button onClick={() => onReject(a)} disabled={updating === a.id} title="Rechazar"
-              className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-300 hover:text-red-500 transition-colors">
-              <XCircle className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {canAct && (
+            <>
+              <button onClick={() => onAdmit(a)} disabled={updating === a.id} title="Admitir"
+                className="p-1.5 rounded-lg hover:bg-blue-50 text-zinc-300 hover:text-blue-600 transition-colors">
+                <CheckCircle className="h-4 w-4" />
+              </button>
+              <button onClick={() => onReject(a)} disabled={updating === a.id} title="Rechazar"
+                className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-300 hover:text-red-500 transition-colors">
+                <XCircle className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          {a.status === "Admitida" && (
+            <>
+              <button onClick={() => onSinRespuesta(a)} disabled={updating === a.id} title="Sin respuesta"
+                className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-300 hover:text-zinc-500 transition-colors">
+                <BellOff className="h-4 w-4" />
+              </button>
+              <button onClick={() => onRechazadoFounder(a)} disabled={updating === a.id} title="Rechazado por founder"
+                className="p-1.5 rounded-lg hover:bg-orange-50 text-zinc-300 hover:text-orange-500 transition-colors">
+                <XCircle className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -165,12 +181,14 @@ function KanbanCard({
 // ─── Drop Column ──────────────────────────────────────────────────────────────
 
 function DropColumn({
-  col, cards, onAdmit, onReject, onActions, updating, onDragStart, onDrop, dragOver, setDragOver,
+  col, cards, onAdmit, onReject, onSinRespuesta, onActions, updating, onDragStart, onDrop, dragOver, setDragOver,
 }: {
   col: typeof COLUMNS[0];
   cards: ApplicationRecord[];
   onAdmit: (a: ApplicationRecord) => void;
   onReject: (a: ApplicationRecord) => void;
+  onSinRespuesta: (a: ApplicationRecord) => void;
+  onRechazadoFounder: (a: ApplicationRecord) => void;
   onActions: (a: ApplicationRecord) => void;
   updating: string | null;
   onDragStart: (id: string) => void;
@@ -209,7 +227,7 @@ function DropColumn({
           </div>
         )}
         {cards.map((a) => (
-          <KanbanCard key={a.id} a={a} onAdmit={onAdmit} onReject={onReject} onActions={onActions} updating={updating} onDragStart={onDragStart} />
+          <KanbanCard key={a.id} a={a} onAdmit={onAdmit} onReject={onReject} onSinRespuesta={onSinRespuesta} onRechazadoFounder={onRechazadoFounder} onActions={onActions} updating={updating} onDragStart={onDragStart} />
         ))}
       </div>
     </div>
@@ -424,6 +442,12 @@ export function KanbanPostulaciones({ initialData, coupons }: {
   function openReject(a: ApplicationRecord) {
     setStatusModal({ type: "Rechazada", recordId: a.id!, startupName: a.startup_name ?? "", founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(), reason: "" });
   }
+  async function marcarSinRespuesta(a: ApplicationRecord) {
+    await applyStatus(a.id!, "Sin Respuesta");
+  }
+  function openRechazadoFounder(a: ApplicationRecord) {
+    setStatusModal({ type: "Rechazada por founder", recordId: a.id!, startupName: a.startup_name ?? "", founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(), reason: "" });
+  }
 
   async function applyStatus(recordId: string, status: ApplicationStatus, reason?: string) {
     setUpdating(recordId);
@@ -479,6 +503,8 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             cards={byColumn[col.id] ?? []}
             onAdmit={openAdmit}
             onReject={openReject}
+            onSinRespuesta={marcarSinRespuesta}
+            onRechazadoFounder={openRechazadoFounder}
             onActions={(a) => setActionsModal({ app: a })}
             updating={updating}
             onDragStart={onDragStart}
@@ -507,7 +533,7 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-bold text-zinc-800">
-                  {statusModal.type === "Admitida" ? "✅ Admitir postulación" : "Rechazar postulación"}
+                  {statusModal.type === "Admitida" ? "✅ Admitir postulación" : statusModal.type === "Rechazada por founder" ? "Rechazado por founder" : "Rechazar postulación"}
                 </h3>
                 <p className="text-sm text-zinc-500 mt-0.5">{statusModal.startupName} — {statusModal.founderName}</p>
               </div>
@@ -517,13 +543,19 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-700">
-                {statusModal.type === "Admitida" ? "Nota de admisión (opcional)" : "Razón de rechazo"}
+                {statusModal.type === "Admitida"
+                  ? "Nota de admisión (opcional)"
+                  : statusModal.type === "Rechazada por founder"
+                  ? "¿Por qué rechazó el founder? *"
+                  : "Razón de rechazo (opcional)"}
               </label>
               <textarea
                 value={statusModal.reason}
                 onChange={(e) => setStatusModal((m) => m ? { ...m, reason: e.target.value } : m)}
                 placeholder={statusModal.type === "Admitida"
                   ? "Excelente tracción, encaja perfecto con el programa..."
+                  : statusModal.type === "Rechazada por founder"
+                  ? "El founder indicó que el precio no se ajusta a su presupuesto..."
                   : "El MRR no cumple el mínimo requerido para esta cohorte..."}
                 rows={3}
                 className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -537,6 +569,10 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             <div className="flex gap-3">
               <Button
                 onClick={async () => {
+                  if (statusModal.type === "Rechazada por founder" && !statusModal.reason.trim()) {
+                    toast.error("Indicá la razón del rechazo del founder");
+                    return;
+                  }
                   await applyStatus(statusModal.recordId, statusModal.type as ApplicationStatus, statusModal.reason || undefined);
                   setStatusModal(null);
                 }}
