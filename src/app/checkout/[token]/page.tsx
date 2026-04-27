@@ -20,7 +20,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
     <div className="min-h-screen bg-zinc-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-zinc-100 px-6 py-4">
-        <Image src="/logo-mf.png" alt="Modo Fundraising" width={140} height={48} className="object-contain" />
+        <Image src="/logo-mf-azul.png" alt="Modo Fundraising" width={140} height={48} className="object-contain" />
       </header>
 
       <main className="flex-1 flex items-start justify-center px-4 py-12">

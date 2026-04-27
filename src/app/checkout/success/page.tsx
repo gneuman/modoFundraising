@@ -5,7 +5,7 @@ export default function CheckoutSuccessPage() {
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">
       <header className="bg-white border-b border-zinc-100 px-6 py-4">
-        <Image src="/logo-mf.png" alt="Modo Fundraising" width={140} height={48} className="object-contain" />
+        <Image src="/logo-mf-azul.png" alt="Modo Fundraising" width={140} height={48} className="object-contain" />
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4">

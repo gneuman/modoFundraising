@@ -63,7 +63,7 @@ interface ActionsModal {
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 function KanbanCard({
-  a, onAdmit, onReject, onSinRespuesta, onActions, updating, onDragStart,
+  a, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, updating, onDragStart,
 }: {
   a: ApplicationRecord;
   onAdmit: (a: ApplicationRecord) => void;

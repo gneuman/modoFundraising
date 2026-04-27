@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${montserrat.variable} ${questrial.variable}`}>
-      <body className="font-[var(--font-questrial)] antialiased bg-white text-zinc-900">
+      <body className="font-sans antialiased bg-white text-zinc-900">
         {children}
         <Toaster richColors position="top-right" />
       </body>

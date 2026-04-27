@@ -34,7 +34,7 @@ export function AdminSidebar() {
     <aside className="w-60 bg-white border-r border-zinc-100 flex flex-col shrink-0">
       <div className="p-5 border-b border-zinc-100">
         <div className="flex items-center gap-3">
-          <Image src="/logo-mf.png" alt="Modo Fundraising" width={120} height={40} className="object-contain brightness-0 invert" />
+          <Image src="/logo-mf-azul.png" alt="Modo Fundraising" width={120} height={40} className="object-contain" />
         </div>
       </div>
 
