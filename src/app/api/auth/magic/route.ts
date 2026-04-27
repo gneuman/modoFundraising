@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   const rol = esAdmin(email) ? "admin" : "founder";
   const token = await crearTokenMagic(email);
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin;
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin).replace(/\/$/, "");
   const enlace = `${base}/api/auth/verify?token=${token}&role=${rol}`;
 
   // Sin proveedor de email: devolver el enlace directo para acceso inmediato
