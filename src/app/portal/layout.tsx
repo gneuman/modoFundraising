@@ -15,6 +15,10 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!isSinAcceso && !esAdmin(session.email)) {
     const apps = await getAllApplications();
     const app = apps.find((a) => a.email === session.email);
+    console.log("[portal/layout] email:", session.email);
+    console.log("[portal/layout] apps count:", apps.length);
+    console.log("[portal/layout] matched app:", JSON.stringify(app ?? null));
+    console.log("[portal/layout] portal_access:", app?.portal_access);
     if (!app?.portal_access) redirect("/portal/sin-acceso");
   }
 
