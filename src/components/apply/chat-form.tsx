@@ -528,8 +528,8 @@ export function ChatForm({ onSuccess }: Props) {
   return (
     <div className="flex flex-col h-screen" style={{ background: "linear-gradient(135deg, #181b2f 0%, #1a0d2e 50%, #181b2f 100%)" }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
-        <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={120} height={36} className="object-contain" />
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+        <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={180} height={54} className="object-contain" />
         <div className="text-right">
           <p className="text-xs text-white/40 mb-1">Progreso</p>
           <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">

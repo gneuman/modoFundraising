@@ -52,30 +52,9 @@ function NuevaMisionForm({ clases, onCreated }: {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [claseId, setClaseId] = useState("");
-  const [diasOffset, setDiasOffset] = useState(5);
   const [form, setForm] = useState({
     titulo: "", descripcion: "", instrucciones: "", fecha_limite: "", status: "Próxima",
   });
-
-  function calcFechaLimite(id: string, dias: number) {
-    const clase = clases.find((c) => c.id === id);
-    if (clase?.fecha) {
-      const d = new Date(clase.fecha);
-      d.setDate(d.getDate() + dias);
-      return d.toISOString().slice(0, 16);
-    }
-    return "";
-  }
-
-  function onClaseChange(id: string) {
-    setClaseId(id);
-    if (id) setForm((f) => ({ ...f, fecha_limite: calcFechaLimite(id, diasOffset) }));
-  }
-
-  function onDiasChange(dias: number) {
-    setDiasOffset(dias);
-    if (claseId) setForm((f) => ({ ...f, fecha_limite: calcFechaLimite(claseId, dias) }));
-  }
 
   async function submit() {
     if (!form.titulo) return toast.error("El título es obligatorio");
@@ -87,7 +66,6 @@ function NuevaMisionForm({ clases, onCreated }: {
         body: JSON.stringify({
           ...form,
           fecha_limite: form.fecha_limite || undefined,
-          dias_offset: diasOffset,
           claseId: claseId || undefined,
         }),
       });
@@ -111,7 +89,7 @@ function NuevaMisionForm({ clases, onCreated }: {
   return (
     <div className="bg-white rounded-2xl border border-amber-200 p-5 space-y-4">
       <h3 className="font-semibold text-zinc-800">Nueva misión</h3>
-      <ClaseSelector clases={clases} value={claseId} onChange={onClaseChange} />
+      <ClaseSelector clases={clases} value={claseId} onChange={setClaseId} />
       <Input placeholder="Título *" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
       <Input placeholder="Descripción breve" value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
       <textarea placeholder="Instrucciones detalladas" value={form.instrucciones} rows={3}
@@ -119,17 +97,9 @@ function NuevaMisionForm({ clases, onCreated }: {
         className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <p className="text-xs text-zinc-500 font-medium">Días después de la clase</p>
-          <div className="flex items-center gap-2">
-            <Input type="number" min={0} max={60} value={diasOffset}
-              onChange={(e) => onDiasChange(Number(e.target.value))}
-              className="w-24 text-center" />
-            <span className="text-xs text-zinc-400">
-              {form.fecha_limite
-                ? `→ ${new Date(form.fecha_limite).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}`
-                : "días"}
-            </span>
-          </div>
+          <p className="text-xs text-zinc-500 font-medium">Fecha límite</p>
+          <Input type="date" value={form.fecha_limite ? form.fecha_limite.slice(0, 10) : ""}
+            onChange={(e) => setForm({ ...form, fecha_limite: e.target.value })} />
         </div>
         <div className="space-y-1">
           <p className="text-xs text-zinc-500 font-medium">Status</p>
@@ -212,8 +182,11 @@ function MisionRow({ mision, clases, onChange }: {
           placeholder="Instrucciones"
           className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
         <div className="grid grid-cols-2 gap-3">
-          <Input type="datetime-local" value={draft.fecha_limite}
-            onChange={(e) => setDraft({ ...draft, fecha_limite: e.target.value })} />
+          <div className="space-y-1">
+            <p className="text-xs text-zinc-500 font-medium">Fecha límite</p>
+            <Input type="date" value={draft.fecha_limite ? draft.fecha_limite.slice(0, 10) : ""}
+              onChange={(e) => setDraft({ ...draft, fecha_limite: e.target.value })} />
+          </div>
           <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}
             className="rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
             {STATUS_MISION.map((s) => <option key={s}>{s}</option>)}
@@ -260,9 +233,8 @@ function MisionRow({ mision, clases, onChange }: {
             !isCerrada && days !== null && days <= 2 ? "text-red-600" :
             !isCerrada && days !== null && days <= 5 ? "text-amber-600" : "text-zinc-400")}>
             <Clock className="h-3 w-3" />
-            {isCerrada ? formatFecha(mision.fecha_limite) :
-              days === null ? "" : days < 0 ? "Vencida" :
-              days === 0 ? "Hoy" : days === 1 ? "Mañana" : `${days}d — ${formatFecha(mision.fecha_limite)}`}
+            {days === null ? "" : days < 0 ? `Vencida — ${formatFecha(mision.fecha_limite)}` :
+              days === 0 ? "Hoy" : days === 1 ? "Mañana" : formatFecha(mision.fecha_limite)}
           </span>
         )}
         <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_COLOR[mision.status ?? "Próxima"])}>
