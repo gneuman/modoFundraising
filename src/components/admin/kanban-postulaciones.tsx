@@ -14,7 +14,6 @@ import type { ApplicationRecord, ApplicationStatus, CouponRecord } from "@/lib/a
 
 const COLUMNS: { id: ApplicationStatus; label: string; border: string; header: string }[] = [
   { id: "Nueva postulación", label: "Nueva postulación", border: "border-t-zinc-400",  header: "bg-zinc-100 text-zinc-700" },
-  { id: "En revisión",       label: "En revisión",       border: "border-t-amber-400", header: "bg-amber-50 text-amber-700" },
   { id: "Admitida",          label: "Admitida",           border: "border-t-blue-500",  header: "bg-blue-50 text-blue-700" },
   { id: "Inscrita",          label: "Inscrita",           border: "border-t-green-500", header: "bg-green-50 text-green-700" },
 ];
@@ -75,7 +74,7 @@ function KanbanCard({
 }) {
   const days = daysOld(a.created_at as string);
   const alerts = getAlerts(a, days);
-  const canAct = a.status === "Nueva postulación" || a.status === "En revisión";
+  const canAct = a.status === "Nueva postulación";
 
   return (
     <div
@@ -107,7 +106,16 @@ function KanbanCard({
         {a.startup_country_ops && <span>{a.startup_country_ops}</span>}
         {a.startup_stage && <><span className="text-zinc-200">·</span><span>{a.startup_stage}</span></>}
         {a.startup_mrr ? <><span className="text-zinc-200">·</span><span className="font-mono font-semibold text-zinc-700">${Number(a.startup_mrr).toLocaleString()}/mo</span></> : null}
+        {a.round_size ? <><span className="text-zinc-200">·</span><span className="font-mono text-emerald-700 font-semibold">Ronda ${Number(a.round_size).toLocaleString()}</span></> : null}
       </div>
+
+      {/* Referral code */}
+      {a.referral_code && (
+        <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-amber-50 text-amber-700 border-amber-200">
+          <Link2 className="h-3 w-3" />
+          <span>Ref: {a.referral_code as string}</span>
+        </div>
+      )}
 
       {/* Alerts */}
       {alerts.map((al, i) => (
@@ -509,7 +517,7 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-700">
-                {statusModal.type === "Admitida" ? "Nota de admisión (opcional)" : "Razón de rechazo (opcional)"}
+                {statusModal.type === "Admitida" ? "Nota de admisión (opcional)" : "Razón de rechazo"}
               </label>
               <textarea
                 value={statusModal.reason}
