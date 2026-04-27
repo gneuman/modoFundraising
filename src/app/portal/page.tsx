@@ -1,46 +1,34 @@
 import { obtenerSesion } from "@/lib/auth";
-import { getFounderByEmail } from "@/lib/airtable";
+import { getFounderProfile } from "@/lib/airtable";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function PortalPage() {
   const session = await obtenerSesion();
-  const app = await getFounderByEmail(session?.email ?? "");
-
-  if (!app?.portal_access) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-3">
-          <div className="text-4xl">🔒</div>
-          <h2 className="text-lg font-semibold text-zinc-700">Acceso pendiente</h2>
-          <p className="text-sm text-zinc-500">Tu acceso será habilitado una vez confirmado el pago.</p>
-        </div>
-      </div>
-    );
-  }
+  const profile = await getFounderProfile(session?.email ?? "");
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-zinc-800">
-          ¡Bienvenido/a, {app.first_name}! 👋
+          ¡Bienvenido/a, {profile?.first_name}! 👋
         </h1>
-        <p className="text-zinc-500 mt-1">{app.startup_name} — Modo Fundraising 2026</p>
+        <p className="text-zinc-500 mt-1">{profile?.startup_name} — Modo Fundraising 2026</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <p className="text-sm text-zinc-500 mb-1">Estado</p>
-          <p className="text-lg font-bold text-green-600">{app.status}</p>
+          <p className="text-lg font-bold text-green-600">{profile?.status ?? "—"}</p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <p className="text-sm text-zinc-500 mb-1">Pagos</p>
-          <p className="text-lg font-bold text-blue-600">{app.payment_status ?? "Pendiente"}</p>
+          <p className="text-lg font-bold text-blue-600">{profile?.payment_status ?? "Pendiente"}</p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <p className="text-sm text-zinc-500 mb-1">País</p>
-          <p className="text-lg font-bold text-zinc-800">{app.startup_country_ops}</p>
+          <p className="text-lg font-bold text-zinc-800">{profile?.startup_country_ops ?? "—"}</p>
         </div>
       </div>
 

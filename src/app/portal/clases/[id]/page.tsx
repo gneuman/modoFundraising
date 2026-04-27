@@ -1,6 +1,6 @@
-import { notFound, redirect } from "next/navigation";
-import { obtenerSesion, esAdmin } from "@/lib/auth";
-import { getFounderByEmail, getClaseById, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
+import { notFound } from "next/navigation";
+import { obtenerSesion } from "@/lib/auth";
+import { getClaseById, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
 import Link from "next/link";
 import {
   ChevronLeft, Calendar, Target, FileText, Link2,
@@ -123,13 +123,7 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const session = await obtenerSesion();
 
-  const isAdminUser = session?.email ? esAdmin(session.email) : false;
-  const [founder, clase] = await Promise.all([
-    isAdminUser ? Promise.resolve(null) : getFounderByEmail(session?.email ?? ""),
-    getClaseById(id),
-  ]);
-
-  if (!isAdminUser && !founder?.portal_access) redirect("/portal/sin-acceso");
+  const clase = await getClaseById(id);
   if (!clase) notFound();
 
   const embedUrl = getEmbedUrl(clase.url_grabacion);

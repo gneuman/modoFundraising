@@ -1,5 +1,5 @@
 import { obtenerSesion } from "@/lib/auth";
-import { getFounderByEmail, getClasesWithContent, type MisionRecord, type ClaseRecord, type RecursoRecord } from "@/lib/airtable";
+import { getClasesWithContent, type MisionRecord, type ClaseRecord, type RecursoRecord } from "@/lib/airtable";
 import { Target, Clock, BookOpen, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -108,22 +108,7 @@ function MisionCard({
 
 export default async function MisionesPage() {
   const session = await obtenerSesion();
-  const [founder, clases] = await Promise.all([
-    getFounderByEmail(session?.email ?? ""),
-    getClasesWithContent(),
-  ]);
-
-  if (!founder?.portal_access) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-3">
-          <div className="text-4xl">🔒</div>
-          <h2 className="text-lg font-semibold text-zinc-700">Acceso pendiente</h2>
-          <p className="text-sm text-zinc-500">Tu acceso será habilitado una vez confirmado el pago.</p>
-        </div>
-      </div>
-    );
-  }
+  const clases = await getClasesWithContent();
 
   // Flatten all missions with their parent class
   const allMisiones: { mision: MisionRecord; clase: (typeof clases)[0] }[] = [];

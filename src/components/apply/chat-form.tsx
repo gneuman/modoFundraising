@@ -554,8 +554,8 @@ export function ChatForm({ onSuccess }: Props) {
 
         {botTyping && (
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)" }}>
-              <span className="text-white text-xs font-bold">IV</span>
+            <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden border-2" style={{ borderColor: "#e5007e" }}>
+              <Image src="/ifsp/victor-lau.webp" alt="Impacta VC" width={32} height={32} className="w-full h-full object-cover" />
             </div>
             <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex gap-1 items-center">

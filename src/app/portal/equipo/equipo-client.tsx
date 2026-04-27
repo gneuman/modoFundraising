@@ -7,23 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ALL_COUNTRIES } from "@/lib/countries";
 
+interface TeamMember {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  founder_role?: string;
+  portal_access: boolean;
+}
+
 interface Props {
   founderEmail: string;
   founderName: string;
   startupName: string;
-  teamSize: number;
+  team: TeamMember[];
 }
 
-interface Invitado {
-  nombre: string;
-  email: string;
-  rol: string;
-}
-
-export function EquipoClient({ founderEmail, founderName, startupName, teamSize }: Props) {
+export function EquipoClient({ founderEmail, founderName, startupName, team }: Props) {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
-  const [invitados, setInvitados] = useState<Invitado[]>([]);
+  const [newMembers, setNewMembers] = useState<TeamMember[]>([]);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -57,7 +60,14 @@ export function EquipoClient({ founderEmail, founderName, startupName, teamSize 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al agregar miembro");
 
-      setInvitados((prev) => [...prev, { nombre: `${form.nombre} ${form.apellido}`, email: form.email, rol: form.rol }]);
+      setNewMembers((prev) => [...prev, {
+        id: Date.now().toString(),
+        email: form.email,
+        first_name: form.nombre,
+        last_name: form.apellido,
+        founder_role: form.rol,
+        portal_access: false,
+      }]);
       toast.success(`${form.nombre} fue agregado al equipo`);
       setForm({ nombre: "", apellido: "", email: "", whatsapp: "", linkedin: "", rol: "", pais: "", es_mujer: "" });
       setDone(true);
@@ -78,48 +88,63 @@ export function EquipoClient({ founderEmail, founderName, startupName, teamSize 
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-4">
-          <p className="text-sm text-zinc-500">Tamaño del equipo</p>
-          <p className="text-2xl font-bold text-zinc-800 mt-1">{teamSize} personas</p>
+          <p className="text-sm text-zinc-500">Miembros en el equipo</p>
+          <p className="text-2xl font-bold text-zinc-800 mt-1">{team.length + newMembers.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-4">
-          <p className="text-sm text-zinc-500">Agregados en esta sesión</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">{invitados.length}</p>
+          <p className="text-sm text-zinc-500">Con acceso al portal</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">{[...team, ...newMembers].filter((m) => m.portal_access).length}</p>
         </div>
       </div>
 
       {/* Miembros */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-5 py-3 bg-zinc-50 border-b border-zinc-200">
-          <h3 className="text-sm font-semibold text-zinc-700">Miembros</h3>
+          <h3 className="text-sm font-semibold text-zinc-700">Miembros ({team.length + newMembers.length})</h3>
         </div>
         <div className="divide-y divide-zinc-100">
-          <div className="flex items-center gap-4 px-5 py-4">
-            <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-              <UserCheck className="h-4 w-4 text-blue-600" />
+          {team.map((m) => (
+            <div key={m.id} className="flex items-center gap-4 px-5 py-4">
+              <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${m.email === founderEmail ? "bg-blue-100" : "bg-zinc-100"}`}>
+                {m.email === founderEmail
+                  ? <UserCheck className="h-4 w-4 text-blue-600" />
+                  : <Users className="h-4 w-4 text-zinc-500" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-zinc-800">{m.first_name} {m.last_name}</p>
+                <p className="text-sm text-zinc-500 truncate">{m.email}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {m.founder_role && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
+                    {m.founder_role}
+                  </span>
+                )}
+                <span className={`w-2 h-2 rounded-full ${m.portal_access ? "bg-green-500" : "bg-zinc-300"}`} title={m.portal_access ? "Con acceso al portal" : "Sin acceso aún"} />
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-zinc-800">{founderName}</p>
-              <p className="text-sm text-zinc-500 truncate">{founderEmail}</p>
-            </div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-              Founder
-            </span>
-          </div>
+          ))}
 
-          {invitados.map((inv) => (
-            <div key={inv.email} className="flex items-center gap-4 px-5 py-4">
+          {newMembers.map((m) => (
+            <div key={m.id} className="flex items-center gap-4 px-5 py-4 bg-green-50/40">
               <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                 <Users className="h-4 w-4 text-green-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-zinc-800">{inv.nombre}</p>
-                <p className="text-sm text-zinc-500 truncate">{inv.email}</p>
+                <p className="font-medium text-zinc-800">{m.first_name} {m.last_name}</p>
+                <p className="text-sm text-zinc-500 truncate">{m.email}</p>
               </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                {inv.rol}
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                {m.founder_role} · Recién agregado
               </span>
             </div>
           ))}
+
+          {team.length === 0 && newMembers.length === 0 && (
+            <div className="px-5 py-8 text-center text-sm text-zinc-400">
+              No hay miembros registrados aún.
+            </div>
+          )}
         </div>
       </div>
 

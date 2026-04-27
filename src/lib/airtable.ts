@@ -252,21 +252,85 @@ export async function getFounderByEmail(email: string): Promise<FounderRecord | 
   return { id: records[0].id, ...records[0].fields } as FounderRecord;
 }
 
-export async function getFounderWithStartupName(email: string): Promise<(FounderRecord & { startup_name?: string }) | null> {
-  const founder = await getFounderByEmail(email);
-  if (!founder) return null;
+export interface TeamMember {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  founder_role?: string;
+  portal_access: boolean;
+}
 
-  const postulacionIds = (founder as unknown as Record<string, unknown>)["Postulaciones MF26"] as string[] | undefined;
-  if (!postulacionIds?.length) return founder;
+export interface FounderProfile {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  portal_access: boolean;
+  stripe_customer_id?: string;
+  // from postulacion
+  postulacion_id?: string;
+  status?: ApplicationStatus;
+  payment_status?: PaymentStatus;
+  // from startup
+  startup_record_id?: string;
+  startup_name?: string;
+  startup_country_ops?: string;
+  team?: TeamMember[];
+}
+
+export async function getFounderProfile(email: string): Promise<FounderProfile | null> {
+  const records = await base(Tables.FOUNDERS)
+    .select({ filterByFormula: `{email} = "${email}"`, maxRecords: 1 })
+    .firstPage();
+  if (!records.length) return null;
+
+  const f = records[0].fields as Record<string, unknown>;
+  const profile: FounderProfile = {
+    id: records[0].id,
+    email: f.email as string ?? email,
+    first_name: f.first_name as string ?? "",
+    last_name: f.last_name as string ?? "",
+    portal_access: f.portal_access as boolean ?? false,
+    stripe_customer_id: f.stripe_customer_id as string | undefined,
+  };
+
+  const postulacionIds = f["Postulaciones MF26"] as string[] | undefined;
+  if (!postulacionIds?.length) return profile;
 
   const postulacion = await base(Tables.POSTULACIONES).find(postulacionIds[0]);
-  const startupIds = (postulacion.fields as Record<string, unknown>).startup_record as string[] | undefined;
-  if (!startupIds?.length) return founder;
+  const pf = postulacion.fields as Record<string, unknown>;
+  profile.postulacion_id = postulacion.id;
+  profile.status = pf.status as ApplicationStatus | undefined;
+  profile.payment_status = pf.payment_status as PaymentStatus | undefined;
 
-  const startup = await base(Tables.STARTUPS).find(startupIds[0]);
-  const startup_name = (startup.fields as Record<string, unknown>).startup_name as string | undefined;
+  const startupIds = pf.startup_record as string[] | undefined;
+  if (startupIds?.length) {
+    const startup = await base(Tables.STARTUPS).find(startupIds[0]);
+    const sf = startup.fields as Record<string, unknown>;
+    profile.startup_record_id = startup.id;
+    profile.startup_name = sf.startup_name as string | undefined;
+    profile.startup_country_ops = sf.startup_country_ops as string | undefined;
 
-  return { ...founder, startup_name };
+    // Fetch all founders linked to this startup
+    const founderIds = sf["Founders"] as string[] | undefined;
+    if (founderIds?.length) {
+      const founderRecords = await Promise.all(founderIds.map((id) => base(Tables.FOUNDERS).find(id)));
+      profile.team = founderRecords.map((r) => {
+        const ff = r.fields as Record<string, unknown>;
+        return {
+          id: r.id,
+          email: ff.email as string ?? "",
+          first_name: ff.first_name as string ?? "",
+          last_name: ff.last_name as string ?? "",
+          founder_role: ff.founder_role as string | undefined,
+          portal_access: ff.portal_access as boolean ?? false,
+        };
+      });
+    }
+  }
+
+  return profile;
 }
 
 export async function updateFounderAccess(

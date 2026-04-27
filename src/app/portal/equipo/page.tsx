@@ -1,31 +1,19 @@
 import { obtenerSesion } from "@/lib/auth";
-import { getFounderByEmail } from "@/lib/airtable";
+import { getFounderProfile } from "@/lib/airtable";
 import { EquipoClient } from "./equipo-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function EquipoPage() {
   const session = await obtenerSesion();
-  const app = await getFounderByEmail(session?.email ?? "");
-
-  if (!app?.portal_access) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center space-y-3">
-          <div className="text-4xl">🔒</div>
-          <h2 className="text-lg font-semibold text-zinc-700">Acceso pendiente</h2>
-          <p className="text-sm text-zinc-500">Tu acceso será habilitado una vez confirmado el pago.</p>
-        </div>
-      </div>
-    );
-  }
+  const profile = await getFounderProfile(session?.email ?? "");
 
   return (
     <EquipoClient
-      founderEmail={app.email ?? ""}
-      founderName={`${app.first_name ?? ""} ${app.last_name ?? ""}`.trim()}
-      startupName={app.startup_name ?? ""}
-      teamSize={app.startup_team_size ?? 1}
+      founderEmail={session?.email ?? ""}
+      founderName={`${profile?.first_name ?? ""} ${profile?.last_name ?? ""}`.trim()}
+      startupName={profile?.startup_name ?? ""}
+      team={profile?.team ?? []}
     />
   );
 }
