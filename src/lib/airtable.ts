@@ -449,7 +449,7 @@ export async function assignCouponToApplication(
     discount_percent: discountPercent,
   };
   if (stripeCouponId) fields.stripe_coupon_id = stripeCouponId;
-  await base(Tables.POSTULACIONES).update(recordId, fields as never);
+  await base(Tables.POSTULACIONES).update(recordId, fields as never, { typecast: true });
 }
 
 export async function updateApplicationStatus(

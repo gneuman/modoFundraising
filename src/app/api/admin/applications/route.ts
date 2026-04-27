@@ -74,14 +74,21 @@ export async function PATCH(req: NextRequest) {
       const apps = await getAllApplications();
       const app = apps.find((a) => a.id === recordId);
       if (app) {
-        // Generate a signed checkout token (7 days) with coupon info embedded
+        const discountPct = app.discount_percent ? Number(app.discount_percent) : 0;
+
+        if (discountPct === 100) {
+          // Beca completa — skip Stripe, inscribir directamente
+          await updateApplicationStatus(recordId, "Inscrita", { portal_access: true });
+          return NextResponse.json({ success: true, inscrita_directa: true });
+        }
+
         const token = await createCheckoutToken({
           airtableId: recordId,
           email: app.email!,
           firstName: app.first_name!,
           startupName: app.startup_name!,
           stripeCouponId: app.stripe_coupon_id as string | undefined,
-          discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
+          discountPercent: discountPct || undefined,
         });
 
         const checkoutUrl = `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${token}`;

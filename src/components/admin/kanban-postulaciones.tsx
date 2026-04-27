@@ -335,7 +335,7 @@ function ActionsModalView({ app, coupons, onClose, onCouponAssign, onAdmit, onRe
               </select>
               <Button
                 onClick={handleCouponSave}
-                disabled={!selectedCoupon || selectedCoupon === app.coupon_code || updating === app.id}
+                disabled={!selectedCoupon || updating === app.id}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4"
               >
                 {updating === app.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Asignar"}
