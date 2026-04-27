@@ -21,7 +21,7 @@ function email(content: string) {
 
         <!-- Logo -->
         <tr><td style="padding-bottom:24px;" align="center">
-          <img src="${APP_URL}/logo-mf.png" alt="Modo Fundraising" width="160" style="display:block;" />
+          <img src="${APP_URL}/logo-mf-azul.png" alt="Modo Fundraising" width="160" style="display:block;" />
         </td></tr>
 
         <!-- Card -->

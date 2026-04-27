@@ -1,5 +1,5 @@
 import { obtenerSesion, esAdmin } from "@/lib/auth";
-import { getAllApplications, getClasesWithContent, type ClaseRecord, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
+import { getFounderByEmail, getClasesWithContent, type ClaseRecord, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
 import { Video, Calendar, Play, BookOpen, Target, FileText, Link2, Wrench, ExternalLink, Clock } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -160,14 +160,14 @@ function ClaseRow({ clase }: { clase: ClaseFull }) {
 
 export default async function ClasesPage() {
   const session = await obtenerSesion();
-  const [apps, clases] = await Promise.all([
-    getAllApplications(),
-    getClasesWithContent(),
-  ]);
-  const app = apps.find((a) => a.email === session?.email);
   const isAdminUser = session?.email ? esAdmin(session.email) : false;
 
-  if (!isAdminUser && !app?.portal_access) redirect("/portal/sin-acceso");
+  if (!isAdminUser) {
+    const founder = await getFounderByEmail(session?.email ?? "");
+    if (!founder?.portal_access) redirect("/portal/sin-acceso");
+  }
+
+  const clases = await getClasesWithContent();
 
   const grabadas = clases.filter((c) => c.status === "Grabada").length;
   const proxima = clases.find((c) => c.status === "Próxima" || c.status === "En vivo");

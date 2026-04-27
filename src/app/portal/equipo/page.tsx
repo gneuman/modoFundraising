@@ -1,13 +1,12 @@
 import { obtenerSesion } from "@/lib/auth";
-import { getAllApplications } from "@/lib/airtable";
+import { getFounderByEmail } from "@/lib/airtable";
 import { EquipoClient } from "./equipo-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function EquipoPage() {
   const session = await obtenerSesion();
-  const apps = await getAllApplications();
-  const app = apps.find((a) => a.email === session?.email);
+  const app = await getFounderByEmail(session?.email ?? "");
 
   if (!app?.portal_access) {
     return (

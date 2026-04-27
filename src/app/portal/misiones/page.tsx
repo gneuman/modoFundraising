@@ -1,5 +1,5 @@
 import { obtenerSesion } from "@/lib/auth";
-import { getAllApplications, getClasesWithContent, type MisionRecord, type ClaseRecord, type RecursoRecord } from "@/lib/airtable";
+import { getFounderByEmail, getClasesWithContent, type MisionRecord, type ClaseRecord, type RecursoRecord } from "@/lib/airtable";
 import { Target, Clock, BookOpen, CheckCircle2, Circle, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -108,13 +108,12 @@ function MisionCard({
 
 export default async function MisionesPage() {
   const session = await obtenerSesion();
-  const [apps, clases] = await Promise.all([
-    getAllApplications(),
+  const [founder, clases] = await Promise.all([
+    getFounderByEmail(session?.email ?? ""),
     getClasesWithContent(),
   ]);
-  const app = apps.find((a) => a.email === session?.email);
 
-  if (!app?.portal_access) {
+  if (!founder?.portal_access) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-3">

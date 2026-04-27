@@ -1,18 +1,15 @@
 import Link from "next/link";
 import { obtenerSesion } from "@/lib/auth";
-import { getAllApplications } from "@/lib/airtable";
+import { getFounderByEmail } from "@/lib/airtable";
 import { Lock, ArrowRight, Mail } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function SinAccesoPage() {
   const session = await obtenerSesion();
-  const apps = await getAllApplications();
-  const app = apps.find((a) => a.email === session?.email);
+  const app = await getFounderByEmail(session?.email ?? "");
 
-  // Already applied but pending payment
   const yaAplico = !!app;
-  const estaAdmitida = app?.status === "Admitida";
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
@@ -21,20 +18,7 @@ export default async function SinAccesoPage() {
           <Lock className="h-7 w-7 text-zinc-400" />
         </div>
 
-        {estaAdmitida ? (
-          <>
-            <div className="space-y-2">
-              <h1 className="text-xl font-bold text-zinc-800">Acceso pendiente de pago</h1>
-              <p className="text-sm text-zinc-500 leading-relaxed">
-                Tu aplicación fue admitida. Revisa tu email — te enviamos un link de pago para activar tu acceso al portal.
-              </p>
-            </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-left">
-              <p className="font-semibold mb-1">¿No recibiste el email?</p>
-              <p>Escríbenos a <a href="mailto:hello@impacta.vc" className="underline font-medium">hello@impacta.vc</a> con tu email y te lo reenviamos.</p>
-            </div>
-          </>
-        ) : yaAplico ? (
+        {yaAplico ? (
           <>
             <div className="space-y-2">
               <h1 className="text-xl font-bold text-zinc-800">Tu aplicación está en revisión</h1>
