@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { obtenerSesion, esAdmin } from "@/lib/auth";
-import { getAllApplications } from "@/lib/airtable";
+import { getFounderByEmail } from "@/lib/airtable";
 import { PortalSidebar } from "@/components/portal/sidebar";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -13,13 +13,8 @@ export default async function PortalLayout({ children }: { children: React.React
   const isSinAcceso = pathname.includes("sin-acceso");
 
   if (!isSinAcceso && !esAdmin(session.email)) {
-    const apps = await getAllApplications();
-    const app = apps.find((a) => a.email === session.email);
-    console.log("[portal/layout] email:", session.email);
-    console.log("[portal/layout] apps count:", apps.length);
-    console.log("[portal/layout] matched app:", JSON.stringify(app ?? null));
-    console.log("[portal/layout] portal_access:", app?.portal_access);
-    if (!app?.portal_access) redirect("/portal/sin-acceso");
+    const founder = await getFounderByEmail(session.email);
+    if (!founder?.portal_access) redirect("/portal/sin-acceso");
   }
 
   // Sin-acceso page renders without the sidebar
