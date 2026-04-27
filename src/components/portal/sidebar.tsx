@@ -23,7 +23,10 @@ export function PortalSidebar({ email, startupName }: { email: string; startupNa
         <div className="space-y-2">
           <Image src="/logo-mf-azul.png" alt="Modo Fundraising" width={120} height={40} className="object-contain" />
           {startupName && <p className="text-sm font-semibold text-zinc-700 truncate">{startupName}</p>}
-          <p className="text-xs text-zinc-400 truncate">{email}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" title="Acceso activo al portal" />
+            <p className="text-xs text-zinc-400 truncate">{email}</p>
+          </div>
         </div>
       </div>
 
