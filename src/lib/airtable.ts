@@ -252,6 +252,23 @@ export async function getFounderByEmail(email: string): Promise<FounderRecord | 
   return { id: records[0].id, ...records[0].fields } as FounderRecord;
 }
 
+export async function getFounderWithStartupName(email: string): Promise<(FounderRecord & { startup_name?: string }) | null> {
+  const founder = await getFounderByEmail(email);
+  if (!founder) return null;
+
+  const postulacionIds = (founder as unknown as Record<string, unknown>)["Postulaciones MF26"] as string[] | undefined;
+  if (!postulacionIds?.length) return founder;
+
+  const postulacion = await base(Tables.POSTULACIONES).find(postulacionIds[0]);
+  const startupIds = (postulacion.fields as Record<string, unknown>).startup_record as string[] | undefined;
+  if (!startupIds?.length) return founder;
+
+  const startup = await base(Tables.STARTUPS).find(startupIds[0]);
+  const startup_name = (startup.fields as Record<string, unknown>).startup_name as string | undefined;
+
+  return { ...founder, startup_name };
+}
+
 export async function updateFounderAccess(
   founderRecordId: string,
   access: boolean,

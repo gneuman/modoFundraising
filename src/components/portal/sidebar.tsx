@@ -14,7 +14,7 @@ const NAV = [
   { href: "/portal/suscripcion", label: "Suscripción", icon: CreditCard },
 ];
 
-export function PortalSidebar({ email }: { email: string }) {
+export function PortalSidebar({ email, startupName }: { email: string; startupName?: string }) {
   const pathname = usePathname();
 
   return (
@@ -22,6 +22,7 @@ export function PortalSidebar({ email }: { email: string }) {
       <div className="p-5 border-b border-zinc-100">
         <div className="space-y-2">
           <Image src="/logo-mf-azul.png" alt="Modo Fundraising" width={120} height={40} className="object-contain" />
+          {startupName && <p className="text-sm font-semibold text-zinc-700 truncate">{startupName}</p>}
           <p className="text-xs text-zinc-400 truncate">{email}</p>
         </div>
       </div>

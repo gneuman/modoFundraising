@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { obtenerSesion, esAdmin } from "@/lib/auth";
-import { getFounderByEmail } from "@/lib/airtable";
+import { getFounderWithStartupName } from "@/lib/airtable";
 import { PortalSidebar } from "@/components/portal/sidebar";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -12,9 +12,12 @@ export default async function PortalLayout({ children }: { children: React.React
   const pathname = headersList.get("x-pathname") ?? headersList.get("x-invoke-path") ?? "";
   const isSinAcceso = pathname.includes("sin-acceso");
 
+  let startupName: string | undefined;
+
   if (!isSinAcceso && !esAdmin(session.email)) {
-    const founder = await getFounderByEmail(session.email);
+    const founder = await getFounderWithStartupName(session.email);
     if (!founder?.portal_access) redirect("/portal/sin-acceso");
+    startupName = founder.startup_name;
   }
 
   // Sin-acceso page renders without the sidebar
@@ -24,7 +27,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="flex h-screen bg-zinc-50">
-      <PortalSidebar email={session.email} />
+      <PortalSidebar email={session.email} startupName={startupName} />
       <main className="flex-1 overflow-y-auto">
         <div className="p-8 max-w-5xl mx-auto">{children}</div>
       </main>
