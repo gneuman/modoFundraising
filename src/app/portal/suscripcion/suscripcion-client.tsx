@@ -10,14 +10,16 @@ const PAGADO_STATUSES: PaymentStatus[] = ["Cuota 1 pagada", "Cuota 2 pagada", "C
 
 interface Props {
   paymentStatus: PaymentStatus;
+  portalAccess?: boolean;
 }
 
-export function SuscripcionClient({ paymentStatus }: Props) {
+export function SuscripcionClient({ paymentStatus, portalAccess }: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
-  const haPagado = PAGADO_STATUSES.includes(paymentStatus);
+  // portal_access = true means payment confirmed (Stripe, manual, or beca)
+  const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
 
   async function handleCancel() {
     setCancelling(true);

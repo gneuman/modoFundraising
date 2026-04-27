@@ -1,11 +1,8 @@
 import { obtenerSesion } from "@/lib/auth";
 import { getAllApplications } from "@/lib/airtable";
 import Link from "next/link";
-import { CheckoutBanner } from "./checkout-banner";
 
 export const dynamic = "force-dynamic";
-
-const PAGADO_STATUSES = ["Cuota 1 pagada", "Cuota 2 pagada", "Cuota 3 pagada"];
 
 export default async function PortalPage() {
   const session = await obtenerSesion();
@@ -24,8 +21,6 @@ export default async function PortalPage() {
     );
   }
 
-  const haPagado = PAGADO_STATUSES.includes(app.payment_status ?? "");
-
   return (
     <div className="space-y-8">
       <div>
@@ -34,8 +29,6 @@ export default async function PortalPage() {
         </h1>
         <p className="text-zinc-500 mt-1">{app.startup_name} — Modo Fundraising 2026</p>
       </div>
-
-      {!haPagado && <CheckoutBanner />}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">

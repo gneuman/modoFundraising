@@ -10,6 +10,7 @@ export default async function SuscripcionPage() {
   const app = apps.find((a) => a.email === session?.email);
 
   const paymentStatus = app?.payment_status ?? "Pendiente";
+  const portalAccess = app?.portal_access ?? false;
 
-  return <SuscripcionClient paymentStatus={paymentStatus} />;
+  return <SuscripcionClient paymentStatus={paymentStatus} portalAccess={portalAccess} />;
 }
