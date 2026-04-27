@@ -439,7 +439,10 @@ export function ChatForm({ onSuccess }: Props) {
                 key={opt}
                 type="button"
                 onClick={() => handleNext(opt)}
-                className="px-4 py-2 rounded-xl text-sm font-medium border border-white/20 bg-white/10 text-white hover:bg-blue-600 hover:border-blue-600 transition-all"
+                className="px-4 py-2 rounded-xl text-sm font-medium border border-white/20 bg-white/10 text-white transition-all hover:border-[#e5007e]"
+                style={{}}
+                onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, #e5007e, #e217cf)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
               >
                 {opt}
               </button>
@@ -475,7 +478,7 @@ export function ChatForm({ onSuccess }: Props) {
               <label className="cursor-pointer">
                 <span className="text-sm text-white/60">
                   Arrastra tu logo aquí o{" "}
-                  <span className="text-blue-400 font-medium">haz clic para seleccionar</span>
+                  <span className="font-medium" style={{ color: "#e5007e" }}>haz clic para seleccionar</span>
                 </span>
                 <input
                   type="file"
@@ -507,7 +510,7 @@ export function ChatForm({ onSuccess }: Props) {
             />
             <label htmlFor="legal" className="text-sm text-white/80 cursor-pointer leading-relaxed">
               He leído y acepto las{" "}
-              <a href="/bases-legales" target="_blank" className="text-blue-400 underline">
+              <a href="/bases-legales" target="_blank" className="underline" style={{ color: "#e5007e" }}>
                 Bases Legales de Modo Fundraising 2026
               </a>
               <span className="text-red-400 ml-1">*</span>
@@ -523,16 +526,16 @@ export function ChatForm({ onSuccess }: Props) {
   const progress = QUESTIONS.length > 0 ? Math.round((Math.max(0, qIdx) / QUESTIONS.length) * 100) : 0;
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
+    <div className="flex flex-col h-screen" style={{ background: "linear-gradient(135deg, #181b2f 0%, #1a0d2e 50%, #181b2f 100%)" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
-        <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={120} height={36} className="object-contain brightness-0 invert" />
+        <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={120} height={36} className="object-contain" />
         <div className="text-right">
           <p className="text-xs text-white/40 mb-1">Progreso</p>
           <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${progress}%`, background: "linear-gradient(90deg, #e5007e, #e217cf)" }}
             />
           </div>
         </div>
@@ -551,7 +554,7 @@ export function ChatForm({ onSuccess }: Props) {
 
         {botTyping && (
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)" }}>
               <span className="text-white text-xs font-bold">IV</span>
             </div>
             <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3">
@@ -600,7 +603,8 @@ export function ChatForm({ onSuccess }: Props) {
                 type="button"
                 onClick={() => handleNext()}
                 disabled={uploadingLogo}
-                className="bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-2"
+                className="text-white flex items-center gap-2"
+                style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)" }}
               >
                 {uploadingLogo ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Subiendo...</>

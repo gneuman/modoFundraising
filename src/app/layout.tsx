@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import { Montserrat, Questrial } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
   variable: "--font-montserrat",
+});
+
+const questrial = Questrial({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-questrial",
 });
 
 export const metadata: Metadata = {
@@ -15,8 +21,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={montserrat.variable}>
-      <body className="font-[var(--font-montserrat)] antialiased bg-white text-zinc-900">
+    <html lang="es" className={`${montserrat.variable} ${questrial.variable}`}>
+      <body className="font-[var(--font-questrial)] antialiased bg-white text-zinc-900">
         {children}
         <Toaster richColors position="top-right" />
       </body>

@@ -41,21 +41,22 @@ export default function PaginaLogin() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
+    <main className="min-h-screen flex items-center justify-center p-6" style={{ background: "linear-gradient(135deg, #181b2f 0%, #1a0d2e 50%, #181b2f 100%)" }}>
       <div className="w-full max-w-sm space-y-8">
         <div className="flex justify-center">
-          <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={160} height={48} className="object-contain" />
+          <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={180} height={54} className="object-contain" />
         </div>
         {enviado ? (
-          <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-8 text-center space-y-4">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 shadow-sm p-8 text-center space-y-4">
             {enlaceDirecto ? (
               <>
                 <div className="text-4xl">🔑</div>
-                <h2 className="text-xl font-bold text-zinc-800">Enlace de acceso listo</h2>
-                <p className="text-zinc-500 text-sm">Haz clic para ingresar (válido 15 minutos):</p>
+                <h2 className="text-xl font-bold text-white">Enlace de acceso listo</h2>
+                <p className="text-white/50 text-sm">Haz clic para ingresar (válido 15 minutos):</p>
                 <a
                   href={enlaceDirecto}
-                  className="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors"
+                  className="inline-block w-full text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-opacity hover:opacity-90"
+                  style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)" }}
                 >
                   Ingresar al portal
                 </a>
@@ -63,28 +64,34 @@ export default function PaginaLogin() {
             ) : (
               <>
                 <div className="text-4xl">📬</div>
-                <h2 className="text-xl font-bold text-zinc-800">Revisa tu email</h2>
-                <p className="text-zinc-500 text-sm">
-                  Enviamos un enlace de acceso a <strong>{email}</strong>. Válido por 15 minutos.
+                <h2 className="text-xl font-bold text-white">Revisa tu email</h2>
+                <p className="text-white/50 text-sm">
+                  Enviamos un enlace de acceso a <strong className="text-white">{email}</strong>. Válido por 15 minutos.
                 </p>
               </>
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-8">
-            <h1 className="text-xl font-bold text-zinc-800 mb-6">Acceder al portal</h1>
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 shadow-sm p-8">
+            <h1 className="text-xl font-bold text-white mb-6">Acceder al portal</h1>
             <form onSubmit={manejarEnvio} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1.5">Email</label>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">Email</label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@startup.com"
                   required
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/30 focus-visible:ring-white/30"
                 />
               </div>
-              <Button type="submit" disabled={cargando} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+              <Button
+                type="submit"
+                disabled={cargando}
+                className="w-full text-white"
+                style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)" }}
+              >
                 {cargando ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Generando...</> : "Ingresar"}
               </Button>
             </form>
