@@ -1,4 +1,4 @@
-import { obtenerSesion } from "@/lib/auth";
+import { obtenerSesionDeHeaders as obtenerSesion } from "@/lib/auth";
 import { getClasesWithContent, type ClaseRecord, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
 import { Video, Calendar, Play, BookOpen, Target, FileText, Link2, Wrench, ExternalLink, Clock } from "lucide-react";
 import Link from "next/link";

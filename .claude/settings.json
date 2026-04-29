@@ -11,6 +11,9 @@
       "Bash(where chromium *)",
       "Bash(where google-chrome *)",
       "Bash(npx md-to-pdf *)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\modoFundraising\\src\\app\\portal\\clases\\[id]"
     ]
   }
 }

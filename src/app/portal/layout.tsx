@@ -1,15 +1,17 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { obtenerSesion, esAdmin } from "@/lib/auth";
+import { esAdmin } from "@/lib/auth";
 import { getFounderProfile } from "@/lib/airtable";
 import { PortalSidebar } from "@/components/portal/sidebar";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const session = await obtenerSesion();
-  if (!session) redirect("/auth/login");
-
   const headersList = await headers();
-  const pathname = headersList.get("x-pathname") ?? headersList.get("x-invoke-path") ?? "";
+  const email = headersList.get("x-session-email");
+  const role = headersList.get("x-session-role");
+  if (!email || !role) redirect("/auth/login");
+
+  const session = { email, role: role as "admin" | "founder" };
+  const pathname = headersList.get("x-pathname") ?? "";
   const isSinAcceso = pathname.includes("sin-acceso");
 
   if (isSinAcceso) {

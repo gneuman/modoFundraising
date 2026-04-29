@@ -1,4 +1,4 @@
-import { obtenerSesion } from "@/lib/auth";
+import { obtenerSesionDeHeaders as obtenerSesion } from "@/lib/auth";
 import { getFounderProfile } from "@/lib/airtable";
 import Link from "next/link";
 

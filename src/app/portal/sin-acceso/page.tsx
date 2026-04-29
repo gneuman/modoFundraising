@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { obtenerSesion } from "@/lib/auth";
+import { obtenerSesionDeHeaders as obtenerSesion } from "@/lib/auth";
 import { getFounderProfile } from "@/lib/airtable";
 import { Lock, ArrowRight, Clock, CheckCircle, XCircle } from "lucide-react";
 
