@@ -8,7 +8,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const headersList = await headers();
   const email = headersList.get("x-session-email");
   const role = headersList.get("x-session-role");
-  if (!email || !role) return <div style={{color:"red",padding:"2rem"}}>SIN SESIÓN — email: {String(email)} role: {String(role)}</div>;
+  if (!email || !role) redirect("/auth/login");
 
   const session = { email, role: role as "admin" | "founder" };
   const pathname = headersList.get("x-pathname") ?? "";
