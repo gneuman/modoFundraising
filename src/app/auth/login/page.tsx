@@ -21,14 +21,17 @@ export default function PaginaLogin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        redirect: "follow",
         body: JSON.stringify({ email }),
       });
+      if (res.redirected) {
+        window.location.href = res.url;
+        return;
+      }
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Error al ingresar");
-        return;
       }
-      window.location.href = data.redirect;
     } catch {
       setError("Error de conexión. Intentá de nuevo.");
     } finally {

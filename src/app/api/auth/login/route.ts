@@ -3,7 +3,8 @@ import { crearSesion, esAdmin } from "@/lib/auth";
 import { getFounderByEmail } from "@/lib/airtable";
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json();
+  const body = await req.json().catch(() => ({}));
+  const { email } = body;
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "Email requerido" }, { status: 400 });
   }
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   if (esAdmin(normalized)) {
     await crearSesion({ email: normalized, role: "admin" });
-    return NextResponse.json({ ok: true, redirect: "/admin/dashboard" });
+    return NextResponse.redirect(new URL("/admin/dashboard", req.url), { status: 303 });
   }
 
   const founder = await getFounderByEmail(normalized);
@@ -21,5 +22,5 @@ export async function POST(req: NextRequest) {
   }
 
   await crearSesion({ email: normalized, role: "founder" });
-  return NextResponse.json({ ok: true, redirect: "/portal" });
+  return NextResponse.redirect(new URL("/portal", req.url), { status: 303 });
 }
