@@ -42,6 +42,7 @@ export function SuscripcionClient({ paymentStatus, portalAccess }: Props) {
       const res = await fetch("/api/stripe/portal-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ mode }),
       });
       const data = await res.json();
