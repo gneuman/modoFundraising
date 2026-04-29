@@ -3,8 +3,15 @@ import { crearTokenSesion, COOKIE_OPTS, esAdmin } from "@/lib/auth";
 import { getFounderByEmail } from "@/lib/airtable";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({}));
-  const { email } = body;
+  const contentType = req.headers.get("content-type") ?? "";
+  let email: string | undefined;
+  if (contentType.includes("application/json")) {
+    const body = await req.json().catch(() => ({}));
+    email = body.email;
+  } else {
+    const form = await req.formData().catch(() => new FormData());
+    email = form.get("email")?.toString();
+  }
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "Email requerido" }, { status: 400 });
   }
@@ -20,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   const founder = await getFounderByEmail(normalized);
   if (!founder) {
-    return NextResponse.json({ error: "No encontramos una cuenta con ese email. ¿Ya postulaste?" }, { status: 404 });
+    return NextResponse.redirect(new URL("/auth/login?error=not_found", req.url), { status: 303 });
   }
 
   const token = await crearTokenSesion({ email: normalized, role: "founder" });
