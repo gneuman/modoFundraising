@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   const token = await crearTokenSesion({ email: normalized, role: "founder" });
-  const res = NextResponse.redirect(new URL("/portal", req.url), { status: 303 });
+  const res = NextResponse.redirect(new URL("/api/auth/debug", req.url), { status: 303 });
   res.cookies.set("mf_session", token, COOKIE_OPTS);
   return res;
 }
