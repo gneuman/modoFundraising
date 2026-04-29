@@ -4,7 +4,7 @@ import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   ExternalLink, CheckCircle, XCircle, X, Loader2,
-  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff,
+  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -77,6 +77,27 @@ function KanbanCard({
   const days = daysOld(a.created_at as string);
   const alerts = getAlerts(a, days);
   const canAct = a.status === "Nueva postulación";
+  const [sendingLink, setSendingLink] = useState(false);
+
+  async function handleResendCheckout(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSendingLink(true);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: a.id, action: "resend_checkout" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error");
+      await navigator.clipboard.writeText(data.url);
+      toast.success("Link de pago copiado — reenvialo por email o WhatsApp");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al generar link");
+    } finally {
+      setSendingLink(false);
+    }
+  }
 
   return (
     <div
@@ -126,6 +147,23 @@ function KanbanCard({
         </div>
       ))}
 
+      {/* Pending payment badge for Admitida */}
+      {a.status === "Admitida" && (
+        <div className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg border bg-blue-50 text-blue-700 border-blue-200">
+          <CreditCard className="h-3 w-3 shrink-0" />
+          <span className="font-medium">Esperando pago</span>
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleResendCheckout}
+            disabled={sendingLink}
+            className="ml-auto flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold disabled:opacity-40 transition-colors"
+          >
+            {sendingLink ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+            Copiar link
+          </button>
+        </div>
+      )}
+
       {/* Coupon badge */}
       {a.coupon_code && (
         <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-purple-50 text-purple-700 border-purple-200">
@@ -162,6 +200,17 @@ function KanbanCard({
           )}
           {a.status === "Admitida" && (
             <>
+              <button
+                onClick={handleResendCheckout}
+                disabled={sendingLink || updating === a.id}
+                title="Copiar link de pago"
+                className="p-1.5 rounded-lg hover:bg-blue-50 text-zinc-300 hover:text-blue-600 transition-colors disabled:opacity-40"
+              >
+                {sendingLink
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Send className="h-4 w-4" />
+                }
+              </button>
               <button onClick={() => onSinRespuesta(a)} disabled={updating === a.id} title="Sin respuesta"
                 className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-300 hover:text-zinc-500 transition-colors">
                 <BellOff className="h-4 w-4" />

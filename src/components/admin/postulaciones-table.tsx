@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { Search, ExternalLink, CheckCircle, XCircle, X, Loader2, BellOff } from "lucide-react";
+import { Search, ExternalLink, CheckCircle, XCircle, X, Loader2, BellOff, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,7 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
   const [activeTab, setActiveTab] = useState<ApplicationStatus | "all">("all");
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [copiando, setCopiando] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
 
   // Hide rejected from "all" and "En revisión" tabs — show only when filter is active
@@ -71,6 +72,25 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
       founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(),
       reason: "",
     });
+  }
+
+  async function copiarLinkPago(a: ApplicationRecord) {
+    setCopiando(a.id!);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: a.id, action: "resend_checkout" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error");
+      await navigator.clipboard.writeText(data.url);
+      toast.success("Link de pago copiado — reenvialo por email o WhatsApp");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al generar link");
+    } finally {
+      setCopiando(null);
+    }
   }
 
   async function marcarSinRespuesta(a: ApplicationRecord) {
@@ -242,14 +262,27 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
                         </>
                       )}
                       {a.status === "Admitida" && (
-                        <button
-                          onClick={() => marcarSinRespuesta(a)}
-                          disabled={updating === a.id}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 text-xs font-medium transition-colors"
-                        >
-                          <BellOff className="h-3.5 w-3.5" />
-                          Sin respuesta
-                        </button>
+                        <>
+                          <button
+                            onClick={() => copiarLinkPago(a)}
+                            disabled={copiando === a.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-xs font-medium transition-colors disabled:opacity-50"
+                          >
+                            {copiando === a.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Send className="h-3.5 w-3.5" />
+                            }
+                            Copiar link de pago
+                          </button>
+                          <button
+                            onClick={() => marcarSinRespuesta(a)}
+                            disabled={updating === a.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 text-xs font-medium transition-colors"
+                          >
+                            <BellOff className="h-3.5 w-3.5" />
+                            Sin respuesta
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>

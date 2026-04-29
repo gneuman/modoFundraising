@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { obtenerSesion, esAdmin } from "@/lib/auth";
@@ -11,6 +13,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const pathname = headersList.get("x-pathname") ?? "";
   const isSinAcceso = pathname.includes("sin-acceso");
+  const isSuscripcion = pathname.includes("suscripcion");
 
   if (isSinAcceso) {
     return <div className="min-h-screen bg-zinc-50">{children}</div>;
@@ -18,7 +21,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   if (!esAdmin(session.email)) {
     const profile = await getFounderProfile(session.email);
-    if (!profile?.portal_access) redirect("/portal/sin-acceso");
+    if (!profile?.portal_access && !isSuscripcion) redirect("/portal/sin-acceso");
 
     return (
       <div className="flex h-screen bg-zinc-50">
