@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Loader2, AlertTriangle, CreditCard, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PaymentStatus } from "@/lib/airtable";
+import { iniciarPago } from "./actions";
 
 const PAGADO_STATUSES: PaymentStatus[] = ["Cuota 1 pagada", "Cuota 2 pagada", "Cuota 3 pagada"];
 
@@ -39,15 +40,7 @@ export function SuscripcionClient({ paymentStatus, portalAccess }: Props) {
   async function handleCheckout(mode: "subscription" | "payment") {
     setRedirecting(true);
     try {
-      const res = await fetch("/api/stripe/portal-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ mode }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Error al iniciar pago");
-      window.location.href = data.url;
+      await iniciarPago(mode);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al iniciar pago");
       setRedirecting(false);
