@@ -32,21 +32,26 @@ export async function verificarTokenMagic(token: string): Promise<string | null>
 const DURACION_SESION_DIAS = 90;
 const DURACION_SESION_SEGUNDOS = 60 * 60 * 24 * DURACION_SESION_DIAS;
 
-export async function crearSesion(payload: PayloadSesion) {
-  const token = await new SignJWT(payload as unknown as Record<string, unknown>)
+export async function crearTokenSesion(payload: PayloadSesion): Promise<string> {
+  return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime(`${DURACION_SESION_DIAS}d`)
     .setIssuedAt()
     .sign(SECRETO_SESION);
+}
 
+export const COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  maxAge: DURACION_SESION_SEGUNDOS,
+  path: "/",
+};
+
+export async function crearSesion(payload: PayloadSesion) {
+  const token = await crearTokenSesion(payload);
   const cookies_ = await cookies();
-  cookies_.set("mf_session", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: DURACION_SESION_SEGUNDOS,
-    path: "/",
-  });
+  cookies_.set("mf_session", token, COOKIE_OPTS);
 }
 
 export async function obtenerSesion(): Promise<PayloadSesion | null> {
