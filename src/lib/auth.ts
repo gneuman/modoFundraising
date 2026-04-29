@@ -1,8 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const SECRETO_SESION = new TextEncoder().encode(process.env.JWT_SECRET!);
-const SECRETO_MAGIC = new TextEncoder().encode(process.env.MAGIC_LINK_SECRET!);
+const getSecretoSesion = () => new TextEncoder().encode(process.env.JWT_SECRET!);
+const getSecretoMagic = () => new TextEncoder().encode(process.env.MAGIC_LINK_SECRET!);
 
 export type PayloadSesion = {
   email: string;
@@ -16,12 +16,12 @@ export async function crearTokenMagic(email: string) {
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("15m")
     .setIssuedAt()
-    .sign(SECRETO_MAGIC);
+    .sign(getSecretoMagic());
 }
 
 export async function verificarTokenMagic(token: string): Promise<string | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRETO_MAGIC);
+    const { payload } = await jwtVerify(token, getSecretoMagic());
     return payload.email as string;
   } catch {
     return null;
@@ -37,7 +37,7 @@ export async function crearTokenSesion(payload: PayloadSesion): Promise<string> 
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime(`${DURACION_SESION_DIAS}d`)
     .setIssuedAt()
-    .sign(SECRETO_SESION);
+    .sign(getSecretoSesion());
 }
 
 export const COOKIE_OPTS = {
@@ -59,7 +59,7 @@ export async function obtenerSesion(): Promise<PayloadSesion | null> {
   const token = cookies_.get("mf_session")?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, SECRETO_SESION);
+    const { payload } = await jwtVerify(token, getSecretoSesion());
     const sesion: PayloadSesion = {
       email: payload.email as string,
       role: payload.role as "admin" | "founder",
