@@ -42,6 +42,7 @@ export function SuscripcionClient({ paymentStatus, portalAccess }: Props) {
     try {
       await iniciarPago(mode);
     } catch (err) {
+      if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) throw err;
       toast.error(err instanceof Error ? err.message : "Error al iniciar pago");
       setRedirecting(false);
     }
