@@ -83,7 +83,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  const apps = await getAllApplications();
+  console.log("[webhook] event:", event.type);
+
+  let apps;
+  try {
+    apps = await getAllApplications();
+  } catch (err) {
+    console.error("[webhook] getAllApplications failed:", err);
+    return NextResponse.json({ error: "Airtable error" }, { status: 500 });
+  }
 
   switch (event.type) {
 
@@ -99,10 +107,12 @@ export async function POST(req: NextRequest) {
       };
 
       const airtableId = session.metadata?.airtableId;
-      if (!airtableId) break;
+      console.log("[webhook] checkout.session.completed airtableId:", airtableId, "metadata:", session.metadata);
+      if (!airtableId) { console.error("[webhook] no airtableId in metadata"); break; }
 
       const app = apps.find((a) => a.id === airtableId);
-      if (!app) break;
+      console.log("[webhook] app found:", !!app, "total apps:", apps.length);
+      if (!app) { console.error("[webhook] app not found for id:", airtableId); break; }
 
       const startupRecordId = (app.startup_record as string[] | undefined)?.[0];
       const amount = (session.amount_total ?? 34900) / 100;
@@ -127,18 +137,24 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      await activatePortalForStartup(
-        airtableId,
-        app.email,
-        app.first_name,
-        session.customer as string,
-        startupRecordId,
-        amount,
-        cuota,
-        isOneTime ? session.payment_intent as string : undefined,
-        session.subscription,
-        app.startup_name,
-      );
+      try {
+        await activatePortalForStartup(
+          airtableId,
+          app.email,
+          app.first_name,
+          session.customer as string,
+          startupRecordId,
+          amount,
+          cuota,
+          isOneTime ? session.payment_intent as string : undefined,
+          session.subscription,
+          app.startup_name,
+        );
+        console.log("[webhook] activatePortalForStartup OK");
+      } catch (err) {
+        console.error("[webhook] activatePortalForStartup failed:", err);
+        throw err;
+      }
 
       break;
     }

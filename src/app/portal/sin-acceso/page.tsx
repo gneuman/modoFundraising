@@ -12,7 +12,7 @@ export default async function SinAccesoPage() {
   const profile = session?.email ? await getFounderProfile(session.email) : null;
   const status = profile?.status;
 
-  if (status === "Admitida") {
+  if (status === "Admitida" || status === "Inscrita") {
     // Generate checkout token to show direct payment buttons
     const apps = await getAllApplications();
     const app = apps.find((a) => a.email === session?.email && a.status === "Admitida");
