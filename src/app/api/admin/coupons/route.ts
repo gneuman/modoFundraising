@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
-import { createStripeCoupon, createStripePromoCode, listCoupons } from "@/lib/stripe";
+import { createStripeCoupon, createStripePromoCode, listCoupons, STRIPE_PRICE_ID_MONTHLY } from "@/lib/stripe";
 import { createCouponRecord, getAllCoupons } from "@/lib/airtable";
 import { sendCouponLink } from "@/lib/resend";
 import { getAllApplications } from "@/lib/airtable";
@@ -65,7 +65,7 @@ export async function PUT(req: NextRequest) {
 
   const checkoutSession = await createSubscriptionCheckout({
     customerId,
-    priceId: process.env.STRIPE_PRICE_ID_MONTHLY!,
+    priceId: STRIPE_PRICE_ID_MONTHLY,
     couponId,
     successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/portal?payment=success`,
     cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/apply/success`,

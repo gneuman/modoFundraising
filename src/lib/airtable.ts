@@ -13,6 +13,9 @@ export const Tables = {
   CLASES: "Clases MF26",
   MISIONES: "Misiones MF26",
   RECURSOS: "Recursos MF26",
+  ASISTENCIAS: "Asistencias MF26",
+  MISIONES_COMPLETADAS: "Misiones Completadas MF26",
+  FEEDBACK: "Feedback MF26",
 } as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -729,12 +732,210 @@ export async function createRecurso(data: RecursoInput): Promise<string> {
   return record.id;
 }
 
+export async function getProximaClase(): Promise<ClaseRecord | null> {
+  const records = await base(Tables.CLASES)
+    .select({
+      filterByFormula: `{status} = "Próxima"`,
+      sort: [{ field: "fecha", direction: "asc" }],
+      maxRecords: 1,
+    })
+    .firstPage();
+  if (!records.length) return null;
+  return { id: records[0].id, ...records[0].fields } as ClaseRecord;
+}
+
+export async function countFoundersInscritos(): Promise<number> {
+  const records = await base(Tables.FOUNDERS)
+    .select({ filterByFormula: `{portal_access} = 1` })
+    .all();
+  return records.length;
+}
+
 export async function getClaseById(id: string): Promise<(ClaseRecord & {
   misionesData: MisionRecord[];
   recursosData: RecursoRecord[];
 }) | null> {
   const all = await getClasesWithContent();
   return all.find((c) => c.id === id) ?? null;
+}
+
+// ─── Asistencias ──────────────────────────────────────────────────────────────
+
+export interface AsistenciaRecord {
+  id?: string;
+  id_asistencia?: string;
+  startup_record?: string[];
+  clase_record?: string[];
+  asistio?: boolean;
+  fecha?: string;
+  notas?: string;
+}
+
+export async function createAsistencia(data: {
+  startupId: string;
+  claseId: string;
+  asistio: boolean;
+  fecha?: string;
+  notas?: string;
+}): Promise<string> {
+  const record = await base(Tables.ASISTENCIAS).create({
+    id_asistencia: `${data.startupId}-${data.claseId}`,
+    startup_record: [data.startupId],
+    clase_record: [data.claseId],
+    asistio: data.asistio,
+    fecha: data.fecha ?? new Date().toISOString().split("T")[0],
+    notas: data.notas ?? "",
+  } as never);
+  return record.id;
+}
+
+export async function upsertAsistencia(data: {
+  startupId: string;
+  claseId: string;
+  asistio: boolean;
+  fecha?: string;
+  notas?: string;
+}): Promise<void> {
+  const existing = await base(Tables.ASISTENCIAS)
+    .select({
+      filterByFormula: `AND(SEARCH("${data.startupId}", ARRAYJOIN({startup_record})), SEARCH("${data.claseId}", ARRAYJOIN({clase_record})))`,
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  if (existing.length) {
+    await base(Tables.ASISTENCIAS).update(existing[0].id, {
+      asistio: data.asistio,
+      fecha: data.fecha ?? new Date().toISOString().split("T")[0],
+    } as never);
+  } else {
+    await createAsistencia(data);
+  }
+}
+
+export async function getAsistenciasByStartup(startupId: string): Promise<AsistenciaRecord[]> {
+  const records = await base(Tables.ASISTENCIAS)
+    .select({ filterByFormula: `SEARCH("${startupId}", ARRAYJOIN({startup_record}))` })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as AsistenciaRecord);
+}
+
+export async function getAllAsistencias(): Promise<AsistenciaRecord[]> {
+  const records = await base(Tables.ASISTENCIAS).select().all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as AsistenciaRecord);
+}
+
+// ─── Misiones Completadas ─────────────────────────────────────────────────────
+
+export interface MisionCompletadaRecord {
+  id?: string;
+  id_respuesta?: string;
+  startup_record?: string[];
+  mision_record?: string[];
+  completada?: boolean;
+  fecha_completada?: string;
+  link_entrega?: string;
+  notas?: string;
+}
+
+export async function createMisionCompletada(data: {
+  startupId: string;
+  misionId: string;
+  completada: boolean;
+  fecha_completada?: string;
+  link_entrega?: string;
+  notas?: string;
+}): Promise<string> {
+  const record = await base(Tables.MISIONES_COMPLETADAS).create({
+    id_respuesta: `${data.startupId}-${data.misionId}`,
+    startup_record: [data.startupId],
+    mision_record: [data.misionId],
+    completada: data.completada,
+    fecha_completada: data.fecha_completada ?? new Date().toISOString().split("T")[0],
+    link_entrega: data.link_entrega ?? "",
+    notas: data.notas ?? "",
+  } as never);
+  return record.id;
+}
+
+export async function upsertMisionCompletada(data: {
+  startupId: string;
+  misionId: string;
+  completada: boolean;
+  fecha_completada?: string;
+  link_entrega?: string;
+  notas?: string;
+}): Promise<void> {
+  const existing = await base(Tables.MISIONES_COMPLETADAS)
+    .select({
+      filterByFormula: `AND(SEARCH("${data.startupId}", ARRAYJOIN({startup_record})), SEARCH("${data.misionId}", ARRAYJOIN({mision_record})))`,
+      maxRecords: 1,
+    })
+    .firstPage();
+
+  if (existing.length) {
+    await base(Tables.MISIONES_COMPLETADAS).update(existing[0].id, {
+      completada: data.completada,
+      fecha_completada: data.fecha_completada ?? new Date().toISOString().split("T")[0],
+      link_entrega: data.link_entrega ?? "",
+      notas: data.notas ?? "",
+    } as never);
+  } else {
+    await createMisionCompletada(data);
+  }
+}
+
+export async function getMisionesCompletadasByStartup(startupId: string): Promise<MisionCompletadaRecord[]> {
+  const records = await base(Tables.MISIONES_COMPLETADAS)
+    .select({ filterByFormula: `SEARCH("${startupId}", ARRAYJOIN({startup_record}))` })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as MisionCompletadaRecord);
+}
+
+export async function getAllMisionesCompletadas(): Promise<MisionCompletadaRecord[]> {
+  const records = await base(Tables.MISIONES_COMPLETADAS).select().all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as MisionCompletadaRecord);
+}
+
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+
+export interface FeedbackRecord {
+  id?: string;
+  id_feedback?: string;
+  startup_record?: string[];
+  clase_record?: string[];
+  rating?: number;
+  comentario?: string;
+  fecha?: string;
+}
+
+export async function createFeedback(data: {
+  startupId: string;
+  claseId: string;
+  rating: number;
+  comentario?: string;
+}): Promise<string> {
+  const record = await base(Tables.FEEDBACK).create({
+    id_feedback: `${data.startupId}-${data.claseId}-${Date.now()}`,
+    startup_record: [data.startupId],
+    clase_record: [data.claseId],
+    rating: data.rating,
+    comentario: data.comentario ?? "",
+    fecha: new Date().toISOString().split("T")[0],
+  } as never);
+  return record.id;
+}
+
+export async function getFeedbackByClase(claseId: string): Promise<FeedbackRecord[]> {
+  const records = await base(Tables.FEEDBACK)
+    .select({ filterByFormula: `SEARCH("${claseId}", ARRAYJOIN({clase_record}))` })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as FeedbackRecord);
+}
+
+export async function getAllFeedback(): Promise<FeedbackRecord[]> {
+  const records = await base(Tables.FEEDBACK).select().all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as FeedbackRecord);
 }
 
 export async function getClasesWithContent(): Promise<(ClaseRecord & {

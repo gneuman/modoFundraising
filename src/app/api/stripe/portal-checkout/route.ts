@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
 import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
-import { createStripeCustomer, createSubscriptionCheckout, createOneTimeCheckout, PROGRAM_PRICE_USD } from "@/lib/stripe";
+import { createStripeCustomer, createSubscriptionCheckout, createOneTimeCheckout, PROGRAM_PRICE_USD, STRIPE_PRICE_ID_MONTHLY } from "@/lib/stripe";
 
 // POST /api/stripe/portal-checkout
 // Body: { mode: "subscription" | "payment" }
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (mode === "subscription") {
       checkoutSession = await createSubscriptionCheckout({
         customerId,
-        priceId: process.env.STRIPE_PRICE_ID_MONTHLY!,
+        priceId: STRIPE_PRICE_ID_MONTHLY,
         couponId,
         successUrl,
         cancelUrl,

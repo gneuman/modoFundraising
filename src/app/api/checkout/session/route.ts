@@ -4,6 +4,7 @@ import {
   createStripeCustomer,
   createSubscriptionCheckout,
   createOneTimeCheckout,
+  STRIPE_PRICE_ID_MONTHLY,
 } from "@/lib/stripe";
 import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
 
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       // 3 monthly payments of $349 (with coupon applied to each)
       session = await createSubscriptionCheckout({
         customerId,
-        priceId: process.env.STRIPE_PRICE_ID_MONTHLY!,
+        priceId: STRIPE_PRICE_ID_MONTHLY,
         couponId: stripeCouponId,
         successUrl,
         cancelUrl,

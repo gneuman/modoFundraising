@@ -1,6 +1,26 @@
 import Stripe from "stripe";
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const isProduction = process.env.STRIPE_MODE === "production";
+
+const stripeSecretKey = isProduction
+  ? process.env.STRIPE_SECRET_KEY_PROD!
+  : process.env.STRIPE_SECRET_KEY_TEST!;
+
+export const STRIPE_MODE = isProduction ? "production" : "test";
+
+export const STRIPE_PRICE_ID_MONTHLY = isProduction
+  ? process.env.STRIPE_PRICE_ID_MONTHLY_PROD!
+  : process.env.STRIPE_PRICE_ID_MONTHLY_TEST!;
+
+export const STRIPE_PRICE_ID_ONETIME = isProduction
+  ? process.env.STRIPE_PRICE_ID_ONETIME_PROD!
+  : process.env.STRIPE_PRICE_ID_ONETIME_TEST!;
+
+export const STRIPE_WEBHOOK_SECRET = isProduction
+  ? process.env.STRIPE_WEBHOOK_SECRET_PROD!
+  : process.env.STRIPE_WEBHOOK_SECRET_TEST!;
+
+export const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2025-03-31.basil",
 });
 
@@ -97,7 +117,7 @@ export async function createOneTimeCheckout({
   const params: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
     mode: "payment",
-    line_items: [{ price: process.env.STRIPE_PRICE_ID_ONETIME!, quantity: 1 }],
+    line_items: [{ price: STRIPE_PRICE_ID_ONETIME, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata,
@@ -123,7 +143,7 @@ export async function constructWebhookEvent(payload: string, sig: string) {
   return stripe.webhooks.constructEvent(
     payload,
     sig,
-    process.env.STRIPE_WEBHOOK_SECRET!
+    STRIPE_WEBHOOK_SECRET
   );
 }
 

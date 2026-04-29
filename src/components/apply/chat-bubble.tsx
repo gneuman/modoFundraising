@@ -24,7 +24,7 @@ export function ChatBubble({ from, text, showAvatar }: ChatBubbleProps) {
 
   return (
     <div className="flex justify-end">
-      <div className="text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap" style={{ background: "linear-gradient(135deg, #1a3a6e, #1e4d9e)", border: "1px solid rgba(100,160,255,0.2)" }}>
+      <div className="text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap font-sans" style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)", border: "1px solid rgba(229,0,126,0.4)" }}>
         {text}
       </div>
     </div>

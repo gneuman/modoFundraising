@@ -26,11 +26,12 @@ export function MultiSelect({ options, value, onChange, error }: MultiSelectProp
           type="button"
           onClick={() => toggle(opt)}
           className={cn(
-            "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors",
+            "px-3 py-1.5 rounded-full text-sm font-sans font-medium border transition-colors",
             value.includes(opt)
-              ? "bg-[#00e5c0] text-[#0a0e1a] border-[#00e5c0]"
-              : "bg-white/5 text-white/60 border-white/20 hover:border-[#00e5c0]/50 hover:text-white"
+              ? "text-white border-[#e5007e]"
+              : "bg-white/5 text-white/60 border-[rgba(229,0,126,0.3)] hover:border-[#e5007e] hover:text-white"
           )}
+          style={value.includes(opt) ? { background: "linear-gradient(135deg, #e5007e, #e217cf)" } : {}}
         >
           {opt}
         </button>
