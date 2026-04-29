@@ -1,4 +1,4 @@
-import { obtenerSesionDeHeaders as obtenerSesion } from "@/lib/auth";
+import { obtenerSesion } from "@/lib/auth";
 import { getFounderProfile } from "@/lib/airtable";
 import { SuscripcionClient } from "./suscripcion-client";
 

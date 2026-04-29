@@ -6,12 +6,7 @@ import { PortalSidebar } from "@/components/portal/sidebar";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
-  const hasToken = headersList.get("x-has-token");
-  console.log("[portal/layout] x-has-token:", hasToken);
-
   const session = await obtenerSesion();
-  console.log("[portal/layout] session:", session);
-
   if (!session) redirect("/auth/login");
 
   const pathname = headersList.get("x-pathname") ?? "";
@@ -23,7 +18,6 @@ export default async function PortalLayout({ children }: { children: React.React
 
   if (!esAdmin(session.email)) {
     const profile = await getFounderProfile(session.email);
-    console.log("[portal/layout] profile:", JSON.stringify({ found: !!profile, portal_access: profile?.portal_access }));
     if (!profile?.portal_access) redirect("/portal/sin-acceso");
 
     return (
