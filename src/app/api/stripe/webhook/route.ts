@@ -7,6 +7,8 @@ import {
   createPagoRecord,
   activateAllFoundersForApplication,
   deactivateAllFoundersForApplication,
+  getFounderEmailsByStartup,
+  getCalendarEventIds,
 } from "@/lib/airtable";
 import {
   sendOnboardingEmail,
@@ -14,6 +16,7 @@ import {
   sendPaymentFailedEmail,
   sendChurnEmail,
 } from "@/lib/gmail";
+import { addAttendeesToAllEvents } from "@/lib/calendar";
 
 // Activates portal for the main founder + any team members linked to the startup
 async function activatePortalForStartup(
@@ -35,6 +38,21 @@ async function activatePortalForStartup(
 
   // Update startup status
   if (startupRecordId) await updateStartupStatus(startupRecordId, "Inscrita");
+
+  // Invitar todos los founders al Google Calendar
+  if (startupRecordId) {
+    try {
+      const [emails, eventIds] = await Promise.all([
+        getFounderEmailsByStartup(startupRecordId),
+        getCalendarEventIds(),
+      ]);
+      if (emails.length && eventIds.length) {
+        await addAttendeesToAllEvents(eventIds, emails);
+      }
+    } catch (err) {
+      console.error("Calendar invite error (non-blocking):", err instanceof Error ? err.message : err);
+    }
+  }
 
   // Register payment record
   if (startupRecordId && email) {

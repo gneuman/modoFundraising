@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
 import { crearTokenMagic } from "@/lib/auth";
-import { getAllApplications } from "@/lib/airtable";
+import { getAllApplications, getCalendarEventIds } from "@/lib/airtable";
 import Airtable from "airtable";
 import { Resend } from "resend";
+import { addAttendeeToEvents } from "@/lib/calendar";
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_PAT }).base(process.env.AIRTABLE_BASE_ID!);
 const resend = new Resend(process.env.RESEND_API_KEY ?? "re_placeholder");
@@ -66,6 +67,14 @@ export async function POST(req: NextRequest) {
         <br/><p>— Equipo Impacta VC<br/><a href="mailto:hello@impacta.vc">hello@impacta.vc</a></p>
       `,
     });
+  }
+
+  // Agregar al nuevo founder a todos los eventos de Calendar
+  try {
+    const eventIds = await getCalendarEventIds();
+    if (eventIds.length) await addAttendeeToEvents(eventIds, email);
+  } catch (err) {
+    console.error("Calendar invite error (non-blocking):", err instanceof Error ? err.message : err);
   }
 
   return NextResponse.json({ ok: true, founderId: founderRecord.id, startupId });

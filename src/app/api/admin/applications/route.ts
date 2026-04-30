@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllApplications, updateApplicationStatus, type ApplicationStatus } from "@/lib/airtable";
+import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
+import { addAttendeesToAllEvents } from "@/lib/calendar";
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+
+async function inviteStartupToCalendar(startupId: string) {
+  try {
+    const [emails, eventIds] = await Promise.all([
+      getFounderEmailsByStartup(startupId),
+      getCalendarEventIds(),
+    ]);
+    if (emails.length && eventIds.length) {
+      await addAttendeesToAllEvents(eventIds, emails);
+    }
+  } catch (err) {
+    console.error("Calendar invite error (non-blocking):", err instanceof Error ? err.message : err);
+  }
+}
 
 async function buildCheckoutUrl(recordId: string, app: {
   email?: string; first_name?: string; startup_name?: string;
@@ -82,6 +97,9 @@ export async function PATCH(req: NextRequest) {
         const discountPct = app.discount_percent ? Number(app.discount_percent) : 0;
         if (discountPct === 100) {
           await updateApplicationStatus(recordId, "Inscrita", { portal_access: true });
+          // Invitar founders al calendario (beca completa = inscripción directa)
+          const startupId = (app.startup_record as string[] | undefined)?.[0];
+          if (startupId) await inviteStartupToCalendar(startupId);
           return NextResponse.json({ success: true, inscrita_directa: true });
         }
         const checkoutUrl = await buildCheckoutUrl(recordId, app);

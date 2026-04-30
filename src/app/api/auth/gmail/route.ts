@@ -23,7 +23,12 @@ export async function GET(req: NextRequest) {
   const url = auth.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
-    scope: ["https://www.googleapis.com/auth/gmail.send"],
+    scope: [
+      "https://www.googleapis.com/auth/gmail.send",
+      "https://www.googleapis.com/auth/drive.readonly",
+      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/calendar",
+    ],
   });
   return NextResponse.redirect(url);
 }

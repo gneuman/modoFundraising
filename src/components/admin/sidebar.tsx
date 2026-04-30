@@ -11,7 +11,9 @@ import {
   BookOpen,
   Target,
   Link2,
+  Code2,
   LogOut,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -20,11 +22,13 @@ const NAV = [
   { href: "/admin/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
   { href: "/admin/postulaciones", label: "Postulaciones",  icon: FileText },
   { href: "/admin/inscritos",     label: "Inscritos",      icon: Users },
+  { href: "/admin/empresas",      label: "Empresas",       icon: Building2 },
   { href: "/admin/revenue",       label: "Revenue",        icon: DollarSign },
   { href: "/admin/cupones",       label: "Cupones",        icon: Tag },
   { href: "/admin/clases",        label: "Clases",         icon: BookOpen },
   { href: "/admin/misiones",      label: "Misiones",       icon: Target },
   { href: "/admin/recursos",      label: "Recursos",       icon: Link2 },
+  { href: "/admin/api",           label: "API Docs",       icon: Code2 },
 ];
 
 export function AdminSidebar() {

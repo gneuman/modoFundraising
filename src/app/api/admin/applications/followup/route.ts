@@ -39,7 +39,7 @@ export async function POST() {
       });
       const checkoutUrl = `${APP_URL}/checkout/${token}`;
       await sendAdmissionFollowUp(app.email!, app.first_name!, checkoutUrl, followUpNumber);
-      // Marca en Airtable qué seguimiento fue enviado
+      // Marca en Airtable qué seguimiento fue enviado — el admin mueve el status manualmente
       const flagField = followUpNumber === 1 ? { follow_up_1_sent: true } : { follow_up_2_sent: true };
       await updateApplicationStatus(app.id!, "Admitida", flagField);
       return { id: app.id, email: app.email, followUpNumber };

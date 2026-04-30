@@ -284,7 +284,7 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
                       <span className={cn(
-                        "inline-flex px-2 py-0.5 rounded-full text-xs font-medium w-fit",
+                        "inline-flex px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap w-fit",
                         STATUS_COLORS[a.status ?? "Nueva postulación"] ?? "bg-zinc-100 text-zinc-600"
                       )}>
                         {a.status ?? "Nueva postulación"}

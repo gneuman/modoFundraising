@@ -140,23 +140,38 @@ export interface PostulacionRecord {
   // Linked records (populated from lookups or joins in code)
   founder_record?: string[];
   startup_record?: string[];
-  // Denormalized for convenience in admin/portal (read from linked tables)
+  // Denormalized from Founders table
   email?: string;
   first_name?: string;
   last_name?: string;
+  whatsapp?: string;
+  linkedin_founder?: string;
+  founder_role?: string;
+  country_residence?: string;
+  // Denormalized from Startups table
   startup_name?: string;
   startup_country_ops?: string;
-  // Denormalized from Startups table
   startup_stage?: string;
   startup_mrr?: number;
   startup_sales_12m?: number;
-  deck_url?: string;
-  round_series?: string;
-  round_size?: number;
-  runway?: number;
+  startup_team_size?: number;
+  startup_website?: string;
+  startup_linkedin?: string;
   startup_description?: string;
   startup_industries?: string;
+  startup_countries_expansion?: string;
+  startup_usa_intl?: string;
   business_model?: string;
+  prior_fundraising?: string;
+  prior_fundraising_amount?: number;
+  round_open?: string;
+  round_series?: string;
+  round_size?: number;
+  round_tickets?: string;
+  runway?: number;
+  deck_url?: string;
+  program_source?: string;
+  ias_interested?: string;
 }
 
 export type ApplicationRecord = PostulacionRecord;
@@ -247,6 +262,27 @@ export async function createFounderRecord(data: ApplicationFormData): Promise<st
     joined_at: new Date().toISOString(),
   } as never);
   return record.id;
+}
+
+// Devuelve los emails de todos los founders activos de una startup dada
+export async function getFounderEmailsByStartup(startupId: string): Promise<string[]> {
+  const records = await base(Tables.FOUNDERS)
+    .select({
+      filterByFormula: `AND(SEARCH("${startupId}", ARRAYJOIN({Startups MF26})), {portal_access} = 1)`,
+      fields: ["email"],
+    })
+    .all();
+  return records.map((r) => (r.fields as Record<string, unknown>).email as string).filter(Boolean);
+}
+
+// Devuelve todos los calendar_event_id de las clases que tienen evento en Calendar
+export async function getCalendarEventIds(): Promise<string[]> {
+  const records = await base(Tables.CLASES)
+    .select({ fields: ["calendar_event_id"], filterByFormula: `{calendar_event_id} != ""` })
+    .all();
+  return records
+    .map((r) => (r.fields as Record<string, unknown>).calendar_event_id as string)
+    .filter(Boolean);
 }
 
 export async function getFounderByEmail(email: string): Promise<FounderRecord | null> {
@@ -517,19 +553,38 @@ export async function getAllApplications(): Promise<PostulacionRecord[]> {
       email: founder?.email as string ?? "",
       first_name: founder?.first_name as string ?? "",
       last_name: founder?.last_name as string ?? "",
+      whatsapp: founder?.whatsapp as string ?? "",
+      linkedin_founder: founder?.linkedin_founder as string ?? "",
+      founder_role: founder?.founder_role as string ?? "",
+      country_residence: founder?.country_residence as string ?? "",
       // Denormalized de Startups
       startup_name: startup?.startup_name as string ?? "",
       startup_country_ops: startup?.startup_country_ops as string ?? "",
       startup_stage: startup?.startup_stage as string ?? "",
       startup_mrr: startup?.startup_mrr as number ?? 0,
       startup_sales_12m: startup?.startup_sales_12m as number ?? 0,
-      deck_url: startup?.deck_url as string ?? "",
-      round_series: startup?.round_series as string ?? "",
-      round_size: startup?.round_size as number ?? 0,
-      runway: startup?.runway as number ?? 0,
+      startup_team_size: startup?.startup_team_size as number ?? 0,
+      startup_website: startup?.startup_website as string ?? "",
+      startup_linkedin: startup?.startup_linkedin as string ?? "",
       startup_description: startup?.startup_description as string ?? "",
       startup_industries: startup?.startup_industries as string ?? "",
+      startup_countries_expansion: Array.isArray(startup?.startup_countries_expansion)
+        ? (startup.startup_countries_expansion as string[]).join(", ")
+        : startup?.startup_countries_expansion as string ?? "",
+      startup_usa_intl: startup?.startup_usa_intl as string ?? "",
       business_model: startup?.business_model as string ?? "",
+      prior_fundraising: startup?.prior_fundraising as string ?? "",
+      prior_fundraising_amount: startup?.prior_fundraising_amount as number ?? 0,
+      round_open: startup?.round_open as string ?? "",
+      round_series: startup?.round_series as string ?? "",
+      round_size: startup?.round_size as number ?? 0,
+      round_tickets: Array.isArray(startup?.round_tickets)
+        ? (startup.round_tickets as string[]).join(", ")
+        : startup?.round_tickets as string ?? "",
+      runway: startup?.runway as number ?? 0,
+      deck_url: startup?.deck_url as string ?? "",
+      program_source: startup?.program_source as string ?? "",
+      ias_interested: startup?.ias_interested as string ?? "",
     } as PostulacionRecord;
   });
 }
@@ -628,6 +683,8 @@ export interface ClaseRecord {
   fecha?: string;
   url_live?: string;
   url_grabacion?: string;
+  meet_link?: string;
+  calendar_event_id?: string;
   status?: "Próxima" | "En vivo" | "Grabada";
   // Inverse linked fields (auto-created by Airtable)
   misiones?: string[];
@@ -641,6 +698,8 @@ export interface ClaseInput {
   fecha?: string;
   url_live?: string;
   url_grabacion?: string;
+  meet_link?: string;
+  calendar_event_id?: string;
   status?: string;
 }
 
@@ -963,6 +1022,64 @@ export async function getFeedbackByClase(claseId: string): Promise<FeedbackRecor
 export async function getAllFeedback(): Promise<FeedbackRecord[]> {
   const records = await base(Tables.FEEDBACK).select().all();
   return records.map((r) => ({ id: r.id, ...r.fields }) as FeedbackRecord);
+}
+
+// ─── Video Play Log ────────────────────────────────────────────────────────────
+// Reutiliza Asistencias MF26 para registrar que un founder reprodujo la grabación
+
+export async function logVideoPlay(startupId: string, claseId: string): Promise<void> {
+  await upsertAsistencia({ startupId, claseId, asistio: true });
+}
+
+// ─── Empresas Stats ────────────────────────────────────────────────────────────
+
+export interface EmpresaStats {
+  startupId: string;
+  startup_name: string;
+  startup_country_ops?: string;
+  startup_stage?: string;
+  totalClases: number;
+  clasesVistas: number;
+  totalMisiones: number;
+  misionesCompletadas: number;
+}
+
+export async function getEmpresasStats(): Promise<EmpresaStats[]> {
+  const [apps, allClases, allMisiones, asistencias, misionesCompletadas] = await Promise.all([
+    getAllApplications(),
+    base(Tables.CLASES).select({ fields: ["titulo"] }).all(),
+    base(Tables.MISIONES).select({ fields: ["titulo"] }).all(),
+    getAllAsistencias(),
+    getAllMisionesCompletadas(),
+  ]);
+
+  const inscritas = apps.filter(
+    (a) => a.status === "Inscrita" || a.status === "Invitada institucional"
+  );
+
+  const totalClases = allClases.length;
+  const totalMisiones = allMisiones.length;
+
+  return inscritas.map((app) => {
+    const startupId = (app.startup_record?.[0] as string | undefined) ?? "";
+    const clasesVistas = asistencias.filter(
+      (a) => a.startup_record?.includes(startupId) && a.asistio
+    ).length;
+    const completadas = misionesCompletadas.filter(
+      (m) => m.startup_record?.includes(startupId) && m.completada
+    ).length;
+
+    return {
+      startupId,
+      startup_name: app.startup_name ?? "—",
+      startup_country_ops: app.startup_country_ops,
+      startup_stage: app.startup_stage,
+      totalClases,
+      clasesVistas,
+      totalMisiones,
+      misionesCompletadas: completadas,
+    };
+  });
 }
 
 export async function getClasesWithContent(): Promise<(ClaseRecord & {

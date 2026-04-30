@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   Plus, ChevronDown, ChevronUp, Target, FileText, Link2,
-  Video, Calendar, Loader2, ExternalLink, Edit2, Check, X,
+  Video, Calendar, Loader2, ExternalLink, Edit2, Check, X, HardDrive, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -279,6 +279,145 @@ function NuevoRecursoForm({ claseId, claseFecha, onCreated }: {
   );
 }
 
+// ─── Drive Recording Picker ───────────────────────────────────────────────────
+
+interface DriveRec { id: string; name: string; createdTime: string; embedUrl: string; shareUrl?: string; }
+
+function DriveRecordingPicker({ claseFecha, onSelect }: {
+  claseFecha?: string;
+  onSelect: (url: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [recordings, setRecordings] = useState<DriveRec[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      // Busca desde 7 días antes de la clase (o desde hace 30 días si no hay fecha)
+      let since = "";
+      if (claseFecha) {
+        const d = new Date(claseFecha);
+        d.setDate(d.getDate() - 7);
+        since = d.toISOString().split("T")[0];
+      } else {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        since = d.toISOString().split("T")[0];
+      }
+      const res = await fetch(`/api/admin/drive/recordings?since=${since}`);
+      const data = await res.json();
+      if (data.error === "drive_scope_missing") {
+        setError("scope_missing");
+      } else if (data.error) {
+        setError(data.error);
+      } else {
+        setRecordings(data.recordings ?? []);
+      }
+    } catch { setError("Error de red"); }
+    finally { setLoading(false); }
+  }
+
+  async function selectRecording(rec: DriveRec) {
+    setPublishing(rec.id);
+    try {
+      // Hace el archivo público y obtiene la embed URL
+      const res = await fetch("/api/admin/drive/recordings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId: rec.id }),
+      });
+      const data = await res.json();
+      onSelect(data.shareUrl ?? `https://drive.google.com/file/d/${rec.id}/view`);
+      setOpen(false);
+      toast.success("Grabación asignada");
+    } catch { toast.error("Error al publicar el archivo"); }
+    finally { setPublishing(null); }
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => { setOpen(true); load(); }}
+        className="flex items-center gap-1.5 text-xs text-green-700 font-medium px-2 py-1 rounded-lg bg-green-50 hover:bg-green-100 border border-green-200 transition-colors mt-1"
+      >
+        <HardDrive className="h-3.5 w-3.5" /> Importar desde Drive
+      </button>
+    );
+  }
+
+  return (
+    <div className="border border-green-200 rounded-xl bg-green-50/50 p-3 mt-1 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-green-800 flex items-center gap-1.5">
+          <HardDrive className="h-3.5 w-3.5" /> Grabaciones en Google Drive
+        </p>
+        <div className="flex items-center gap-1">
+          <button onClick={load} className="p-1 rounded hover:bg-green-100 text-green-600">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-green-100 text-zinc-500">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="flex items-center gap-2 text-xs text-zinc-500 py-2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando grabaciones...
+        </div>
+      )}
+
+      {error === "scope_missing" && (
+        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+          <p className="font-semibold">Se necesita autorizar acceso a Drive</p>
+          <p>El token actual solo tiene permisos de Gmail. Hacé click para re-autorizar y agregar Drive:</p>
+          <a
+            href="/api/auth/gmail"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+          >
+            <HardDrive className="h-3 w-3" /> Autorizar Google Drive →
+          </a>
+          <p className="text-amber-600">Después de autorizar, copiá el nuevo <code>GMAIL_REFRESH_TOKEN</code> en Vercel y redesplegá.</p>
+        </div>
+      )}
+
+      {error && error !== "scope_missing" && (
+        <p className="text-xs text-red-600">{error}</p>
+      )}
+
+      {!loading && !error && recordings.length === 0 && (
+        <p className="text-xs text-zinc-500 py-1">No se encontraron grabaciones recientes en Drive.</p>
+      )}
+
+      {!loading && !error && recordings.map((rec) => (
+        <div key={rec.id} className="flex items-center gap-2 bg-white rounded-lg border border-green-100 p-2.5">
+          <Video className="h-4 w-4 text-green-600 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-zinc-800 truncate">{rec.name}</p>
+            <p className="text-xs text-zinc-400">
+              {new Date(rec.createdTime).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          </div>
+          <button
+            onClick={() => selectRecording(rec)}
+            disabled={publishing === rec.id}
+            className="shrink-0 text-xs font-semibold px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-1"
+          >
+            {publishing === rec.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+            Usar esta
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Clase Card (admin) ────────────────────────────────────────────────────────
 
 function ClaseAdminCard({ clase, onChange }: {
@@ -366,11 +505,20 @@ function ClaseAdminCard({ clase, onChange }: {
             </div>
             <div className="space-y-1">
               <p className="text-xs text-zinc-400 font-medium flex items-center gap-1"><Video className="h-3 w-3" /> URL Live</p>
-              <InlineEdit value={clase.url_live} onSave={(v) => patchClase("url_live", v)} placeholder="https://zoom.us/..." />
+              <InlineEdit value={clase.url_live} onSave={(v) => patchClase("url_live", v)} placeholder="https://meet.google.com/..." />
+              {clase.meet_link && clase.meet_link === clase.url_live && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <HardDrive className="h-3 w-3" /> Google Meet generado automáticamente
+                </p>
+              )}
             </div>
             <div className="space-y-1">
               <p className="text-xs text-zinc-400 font-medium flex items-center gap-1"><Video className="h-3 w-3" /> URL Grabación</p>
               <InlineEdit value={clase.url_grabacion} onSave={(v) => patchClase("url_grabacion", v)} placeholder="https://youtube.com/..." />
+              <DriveRecordingPicker
+                claseFecha={clase.fecha}
+                onSelect={(url) => patchClase("url_grabacion", url)}
+              />
             </div>
             <div className="col-span-2 space-y-1">
               <p className="text-xs text-zinc-400 font-medium">Descripción</p>

@@ -4,8 +4,10 @@ import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   ExternalLink, CheckCircle, XCircle, X, Loader2,
-  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff, Send,
+  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff, Send, Building2, Search,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ApplicationProfile } from "@/components/admin/application-profile";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ApplicationRecord, ApplicationStatus, CouponRecord } from "@/lib/airtable";
@@ -15,6 +17,7 @@ import type { ApplicationRecord, ApplicationStatus, CouponRecord } from "@/lib/a
 const COLUMNS: { id: ApplicationStatus; label: string; border: string; header: string }[] = [
   { id: "Nueva postulación", label: "Nueva postulación", border: "border-t-zinc-400",  header: "bg-zinc-100 text-zinc-700" },
   { id: "Admitida",          label: "Admitida",           border: "border-t-blue-500",  header: "bg-blue-50 text-blue-700" },
+  { id: "Sin Respuesta",     label: "Sin respuesta",      border: "border-t-zinc-300",  header: "bg-zinc-50 text-zinc-500" },
   { id: "Inscrita",          label: "Inscrita",           border: "border-t-green-500", header: "bg-green-50 text-green-700" },
 ];
 
@@ -63,7 +66,7 @@ interface ActionsModal {
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 function KanbanCard({
-  a, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, updating, onDragStart,
+  a, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, onCardClick, updating, onDragStart,
 }: {
   a: ApplicationRecord;
   onAdmit: (a: ApplicationRecord) => void;
@@ -71,12 +74,13 @@ function KanbanCard({
   onSinRespuesta: (a: ApplicationRecord) => void;
   onRechazadoFounder: (a: ApplicationRecord) => void;
   onActions: (a: ApplicationRecord) => void;
+  onCardClick: (a: ApplicationRecord) => void;
   updating: string | null;
   onDragStart: (id: string) => void;
 }) {
   const days = daysOld(a.created_at as string);
   const alerts = getAlerts(a, days);
-  const canAct = a.status === "Nueva postulación";
+  const canAct = a.status === "Nueva postulación" || a.status === "Sin Respuesta";
   const [sendingLink, setSendingLink] = useState(false);
 
   async function handleResendCheckout(e: React.MouseEvent) {
@@ -103,12 +107,20 @@ function KanbanCard({
     <div
       draggable
       onDragStart={() => onDragStart(a.id!)}
-      className="bg-white rounded-xl border border-zinc-200 p-3.5 space-y-2.5 hover:shadow-md transition-shadow group cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95 select-none"
+      onClick={() => onCardClick(a)}
+      className="bg-white rounded-xl border border-zinc-200 p-3.5 space-y-2.5 hover:shadow-md transition-shadow group cursor-pointer active:cursor-grabbing active:opacity-60 active:scale-95 select-none"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold text-zinc-800 text-sm truncate">{a.startup_name}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="font-semibold text-zinc-800 text-sm truncate">{a.startup_name}</p>
+            {a.ias_interested === "Sí" && (
+              <span title="Invitación Institucional">
+                <Building2 className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+              </span>
+            )}
+          </div>
           <p className="text-xs text-zinc-400 truncate mt-0.5">{a.first_name} {a.last_name}</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -120,6 +132,18 @@ function KanbanCard({
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
+          {/* Follow-up badge alongside the age dot */}
+          {(a.follow_up_1_sent || a.follow_up_2_sent) && (
+            <span
+              className={cn(
+                "flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white",
+                a.follow_up_2_sent ? "bg-red-500" : "bg-amber-400"
+              )}
+              title={`Seguimiento ${a.follow_up_2_sent ? 2 : 1}/2 enviado`}
+            >
+              {a.follow_up_2_sent ? 2 : 1}
+            </span>
+          )}
           <span className={cn("w-2.5 h-2.5 rounded-full mt-0.5", dotClass(days))} title={`${days} días`} />
         </div>
       </div>
@@ -163,17 +187,6 @@ function KanbanCard({
               Copiar link
             </button>
           </div>
-          {/* Follow-up indicator */}
-          {a.follow_up_2_sent ? (
-            <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-red-50 text-red-600 border-red-200">
-              <span className="font-semibold">⚠ Seguimiento 2/2 enviado</span>
-              <span className="text-red-400 ml-auto">sin respuesta</span>
-            </div>
-          ) : a.follow_up_1_sent ? (
-            <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-amber-50 text-amber-700 border-amber-200">
-              <span>Seguimiento 1/2 enviado</span>
-            </div>
-          ) : null}
         </div>
       )}
 
@@ -201,11 +214,11 @@ function KanbanCard({
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {canAct && (
             <>
-              <button onClick={() => onAdmit(a)} disabled={updating === a.id} title="Admitir"
+              <button onClick={(e) => { e.stopPropagation(); onAdmit(a); }} disabled={updating === a.id} title="Admitir"
                 className="p-1.5 rounded-lg hover:bg-blue-50 text-zinc-300 hover:text-blue-600 transition-colors">
                 <CheckCircle className="h-4 w-4" />
               </button>
-              <button onClick={() => onReject(a)} disabled={updating === a.id} title="Rechazar"
+              <button onClick={(e) => { e.stopPropagation(); onReject(a); }} disabled={updating === a.id} title="Rechazar"
                 className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-300 hover:text-red-500 transition-colors">
                 <XCircle className="h-4 w-4" />
               </button>
@@ -214,7 +227,7 @@ function KanbanCard({
           {a.status === "Admitida" && (
             <>
               <button
-                onClick={handleResendCheckout}
+                onClick={(e) => { e.stopPropagation(); handleResendCheckout(e); }}
                 disabled={sendingLink || updating === a.id}
                 title="Copiar link de pago"
                 className="p-1.5 rounded-lg hover:bg-blue-50 text-zinc-300 hover:text-blue-600 transition-colors disabled:opacity-40"
@@ -224,11 +237,11 @@ function KanbanCard({
                   : <Send className="h-4 w-4" />
                 }
               </button>
-              <button onClick={() => onSinRespuesta(a)} disabled={updating === a.id} title="Sin respuesta"
+              <button onClick={(e) => { e.stopPropagation(); onSinRespuesta(a); }} disabled={updating === a.id} title="Sin respuesta"
                 className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-300 hover:text-zinc-500 transition-colors">
                 <BellOff className="h-4 w-4" />
               </button>
-              <button onClick={() => onRechazadoFounder(a)} disabled={updating === a.id} title="Rechazado por founder"
+              <button onClick={(e) => { e.stopPropagation(); onRechazadoFounder(a); }} disabled={updating === a.id} title="Rechazado por founder"
                 className="p-1.5 rounded-lg hover:bg-orange-50 text-zinc-300 hover:text-orange-500 transition-colors">
                 <XCircle className="h-4 w-4" />
               </button>
@@ -243,7 +256,7 @@ function KanbanCard({
 // ─── Drop Column ──────────────────────────────────────────────────────────────
 
 function DropColumn({
-  col, cards, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, updating, onDragStart, onDrop, dragOver, setDragOver,
+  col, cards, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, onCardClick, updating, onDragStart, onDrop, dragOver, setDragOver,
 }: {
   col: typeof COLUMNS[0];
   cards: ApplicationRecord[];
@@ -252,6 +265,7 @@ function DropColumn({
   onSinRespuesta: (a: ApplicationRecord) => void;
   onRechazadoFounder: (a: ApplicationRecord) => void;
   onActions: (a: ApplicationRecord) => void;
+  onCardClick: (a: ApplicationRecord) => void;
   updating: string | null;
   onDragStart: (id: string) => void;
   onDrop: (targetStatus: ApplicationStatus) => void;
@@ -289,7 +303,7 @@ function DropColumn({
           </div>
         )}
         {cards.map((a) => (
-          <KanbanCard key={a.id} a={a} onAdmit={onAdmit} onReject={onReject} onSinRespuesta={onSinRespuesta} onRechazadoFounder={onRechazadoFounder} onActions={onActions} updating={updating} onDragStart={onDragStart} />
+          <KanbanCard key={a.id} a={a} onAdmit={onAdmit} onReject={onReject} onSinRespuesta={onSinRespuesta} onRechazadoFounder={onRechazadoFounder} onActions={onActions} onCardClick={onCardClick} updating={updating} onDragStart={onDragStart} />
         ))}
       </div>
     </div>
@@ -467,18 +481,42 @@ export function KanbanPostulaciones({ initialData, coupons }: {
   coupons: CouponRecord[];
 }) {
   const [data, setData] = useState(initialData);
+  const [search, setSearch] = useState("");
+  const [filterStage, setFilterStage] = useState("");
+  const [filterCountry, setFilterCountry] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
   const [statusModal, setStatusModal] = useState<StatusModal | null>(null);
   const [actionsModal, setActionsModal] = useState<ActionsModal | null>(null);
+  const [profileApp, setProfileApp] = useState<ApplicationRecord | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const draggingId = useRef<string | null>(null);
 
+  const filteredData = useMemo(() => {
+    const q = search.toLowerCase();
+    return data.filter((a) => {
+      if (q && !(
+        a.startup_name?.toLowerCase().includes(q) ||
+        a.first_name?.toLowerCase().includes(q) ||
+        a.last_name?.toLowerCase().includes(q) ||
+        a.email?.toLowerCase().includes(q) ||
+        a.startup_country_ops?.toLowerCase().includes(q) ||
+        a.startup_industries?.toLowerCase().includes(q)
+      )) return false;
+      if (filterStage && a.startup_stage !== filterStage) return false;
+      if (filterCountry && a.startup_country_ops !== filterCountry) return false;
+      return true;
+    });
+  }, [data, search, filterStage, filterCountry]);
+
   const byColumn = useMemo(() => {
     const map: Record<string, ApplicationRecord[]> = {};
-    COLUMNS.forEach((c) => { map[c.id] = data.filter((a) => a.status === c.id); });
+    COLUMNS.forEach((c) => { map[c.id] = filteredData.filter((a) => a.status === c.id); });
     return map;
-  }, [data]);
+  }, [filteredData]);
+
+  const stages = useMemo(() => [...new Set(data.map((a) => a.startup_stage).filter(Boolean))].sort() as string[], [data]);
+  const countries = useMemo(() => [...new Set(data.map((a) => a.startup_country_ops).filter(Boolean))].sort() as string[], [data]);
 
   function onDragStart(id: string) {
     draggingId.current = id;
@@ -557,6 +595,43 @@ export function KanbanPostulaciones({ initialData, coupons }: {
   return (
     <div className="space-y-3" onDragEnd={() => { draggingId.current = null; setDragOver(null); setIsDragging(false); }}>
 
+      {/* Search + filters */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar startup, founder, email, país..."
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
+        <select
+          value={filterStage}
+          onChange={(e) => setFilterStage(e.target.value)}
+          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">Todas las etapas</option>
+          {stages.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select
+          value={filterCountry}
+          onChange={(e) => setFilterCountry(e.target.value)}
+          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">Todos los países</option>
+          {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {(search || filterStage || filterCountry) && (
+          <button
+            onClick={() => { setSearch(""); setFilterStage(""); setFilterCountry(""); }}
+            className="h-9 px-3 rounded-lg border border-zinc-200 text-sm text-zinc-500 hover:bg-zinc-50 transition-colors"
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
+
       <div className="flex gap-3 overflow-x-auto pb-2 items-start">
         {COLUMNS.map((col) => (
           <DropColumn
@@ -568,6 +643,7 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             onSinRespuesta={marcarSinRespuesta}
             onRechazadoFounder={openRechazadoFounder}
             onActions={(a) => setActionsModal({ app: a })}
+            onCardClick={(a) => setProfileApp(a)}
             updating={updating}
             onDragStart={onDragStart}
             onDrop={(status) => moveCard(status)}
@@ -659,6 +735,27 @@ export function KanbanPostulaciones({ initialData, coupons }: {
           onAdmit={openAdmit}
           onReject={openReject}
           updating={updating}
+        />
+      )}
+
+      {/* Profile slide-over */}
+      {profileApp && (
+        <ApplicationProfile
+          app={profileApp}
+          coupons={coupons}
+          onClose={() => setProfileApp(null)}
+          onStatusChange={(id, status) => {
+            setData((prev) => prev.map((a) => a.id === id ? { ...a, status } : a));
+            setProfileApp(null);
+          }}
+          onCouponAssign={(id, coupon) => {
+            const code = coupon.code || undefined;
+            const pct = coupon.code ? coupon.discount_percent : undefined;
+            setData((prev) => prev.map((a) =>
+              a.id === id ? { ...a, coupon_code: code, discount_percent: pct } : a
+            ));
+            setProfileApp((prev) => prev ? { ...prev, coupon_code: code, discount_percent: pct } : prev);
+          }}
         />
       )}
     </div>
