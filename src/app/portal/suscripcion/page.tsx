@@ -9,7 +9,8 @@ export default async function SuscripcionPage() {
   const profile = await getFounderProfile(session?.email ?? "");
 
   const paymentStatus = profile?.payment_status ?? "Pendiente";
-  const portalAccess = profile?.portal_access ?? false;
+  // Considerar pagado si portal_access=true O si el status ya es "Inscrita"
+  const portalAccess = (profile?.portal_access || profile?.status === "Inscrita") ?? false;
   const stripeSubscriptionId = profile?.stripe_subscription_id;
 
   return (

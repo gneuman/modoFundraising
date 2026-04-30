@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Con Resend configurado: mandar email y no exponer el enlace
-  const { sendMagicLink } = await import("@/lib/resend");
+  const { sendMagicLink } = await import("@/lib/gmail");
   await sendMagicLink(email, token, rol);
   return NextResponse.json({ success: true });
 }

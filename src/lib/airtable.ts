@@ -282,6 +282,7 @@ export interface FounderProfile {
   startup_record_id?: string;
   startup_name?: string;
   startup_country_ops?: string;
+  startup?: StartupRecord;
   team?: TeamMember[];
 }
 
@@ -320,6 +321,7 @@ export async function getFounderProfile(email: string): Promise<FounderProfile |
     profile.startup_record_id = startup.id;
     profile.startup_name = sf.startup_name as string | undefined;
     profile.startup_country_ops = sf.startup_country_ops as string | undefined;
+    profile.startup = { id: startup.id, ...sf } as StartupRecord;
 
     // Fetch all founders linked to this startup
     const founderIds = sf["Founders"] as string[] | undefined;

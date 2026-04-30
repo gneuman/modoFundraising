@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
 import { getAllApplications, updateApplicationStatus, type ApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/resend";
+import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
 
 export async function GET() {

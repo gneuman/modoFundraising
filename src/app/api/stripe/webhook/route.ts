@@ -13,7 +13,7 @@ import {
   sendPaymentConfirmation,
   sendPaymentFailedEmail,
   sendChurnEmail,
-} from "@/lib/resend";
+} from "@/lib/gmail";
 
 // Activates portal for the main founder + any team members linked to the startup
 async function activatePortalForStartup(

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
 import { createStripeCoupon, createStripePromoCode, listCoupons, STRIPE_PRICE_ID_MONTHLY } from "@/lib/stripe";
 import { createCouponRecord, getAllCoupons } from "@/lib/airtable";
-import { sendCouponLink } from "@/lib/resend";
+import { sendCouponLink } from "@/lib/gmail";
 import { getAllApplications } from "@/lib/airtable";
 import { createSubscriptionCheckout, createStripeCustomer } from "@/lib/stripe";
 

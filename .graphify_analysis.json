@@ -1,0 +1,754 @@
+{
+  "communities": {
+    "0": [
+      "cancel_route_post",
+      "coupons_route_get",
+      "coupons_route_post",
+      "coupons_route_put",
+      "cupones_page_cuponespage",
+      "lib_airtable_activateallfoundersforapplication",
+      "lib_airtable_createcouponrecord",
+      "lib_airtable_createpagorecord",
+      "lib_airtable_deactivateallfoundersforapplication",
+      "lib_airtable_getallapplications",
+      "lib_airtable_getallcoupons",
+      "lib_airtable_getfounderidsbypostulacion",
+      "lib_airtable_updateapplicationstatus",
+      "lib_airtable_updatestartupstatus",
+      "lib_stripe_cancelsubscription",
+      "lib_stripe_constructwebhookevent",
+      "lib_stripe_createonetimecheckout",
+      "lib_stripe_createstripecoupon",
+      "lib_stripe_createstripecustomer",
+      "lib_stripe_createstripepromocode",
+      "lib_stripe_createsubscriptioncheckout",
+      "lib_stripe_getsubscription",
+      "lib_stripe_listcoupons",
+      "portal_checkout_route_post",
+      "postulaciones_page_postulacionespage",
+      "session_route_post",
+      "src_app_admin_cupones_page_tsx",
+      "src_app_admin_postulaciones_page_tsx",
+      "src_app_api_admin_coupons_route_ts",
+      "src_app_api_checkout_session_route_ts",
+      "src_app_api_stripe_cancel_route_ts",
+      "src_app_api_stripe_portal_checkout_route_ts",
+      "src_app_api_stripe_webhook_route_ts",
+      "src_app_portal_suscripcion_actions_ts",
+      "src_app_portal_suscripcion_suscripcion_client_tsx",
+      "src_lib_stripe_ts",
+      "suscripcion_actions_iniciarpago",
+      "suscripcion_suscripcion_client_handlecancel",
+      "suscripcion_suscripcion_client_handlecheckout",
+      "webhook_route_activateportalforstartup",
+      "webhook_route_deactivateportalforstartup",
+      "webhook_route_post"
+    ],
+    "1": [
+      "apply_route_post",
+      "clases_page_adminclasespage",
+      "dashboard_page_dashboardpage",
+      "lib_airtable_assigncoupontoapplication",
+      "lib_airtable_countfoundersinscritos",
+      "lib_airtable_createapplication",
+      "lib_airtable_createasistencia",
+      "lib_airtable_createfeedback",
+      "lib_airtable_createfounderrecord",
+      "lib_airtable_createmisioncompletada",
+      "lib_airtable_createstartuprecord",
+      "lib_airtable_getallasistencias",
+      "lib_airtable_getallfeedback",
+      "lib_airtable_getallmisiones",
+      "lib_airtable_getallmisionescompletadas",
+      "lib_airtable_getallpagos",
+      "lib_airtable_getallrecursos",
+      "lib_airtable_getallstartups",
+      "lib_airtable_getapplicationbyemail",
+      "lib_airtable_getasistenciasbystartup",
+      "lib_airtable_getclasebyid",
+      "lib_airtable_getclaseswithcontent",
+      "lib_airtable_getfeedbackbyclase",
+      "lib_airtable_getmisionescompletadasbystartup",
+      "lib_airtable_getproximaclase",
+      "lib_airtable_getstartupbyid",
+      "lib_airtable_updatefounderaccess",
+      "lib_airtable_upsertasistencia",
+      "lib_airtable_upsertmisioncompletada",
+      "misiones_page_adminmisionespage",
+      "recursos_page_adminrecursospage",
+      "src_app_admin_clases_page_tsx",
+      "src_app_admin_dashboard_page_tsx",
+      "src_app_admin_misiones_page_tsx",
+      "src_app_admin_recursos_page_tsx",
+      "src_app_api_apply_route_ts",
+      "src_lib_airtable_ts"
+    ],
+    "2": [
+      "admin_layout_adminlayout",
+      "applications_route_get",
+      "clases_route_get",
+      "clases_route_patch",
+      "clases_route_post",
+      "debug_route_get",
+      "equipo_page_equipopage",
+      "invitar_route_post",
+      "lib_airtable_createclase",
+      "lib_airtable_createmision",
+      "lib_airtable_createrecurso",
+      "lib_airtable_getfounderprofile",
+      "lib_airtable_updateclase",
+      "lib_airtable_updatemision",
+      "lib_airtable_updaterecurso",
+      "lib_airtable_updatestartup",
+      "lib_auth_obtenersesion",
+      "misiones_route_patch",
+      "misiones_route_post",
+      "recursos_route_patch",
+      "recursos_route_post",
+      "src_app_admin_layout_tsx",
+      "src_app_api_admin_applications_route_ts",
+      "src_app_api_admin_clases_route_ts",
+      "src_app_api_admin_misiones_route_ts",
+      "src_app_api_admin_recursos_route_ts",
+      "src_app_api_auth_debug_route_ts",
+      "src_app_api_equipo_invitar_route_ts",
+      "src_app_portal_equipo_page_tsx",
+      "src_app_portal_startup_actions_ts",
+      "src_app_portal_suscripcion_page_tsx",
+      "startup_actions_guardarstartup",
+      "suscripcion_page_suscripcionpage"
+    ],
+    "3": [
+      "checkout_login_route_get",
+      "lib_airtable_getfounderbyemail",
+      "lib_auth_crearsesion",
+      "lib_auth_creartokenmagic",
+      "lib_auth_creartokensesion",
+      "lib_auth_destruirsesion",
+      "lib_auth_esadmin",
+      "lib_auth_getsecretomagic",
+      "lib_auth_getsecretosesion",
+      "lib_auth_obtenersesiondeheaders",
+      "lib_auth_verificartokenmagic",
+      "login_route_post",
+      "logout_route_handle",
+      "magic_route_post",
+      "src_app_api_auth_checkout_login_route_ts",
+      "src_app_api_auth_login_route_ts",
+      "src_app_api_auth_logout_route_ts",
+      "src_app_api_auth_magic_route_ts",
+      "src_app_api_auth_verify_route_ts",
+      "src_lib_auth_ts",
+      "verify_route_get"
+    ],
+    "4": [
+      "applications_route_patch",
+      "lib_resend_badge",
+      "lib_resend_btn",
+      "lib_resend_divider",
+      "lib_resend_email",
+      "lib_resend_h1",
+      "lib_resend_p",
+      "lib_resend_sendadmissionemail",
+      "lib_resend_sendadmissionfollowup",
+      "lib_resend_sendapplicationconfirmation",
+      "lib_resend_sendchurnemail",
+      "lib_resend_sendcouponlink",
+      "lib_resend_sendmagiclink",
+      "lib_resend_sendonboardingemail",
+      "lib_resend_sendpaymentconfirmation",
+      "lib_resend_sendpaymentfailedemail",
+      "lib_resend_sendreferralrequest",
+      "lib_resend_sendrejectionemail",
+      "lib_resend_small",
+      "src_lib_resend_ts"
+    ],
+    "5": [
+      "icon_comunidad",
+      "icon_conocimiento",
+      "icon_crecimiento",
+      "icon_networking",
+      "icon_reconocimiento",
+      "icon_visibilidad",
+      "ifsp_logo",
+      "ifsp_program",
+      "obj_a",
+      "obj_b",
+      "value_prop_comunidad",
+      "value_prop_conocimiento",
+      "value_prop_crecimiento",
+      "value_prop_networking",
+      "value_prop_reconocimiento",
+      "value_prop_visibilidad",
+      "victor_lau"
+    ],
+    "6": [
+      "admin_kanban_postulaciones_applystatus",
+      "admin_kanban_postulaciones_assigncoupon",
+      "admin_kanban_postulaciones_daysold",
+      "admin_kanban_postulaciones_dotclass",
+      "admin_kanban_postulaciones_getalerts",
+      "admin_kanban_postulaciones_handlecopycheckoutlink",
+      "admin_kanban_postulaciones_handlecouponsave",
+      "admin_kanban_postulaciones_handleresendcheckout",
+      "admin_kanban_postulaciones_marcarsinrespuesta",
+      "admin_kanban_postulaciones_movecard",
+      "admin_kanban_postulaciones_ondragstart",
+      "admin_kanban_postulaciones_openadmit",
+      "admin_kanban_postulaciones_openrechazadofounder",
+      "admin_kanban_postulaciones_openreject",
+      "src_components_admin_kanban_postulaciones_tsx"
+    ],
+    "7": [
+      "apply_chat_form_e",
+      "apply_chat_form_findnextqidx",
+      "apply_chat_form_getdefaultval",
+      "apply_chat_form_getdisplaytext",
+      "apply_chat_form_handlenext",
+      "apply_chat_form_handleskip",
+      "apply_chat_form_savetostorage",
+      "apply_chat_form_submitform",
+      "apply_chat_form_uploadlogo",
+      "apply_chat_form_validatefield",
+      "src_components_apply_chat_form_tsx"
+    ],
+    "8": [
+      "admin_misiones_manager_claseselector",
+      "admin_misiones_manager_daysleft",
+      "admin_misiones_manager_formatfecha",
+      "admin_misiones_manager_save",
+      "admin_misiones_manager_submit",
+      "admin_misiones_manager_updatemision",
+      "src_components_admin_misiones_manager_tsx"
+    ],
+    "9": [
+      "apply_application_form_nextstep",
+      "apply_application_form_onsubmit",
+      "apply_application_form_prevstep",
+      "apply_application_form_setlogofile",
+      "apply_application_form_uploadlogo",
+      "src_components_apply_application_form_tsx"
+    ],
+    "10": [
+      "agents_nextjs_rules",
+      "claude_md_project",
+      "geist_font",
+      "nextjs_framework",
+      "readme_nextjs_project",
+      "vercel_platform"
+    ],
+    "11": [
+      "brand_colors_pdf",
+      "brand_identity",
+      "logo_azul",
+      "logo_blanco",
+      "public_logo_azul",
+      "setup_brand_doc"
+    ],
+    "12": [
+      "clases_page_daysleft",
+      "clases_page_formatfecha",
+      "clases_page_formatfechacorta",
+      "clases_page_tipoicon",
+      "src_app_portal_clases_page_tsx"
+    ],
+    "13": [
+      "id_page_daysleft",
+      "id_page_formatfecha",
+      "id_page_getembedurl",
+      "id_page_tipoicon",
+      "src_app_portal_clases_id_page_tsx"
+    ],
+    "14": [
+      "admin_postulaciones_table_confirmaction",
+      "admin_postulaciones_table_copiarlinkpago",
+      "admin_postulaciones_table_marcarsinrespuesta",
+      "admin_postulaciones_table_openmodal",
+      "src_components_admin_postulaciones_table_tsx"
+    ],
+    "15": [
+      "admin_recursos_manager_claseselector",
+      "admin_recursos_manager_submit",
+      "admin_recursos_manager_tipoicon",
+      "admin_recursos_manager_updaterecurso",
+      "src_components_admin_recursos_manager_tsx"
+    ],
+    "16": [
+      "setup_stripe_doc",
+      "stripe_product_mensual",
+      "stripe_product_unico",
+      "stripe_service",
+      "stripe_webhook"
+    ],
+    "17": [
+      "admin_dashboard_stats_dashboardstats",
+      "admin_dashboard_stats_kpicard",
+      "admin_dashboard_stats_sectionlabel",
+      "src_components_admin_dashboard_stats_tsx"
+    ],
+    "18": [
+      "lib_timezone_adddayssantiago",
+      "lib_timezone_santiagoinputtoiso",
+      "lib_timezone_tosantiagoinput",
+      "src_lib_timezone_ts"
+    ],
+    "19": [
+      "favicon_blanco",
+      "favicon_oscuro",
+      "public_favicon",
+      "rocket_isotipo"
+    ],
+    "20": [
+      "app_page_countdowntimer",
+      "app_page_wordcarousel",
+      "src_app_page_tsx"
+    ],
+    "21": [
+      "equipo_equipo_client_handleinvitar",
+      "equipo_equipo_client_set",
+      "src_app_portal_equipo_equipo_client_tsx"
+    ],
+    "22": [
+      "misiones_page_daysleft",
+      "misiones_page_formatfecha",
+      "src_app_portal_misiones_page_tsx"
+    ],
+    "23": [
+      "src_middleware_middleware",
+      "src_middleware_ts"
+    ],
+    "24": [
+      "admin_page_adminroot",
+      "src_app_admin_page_tsx"
+    ],
+    "25": [
+      "ping_route_get",
+      "src_app_api_auth_ping_route_ts"
+    ],
+    "26": [
+      "apply_page_applypage",
+      "src_app_apply_page_tsx"
+    ],
+    "27": [
+      "src_app_apply_success_page_tsx",
+      "success_page_successpage"
+    ],
+    "28": [
+      "login_page_manejarenvio",
+      "src_app_auth_login_page_tsx"
+    ],
+    "29": [
+      "src_app_checkout_success_page_tsx",
+      "success_page_checkoutsuccesspage"
+    ],
+    "30": [
+      "src_app_checkout_success_success_redirect_tsx",
+      "success_success_redirect_successredirect"
+    ],
+    "31": [
+      "portal_checkout_banner_handlepagar",
+      "src_app_portal_checkout_banner_tsx"
+    ],
+    "32": [
+      "sin_acceso_layout_sinaccesolayout",
+      "src_app_portal_sin_acceso_layout_tsx"
+    ],
+    "33": [
+      "src_app_portal_startup_startup_edit_form_tsx",
+      "startup_startup_edit_form_handlesubmit"
+    ],
+    "34": [
+      "admin_clases_manager_inlineedit",
+      "src_components_admin_clases_manager_tsx"
+    ],
+    "35": [
+      "admin_coupon_panel_pctcolor",
+      "src_components_admin_coupon_panel_tsx"
+    ],
+    "36": [
+      "admin_cupones_manager_cuponesmanager",
+      "src_components_admin_cupones_manager_tsx"
+    ],
+    "37": [
+      "admin_postulaciones_client_postulacionesclient",
+      "src_components_admin_postulaciones_client_tsx"
+    ],
+    "38": [
+      "apply_field_wrapper_fieldwrapper",
+      "src_components_apply_field_wrapper_tsx"
+    ],
+    "39": [
+      "apply_form_progress_formprogress",
+      "src_components_apply_form_progress_tsx"
+    ],
+    "40": [
+      "apply_multi_select_toggle",
+      "src_components_apply_multi_select_tsx"
+    ],
+    "41": [
+      "checkout_checkout_options_pay",
+      "src_components_checkout_checkout_options_tsx"
+    ],
+    "42": [
+      "portal_sidebar_portalsidebar",
+      "src_components_portal_sidebar_tsx"
+    ],
+    "43": [
+      "src_components_ui_avatar_tsx",
+      "ui_avatar_cn"
+    ],
+    "44": [
+      "src_components_ui_button_tsx",
+      "ui_button_cn"
+    ],
+    "45": [
+      "src_components_ui_checkbox_tsx",
+      "ui_checkbox_checkbox"
+    ],
+    "46": [
+      "src_components_ui_dropdown_menu_tsx",
+      "ui_dropdown_menu_cn"
+    ],
+    "47": [
+      "src_components_ui_textarea_tsx",
+      "ui_textarea_cn"
+    ],
+    "48": [
+      "lib_utils_cn",
+      "src_lib_utils_ts"
+    ],
+    "49": [
+      "eslint_config_mjs"
+    ],
+    "50": [
+      "next_env_d_ts"
+    ],
+    "51": [
+      "next_config_ts"
+    ],
+    "52": [
+      "postcss_config_mjs"
+    ],
+    "53": [
+      "src_app_layout_tsx"
+    ],
+    "54": [
+      "src_app_admin_inscritos_page_tsx"
+    ],
+    "55": [
+      "src_app_admin_revenue_page_tsx"
+    ],
+    "56": [
+      "src_app_checkout_token_page_tsx"
+    ],
+    "57": [
+      "src_app_portal_layout_tsx"
+    ],
+    "58": [
+      "src_app_portal_page_tsx"
+    ],
+    "59": [
+      "src_app_portal_sin_acceso_page_tsx"
+    ],
+    "60": [
+      "src_app_portal_startup_page_tsx"
+    ],
+    "61": [
+      "src_components_admin_health_check_table_tsx"
+    ],
+    "62": [
+      "src_components_admin_sidebar_tsx"
+    ],
+    "63": [
+      "src_components_apply_chat_bubble_tsx"
+    ],
+    "64": [
+      "src_components_ui_input_tsx"
+    ],
+    "65": [
+      "src_components_ui_sonner_tsx"
+    ],
+    "66": [
+      "src_lib_countries_ts"
+    ],
+    "67": [
+      "src_lib_form_schema_ts"
+    ],
+    "68": [
+      "color_dark_navy"
+    ],
+    "69": [
+      "color_hot_pink"
+    ],
+    "70": [
+      "color_magenta"
+    ],
+    "71": [
+      "color_violet"
+    ],
+    "72": [
+      "color_purple"
+    ],
+    "73": [
+      "color_red_orange"
+    ],
+    "74": [
+      "color_orange"
+    ],
+    "75": [
+      "public_logo_mf"
+    ],
+    "76": [
+      "hl1_partnership_handshake"
+    ],
+    "77": [
+      "hl2_strategy_framework"
+    ],
+    "78": [
+      "hl3_innovation_intelligence"
+    ],
+    "79": [
+      "hl4_recognition_leadership"
+    ],
+    "80": [
+      "master_logo"
+    ],
+    "81": [
+      "obj_c"
+    ],
+    "82": [
+      "obj_d"
+    ]
+  },
+  "cohesion": {
+    "0": 0.08,
+    "1": 0.07,
+    "2": 0.07,
+    "3": 0.14,
+    "4": 0.47,
+    "5": 0.12,
+    "6": 0.15,
+    "7": 0.31,
+    "8": 0.29,
+    "9": 0.4,
+    "10": 0.33,
+    "11": 0.33,
+    "12": 0.4,
+    "13": 0.4,
+    "14": 0.4,
+    "15": 0.4,
+    "16": 0.4,
+    "17": 0.5,
+    "18": 0.67,
+    "19": 0.5,
+    "20": 0.67,
+    "21": 0.67,
+    "22": 0.67,
+    "23": 1.0,
+    "24": 1.0,
+    "25": 1.0,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0,
+    "49": 1.0,
+    "50": 1.0,
+    "51": 1.0,
+    "52": 1.0,
+    "53": 1.0,
+    "54": 1.0,
+    "55": 1.0,
+    "56": 1.0,
+    "57": 1.0,
+    "58": 1.0,
+    "59": 1.0,
+    "60": 1.0,
+    "61": 1.0,
+    "62": 1.0,
+    "63": 1.0,
+    "64": 1.0,
+    "65": 1.0,
+    "66": 1.0,
+    "67": 1.0,
+    "68": 1.0,
+    "69": 1.0,
+    "70": 1.0,
+    "71": 1.0,
+    "72": 1.0,
+    "73": 1.0,
+    "74": 1.0,
+    "75": 1.0,
+    "76": 1.0,
+    "77": 1.0,
+    "78": 1.0,
+    "79": 1.0,
+    "80": 1.0,
+    "81": 1.0,
+    "82": 1.0
+  },
+  "gods": [
+    {
+      "id": "lib_auth_obtenersesion",
+      "label": "obtenerSesion()",
+      "degree": 23
+    },
+    {
+      "id": "lib_resend_email",
+      "label": "email()",
+      "degree": 12
+    },
+    {
+      "id": "lib_resend_h1",
+      "label": "h1()",
+      "degree": 12
+    },
+    {
+      "id": "lib_resend_p",
+      "label": "p()",
+      "degree": 12
+    },
+    {
+      "id": "lib_resend_small",
+      "label": "small()",
+      "degree": 12
+    },
+    {
+      "id": "lib_resend_divider",
+      "label": "divider()",
+      "degree": 12
+    },
+    {
+      "id": "lib_airtable_getallapplications",
+      "label": "getAllApplications()",
+      "degree": 11
+    },
+    {
+      "id": "lib_resend_sendcouponlink",
+      "label": "sendCouponLink()",
+      "degree": 10
+    },
+    {
+      "id": "webhook_route_post",
+      "label": "POST()",
+      "degree": 9
+    },
+    {
+      "id": "lib_resend_sendadmissionemail",
+      "label": "sendAdmissionEmail()",
+      "degree": 9
+    }
+  ],
+  "surprises": [
+    {
+      "source": "PATCH()",
+      "target": "assignCouponToApplication()",
+      "source_files": [
+        "src\\app\\api\\admin\\applications\\route.ts",
+        "src\\lib\\airtable.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities; peripheral node `assignCouponToApplication()` unexpectedly reaches hub `PATCH()`"
+    },
+    {
+      "source": "Public Logo MF Azul",
+      "target": "Logo Modo Fundraising 2026 \u2014 Azul",
+      "source_files": [
+        "public/logo-mf-azul.png",
+        "docs/brandData/Logo_ModoFundraising2026-Azul (1).png"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link"
+    },
+    {
+      "source": "Public Favicon PNG",
+      "target": "Favicon Oscuro (rocket isotipo, dark navy)",
+      "source_files": [
+        "public/favicon.png",
+        "docs/brandData/MODO_FUNDRAISING_2026 - FAVICON OSCURO.png"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link"
+    },
+    {
+      "source": "AdminLayout()",
+      "target": "obtenerSesion()",
+      "source_files": [
+        "src\\app\\admin\\layout.tsx",
+        "src\\lib\\auth.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `AdminLayout()` unexpectedly reaches hub `obtenerSesion()`"
+    },
+    {
+      "source": "AdminClasesPage()",
+      "target": "getClasesWithContent()",
+      "source_files": [
+        "src\\app\\admin\\clases\\page.tsx",
+        "src\\lib\\airtable.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "calls",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `AdminClasesPage()` unexpectedly reaches hub `getClasesWithContent()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `obtenerSesion()` connect `Community 2` to `Community 0`, `Community 3`, `Community 4`?",
+      "why": "High betweenness centrality (0.059) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `getAllApplications()` connect `Community 0` to `Community 1`, `Community 2`, `Community 4`?",
+      "why": "High betweenness centrality (0.025) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `PATCH()` connect `Community 4` to `Community 0`, `Community 1`, `Community 2`?",
+      "why": "High betweenness centrality (0.017) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 20 inferred relationships involving `obtenerSesion()` (e.g. with `AdminLayout()` and `GET()`) actually correct?",
+      "why": "`obtenerSesion()` has 20 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `CLAUDE.md Project Config`, `Vercel Platform`, `Brand Assets Setup Guide` to the rest of the system?",
+      "why": "38 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 1` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.07 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

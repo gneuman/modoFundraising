@@ -1,16 +1,14 @@
 export const dynamic = "force-dynamic";
 
 import { obtenerSesion } from "@/lib/auth";
-import { getFounderProfile, getStartupById } from "@/lib/airtable";
+import { getFounderProfile } from "@/lib/airtable";
 import { Globe, Link2, MapPin, Users, TrendingUp, DollarSign, ExternalLink } from "lucide-react";
 import { StartupEditForm } from "./startup-edit-form";
 
 export default async function StartupPage() {
   const session = await obtenerSesion();
   const profile = await getFounderProfile(session?.email ?? "");
-  const startup = profile?.startup_record_id
-    ? await getStartupById(profile.startup_record_id)
-    : null;
+  const startup = profile?.startup ?? null;
 
   if (!startup) {
     return (

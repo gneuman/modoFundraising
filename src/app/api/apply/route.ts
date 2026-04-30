@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApplication, getApplicationByEmail } from "@/lib/airtable";
-import { sendApplicationConfirmation, sendReferralRequest } from "@/lib/resend";
+import { sendApplicationConfirmation, sendReferralRequest } from "@/lib/gmail";
 import { applicationSchema } from "@/lib/form-schema";
 
 export async function POST(req: NextRequest) {

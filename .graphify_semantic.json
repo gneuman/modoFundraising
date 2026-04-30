@@ -1,0 +1,970 @@
+{
+  "nodes": [
+    {
+      "id": "agents_nextjs_rules",
+      "label": "Next.js Agent Rules",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "claude_md_project",
+      "label": "CLAUDE.md Project Config",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_nextjs_project",
+      "label": "Modo Fundraising Next.js Project",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "nextjs_framework",
+      "label": "Next.js Framework",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "vercel_platform",
+      "label": "Vercel Platform",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "setup_brand_doc",
+      "label": "Brand Assets Setup Guide",
+      "file_type": "document",
+      "source_file": "docs/setup-brand.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "setup_stripe_doc",
+      "label": "Stripe Setup Guide",
+      "file_type": "document",
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stripe_service",
+      "label": "Stripe Payment Service",
+      "file_type": "document",
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stripe_product_mensual",
+      "label": "Stripe Product \u2014 Suscripci\u00f3n Mensual",
+      "file_type": "document",
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stripe_product_unico",
+      "label": "Stripe Product \u2014 Pago \u00danico",
+      "file_type": "document",
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stripe_webhook",
+      "label": "Stripe Webhook Endpoint",
+      "file_type": "document",
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "brand_colors_pdf",
+      "label": "Modo Fundraising 2026 Color Palette",
+      "file_type": "document",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_dark_navy",
+      "label": "Color Dark Navy #181b2f",
+      "file_type": "document",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_hot_pink",
+      "label": "Color Hot Pink #e5007e",
+      "file_type": "document",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_magenta",
+      "label": "Color Magenta #e217cf",
+      "file_type": "document",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_violet",
+      "label": "Color Violet #991de4",
+      "file_type": "document",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_purple",
+      "label": "Color Purple #572583",
+      "file_type": "document",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_red_orange",
+      "label": "Color Red-Orange #e64915",
+      "file_type": "document",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "color_orange",
+      "label": "Color Orange #ea680f",
+      "file_type": "document",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "logo_azul",
+      "label": "Logo Modo Fundraising 2026 \u2014 Azul",
+      "file_type": "image",
+      "source_file": "docs/brandData/Logo_ModoFundraising2026-Azul (1).png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "logo_blanco",
+      "label": "Logo Modo Fundraising 2026 \u2014 Blanco",
+      "file_type": "image",
+      "source_file": "docs/brandData/Logo_ModoFundraising2026-Blanco.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "favicon_blanco",
+      "label": "Favicon Blanco (rocket isotipo, white)",
+      "file_type": "image",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - FAVICON BLANCO.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "favicon_oscuro",
+      "label": "Favicon Oscuro (rocket isotipo, dark navy)",
+      "file_type": "image",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - FAVICON OSCURO.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_favicon",
+      "label": "Public Favicon PNG",
+      "file_type": "image",
+      "source_file": "public/favicon.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_logo_azul",
+      "label": "Public Logo MF Azul",
+      "file_type": "image",
+      "source_file": "public/logo-mf-azul.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "public_logo_mf",
+      "label": "Public Logo MF",
+      "file_type": "image",
+      "source_file": "public/logo-mf.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "brand_identity",
+      "label": "Modo Fundraising 2026 Brand Identity",
+      "file_type": "document",
+      "source_file": "docs/setup-brand.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rocket_isotipo",
+      "label": "Rocket Isotipo \u2014 Brand Visual Symbol",
+      "file_type": "image",
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - FAVICON OSCURO.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "geist_font",
+      "label": "Geist Font Family",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "hl1_partnership_handshake",
+      "label": "HL-1: Partnership / Handshake Highlight",
+      "file_type": "image",
+      "source_file": "public/ifsp/hl-1.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "hl2_strategy_framework",
+      "label": "HL-2: Strategy Framework Highlight",
+      "file_type": "image",
+      "source_file": "public/ifsp/hl-2.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "hl3_innovation_intelligence",
+      "label": "HL-3: Innovation / Intelligence Highlight",
+      "file_type": "image",
+      "source_file": "public/ifsp/hl-3.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "hl4_recognition_leadership",
+      "label": "HL-4: Recognition / Leadership Highlight",
+      "file_type": "image",
+      "source_file": "public/ifsp/hl-4.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_comunidad",
+      "label": "Icon: Comunidad (Community)",
+      "file_type": "image",
+      "source_file": "public/ifsp/icon-comunidad.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_conocimiento",
+      "label": "Icon: Conocimiento (Knowledge)",
+      "file_type": "image",
+      "source_file": "public/ifsp/icon-conocimiento.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_crecimiento",
+      "label": "Icon: Crecimiento (Growth)",
+      "file_type": "image",
+      "source_file": "public/ifsp/icon-crecimiento.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_networking",
+      "label": "Icon: Networking",
+      "file_type": "image",
+      "source_file": "public/ifsp/icon-networking.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_reconocimiento",
+      "label": "Icon: Reconocimiento (Recognition)",
+      "file_type": "image",
+      "source_file": "public/ifsp/icon-reconocimiento.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "icon_visibilidad",
+      "label": "Icon: Visibilidad (Visibility)",
+      "file_type": "image",
+      "source_file": "public/ifsp/icon-visibilidad.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "ifsp_logo",
+      "label": "IFSP Logo",
+      "file_type": "image",
+      "source_file": "public/ifsp/ifsp-logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "master_logo",
+      "label": "Master Logo modoFundraising Wordmark",
+      "file_type": "image",
+      "source_file": "public/ifsp/master-logo.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "obj_a",
+      "label": "Obj-A: Fundraising Growth Chart",
+      "file_type": "image",
+      "source_file": "public/ifsp/obj-a.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "obj_b",
+      "label": "Obj-B: Investor Network",
+      "file_type": "image",
+      "source_file": "public/ifsp/obj-b.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "obj_c",
+      "label": "Obj-C: Talent / People Search",
+      "file_type": "image",
+      "source_file": "public/ifsp/obj-c.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "obj_d",
+      "label": "Obj-D: Global Impact",
+      "file_type": "image",
+      "source_file": "public/ifsp/obj-d.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "victor_lau",
+      "label": "Victor Lau (Person / Headshot)",
+      "file_type": "image",
+      "source_file": "public/ifsp/victor-lau.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "ifsp_program",
+      "label": "IFSP: Impacta Fundraising Strategy Program",
+      "file_type": "document",
+      "source_file": "public/ifsp/ifsp-logo.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "value_prop_comunidad",
+      "label": "Value Proposition: Comunidad",
+      "file_type": "document",
+      "source_file": "public/ifsp/icon-comunidad.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "value_prop_conocimiento",
+      "label": "Value Proposition: Conocimiento",
+      "file_type": "document",
+      "source_file": "public/ifsp/icon-conocimiento.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "value_prop_crecimiento",
+      "label": "Value Proposition: Crecimiento",
+      "file_type": "document",
+      "source_file": "public/ifsp/icon-crecimiento.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "value_prop_networking",
+      "label": "Value Proposition: Networking",
+      "file_type": "document",
+      "source_file": "public/ifsp/icon-networking.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "value_prop_reconocimiento",
+      "label": "Value Proposition: Reconocimiento",
+      "file_type": "document",
+      "source_file": "public/ifsp/icon-reconocimiento.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "value_prop_visibilidad",
+      "label": "Value Proposition: Visibilidad",
+      "file_type": "document",
+      "source_file": "public/ifsp/icon-visibilidad.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "claude_md_project",
+      "target": "agents_nextjs_rules",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "line 1",
+      "weight": 1.0
+    },
+    {
+      "source": "readme_nextjs_project",
+      "target": "nextjs_framework",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_nextjs_project",
+      "target": "vercel_platform",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_nextjs_project",
+      "target": "geist_font",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "setup_stripe_doc",
+      "target": "stripe_service",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "setup_stripe_doc",
+      "target": "stripe_product_mensual",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "setup_stripe_doc",
+      "target": "stripe_product_unico",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "setup_stripe_doc",
+      "target": "stripe_webhook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/setup-stripe.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "brand_colors_pdf",
+      "target": "brand_identity",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - COLORES.pdf",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "logo_azul",
+      "target": "brand_identity",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/brandData/Logo_ModoFundraising2026-Azul (1).png",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "logo_blanco",
+      "target": "brand_identity",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/brandData/Logo_ModoFundraising2026-Blanco.png",
+      "source_location": null,
+      "weight": 0.95
+    },
+    {
+      "source": "favicon_oscuro",
+      "target": "rocket_isotipo",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - FAVICON OSCURO.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "favicon_blanco",
+      "target": "rocket_isotipo",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/brandData/MODO_FUNDRAISING_2026 - FAVICON BLANCO.png",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "public_logo_azul",
+      "target": "logo_azul",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/logo-mf-azul.png",
+      "source_location": null,
+      "weight": 0.9
+    },
+    {
+      "source": "public_favicon",
+      "target": "favicon_oscuro",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/favicon.png",
+      "source_location": null,
+      "weight": 0.85
+    },
+    {
+      "source": "setup_brand_doc",
+      "target": "brand_identity",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/setup-brand.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_nextjs_rules",
+      "target": "nextjs_framework",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "ifsp_logo",
+      "target": "ifsp_program",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/ifsp/ifsp-logo.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_comunidad",
+      "target": "value_prop_comunidad",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/ifsp/icon-comunidad.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_conocimiento",
+      "target": "value_prop_conocimiento",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/ifsp/icon-conocimiento.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_crecimiento",
+      "target": "value_prop_crecimiento",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/ifsp/icon-crecimiento.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_networking",
+      "target": "value_prop_networking",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/ifsp/icon-networking.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_reconocimiento",
+      "target": "value_prop_reconocimiento",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/ifsp/icon-reconocimiento.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "icon_visibilidad",
+      "target": "value_prop_visibilidad",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/ifsp/icon-visibilidad.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "value_prop_comunidad",
+      "target": "ifsp_program",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/ifsp/icon-comunidad.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "value_prop_conocimiento",
+      "target": "ifsp_program",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/ifsp/icon-conocimiento.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "value_prop_crecimiento",
+      "target": "ifsp_program",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/ifsp/icon-crecimiento.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "value_prop_networking",
+      "target": "ifsp_program",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/ifsp/icon-networking.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "value_prop_reconocimiento",
+      "target": "ifsp_program",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/ifsp/icon-reconocimiento.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "value_prop_visibilidad",
+      "target": "ifsp_program",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/ifsp/icon-visibilidad.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "obj_a",
+      "target": "value_prop_crecimiento",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/ifsp/obj-a.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "obj_b",
+      "target": "value_prop_networking",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/ifsp/obj-b.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "victor_lau",
+      "target": "ifsp_program",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/ifsp/victor-lau.webp",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "modo_fundraising_brand_system",
+      "label": "Modo Fundraising 2026 Brand System",
+      "nodes": [
+        "brand_identity",
+        "brand_colors_pdf",
+        "logo_azul",
+        "logo_blanco",
+        "rocket_isotipo"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "docs/setup-brand.md"
+    },
+    {
+      "id": "modo_fundraising_payment_system",
+      "label": "Modo Fundraising Payment System",
+      "nodes": [
+        "stripe_service",
+        "stripe_product_mensual",
+        "stripe_product_unico",
+        "stripe_webhook",
+        "setup_stripe_doc"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/setup-stripe.md"
+    },
+    {
+      "id": "ifsp_value_propositions",
+      "label": "IFSP Six Value Propositions",
+      "nodes": [
+        "value_prop_comunidad",
+        "value_prop_conocimiento",
+        "value_prop_crecimiento",
+        "value_prop_networking",
+        "value_prop_reconocimiento",
+        "value_prop_visibilidad",
+        "ifsp_program"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "public/ifsp/ifsp-logo.png"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}
