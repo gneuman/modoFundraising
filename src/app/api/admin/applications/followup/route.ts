@@ -1,11 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
 import { sendAdmissionFollowUp } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
 
 // POST /api/admin/applications/followup
 // Envía correo de seguimiento a todas las postulaciones "Admitida" sin pago completado.
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const apps = await getAllApplications();
 
   const pendientes = apps.filter(
@@ -50,7 +53,9 @@ export async function POST() {
 
 // GET /api/admin/applications/followup
 // Devuelve las postulaciones admitidas sin pago (preview antes de enviar).
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const apps = await getAllApplications();
 
   const pendientes = apps

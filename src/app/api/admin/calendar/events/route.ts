@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verificarAdmin } from "@/lib/admin-auth";
 import { google } from "googleapis";
 
 function getAuth() {
@@ -11,6 +12,8 @@ function getAuth() {
 }
 
 export async function GET(req: NextRequest) {
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const calendarId = process.env.GOOGLE_CALENDAR_ID ?? "primary";
 
   try {

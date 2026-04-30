@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verificarAdmin } from "@/lib/admin-auth";
 import { getClasesWithContent, updateClase } from "@/lib/airtable";
 import { createCalendarEvent } from "@/lib/calendar";
 
 // POST /api/admin/calendar/schedule
 // Agenda en Google Calendar las clases que ya existen en Airtable pero no tienen evento
 export async function POST(req: NextRequest) {
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const clases = await getClasesWithContent();
   const sinEvento = clases.filter((c) => c.fecha && !c.calendar_event_id);
 

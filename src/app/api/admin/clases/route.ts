@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verificarAdmin } from "@/lib/admin-auth";
 import { getClasesWithContent, createClase, updateClase, getClaseById } from "@/lib/airtable";
 import { createCalendarEvent, updateCalendarEvent } from "@/lib/calendar";
 
 export async function GET(req: NextRequest) {
-
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const clases = await getClasesWithContent();
   return NextResponse.json(clases);
 }
 
 export async function POST(req: NextRequest) {
-
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const body = await req.json();
 
   // 1. Crear en Airtable
@@ -39,7 +42,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const { id, ...data } = await req.json();
 
   // Actualizar en Airtable
