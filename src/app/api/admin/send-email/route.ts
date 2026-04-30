@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getAllApplications } from "@/lib/airtable";
 import { createCheckoutToken } from "@/lib/checkout-token";
