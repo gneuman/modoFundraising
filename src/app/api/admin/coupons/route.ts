@@ -1,25 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obtenerSesion } from "@/lib/auth";
-import { createStripeCoupon, createStripePromoCode, listCoupons, STRIPE_PRICE_ID_MONTHLY } from "@/lib/stripe";
-import { createCouponRecord, getAllCoupons } from "@/lib/airtable";
+import { verificarAdmin } from "@/lib/admin-auth";
+import { createStripeCoupon, createStripePromoCode, STRIPE_PRICE_ID_MONTHLY, createSubscriptionCheckout, createStripeCustomer } from "@/lib/stripe";
+import { createCouponRecord, getAllCoupons, getAllApplications } from "@/lib/airtable";
 import { sendCouponLink } from "@/lib/gmail";
-import { getAllApplications } from "@/lib/airtable";
-import { createSubscriptionCheckout, createStripeCustomer } from "@/lib/stripe";
 
-export async function GET() {
-  const session = await obtenerSesion();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET(req: NextRequest) {
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const coupons = await getAllCoupons();
   return NextResponse.json(coupons);
 }
 
 export async function POST(req: NextRequest) {
-  const session = await obtenerSesion();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
 
   const { name, percentOff, code, description } = await req.json();
   if (!name || !percentOff || !code) {
@@ -41,19 +35,15 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, couponId: coupon.id, code: code.toUpperCase() });
 }
 
-// Send a personalized checkout link with coupon to an email
 export async function PUT(req: NextRequest) {
-  const session = await obtenerSesion();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
 
   const { email, firstName, couponId, percentOff } = await req.json();
   if (!email || !firstName || !couponId) {
-    return NextResponse.json({ error: "Faltan campos" }, { status: 400 });
+    return NextResponse.json({ error: "Faltan campos: email, firstName, couponId" }, { status: 400 });
   }
 
-  // Get or create Stripe customer
   const apps = await getAllApplications();
   const app = apps.find((a) => a.email === email);
   let customerId = app?.stripe_customer_id;
@@ -63,12 +53,13 @@ export async function PUT(req: NextRequest) {
     customerId = customer.id;
   }
 
+  const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
   const checkoutSession = await createSubscriptionCheckout({
     customerId,
     priceId: STRIPE_PRICE_ID_MONTHLY,
     couponId,
-    successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/portal?payment=success`,
-    cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/apply/success`,
+    successUrl: `${APP_URL}/portal?payment=success`,
+    cancelUrl: `${APP_URL}/apply/success`,
     metadata: { email, airtableId: app?.id ?? "" },
   });
 

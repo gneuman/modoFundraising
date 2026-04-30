@@ -149,18 +149,31 @@ function KanbanCard({
 
       {/* Pending payment badge for Admitida */}
       {a.status === "Admitida" && (
-        <div className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg border bg-blue-50 text-blue-700 border-blue-200">
-          <CreditCard className="h-3 w-3 shrink-0" />
-          <span className="font-medium">Esperando pago</span>
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={handleResendCheckout}
-            disabled={sendingLink}
-            className="ml-auto flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold disabled:opacity-40 transition-colors"
-          >
-            {sendingLink ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-            Copiar link
-          </button>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg border bg-blue-50 text-blue-700 border-blue-200">
+            <CreditCard className="h-3 w-3 shrink-0" />
+            <span className="font-medium">Esperando pago</span>
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={handleResendCheckout}
+              disabled={sendingLink}
+              className="ml-auto flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold disabled:opacity-40 transition-colors"
+            >
+              {sendingLink ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+              Copiar link
+            </button>
+          </div>
+          {/* Follow-up indicator */}
+          {a.follow_up_2_sent ? (
+            <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-red-50 text-red-600 border-red-200">
+              <span className="font-semibold">⚠ Seguimiento 2/2 enviado</span>
+              <span className="text-red-400 ml-auto">sin respuesta</span>
+            </div>
+          ) : a.follow_up_1_sent ? (
+            <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-amber-50 text-amber-700 border-amber-200">
+              <span>Seguimiento 1/2 enviado</span>
+            </div>
+          ) : null}
         </div>
       )}
 

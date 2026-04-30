@@ -1,75 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obtenerSesion } from "@/lib/auth";
+import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus, type ApplicationStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
 
-export async function GET() {
-  const session = await obtenerSesion();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+
+async function buildCheckoutUrl(recordId: string, app: {
+  email?: string; first_name?: string; startup_name?: string;
+  stripe_coupon_id?: unknown; discount_percent?: unknown;
+}) {
+  const token = await createCheckoutToken({
+    airtableId: recordId,
+    email: app.email!,
+    firstName: app.first_name!,
+    startupName: app.startup_name!,
+    stripeCouponId: app.stripe_coupon_id as string | undefined,
+    discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
+  });
+  return `${APP_URL}/checkout/${token}`;
+}
+
+export async function GET(req: NextRequest) {
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
   const apps = await getAllApplications();
   return NextResponse.json(apps);
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await obtenerSesion();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = await verificarAdmin(req);
+  if (denied) return denied;
 
   const body = await req.json();
   const { recordId, status, rejection_reason, coupon_code, discount_percent, stripe_coupon_id } = body;
-  if (!recordId) {
-    return NextResponse.json({ error: "Falta recordId" }, { status: 400 });
-  }
+  if (!recordId) return NextResponse.json({ error: "Falta recordId" }, { status: 400 });
 
-  // Resend checkout link
+  // ── Reenviar checkout ────────────────────────────────────────────────────────
   if (body.action === "resend_checkout") {
     try {
       const apps = await getAllApplications();
       const app = apps.find((a) => a.id === recordId);
-      if (!app) return NextResponse.json({ error: "App not found" }, { status: 404 });
-      const token = await createCheckoutToken({
-        airtableId: recordId,
-        email: app.email!,
-        firstName: app.first_name!,
-        startupName: app.startup_name!,
-        stripeCouponId: app.stripe_coupon_id as string | undefined,
-        discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
-      });
-      const checkoutUrl = `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${token}`;
-      const discountPercent = app.discount_percent ? Number(app.discount_percent) : 0;
-      if (discountPercent > 0) {
-        await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPercent);
+      if (!app) return NextResponse.json({ error: "Postulación no encontrada" }, { status: 404 });
+      const checkoutUrl = await buildCheckoutUrl(recordId, app);
+      const discountPct = app.discount_percent ? Number(app.discount_percent) : 0;
+      if (discountPct > 0) {
+        await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct);
       } else {
         await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
       }
-      return NextResponse.json({ url: checkoutUrl });
+      return NextResponse.json({ success: true, url: checkoutUrl });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return NextResponse.json({ error: msg }, { status: 500 });
+      return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }
   }
 
-  // Coupon assignment (no status change)
+  // ── Asignar cupón ────────────────────────────────────────────────────────────
   if (!status && coupon_code !== undefined) {
     try {
       const { assignCouponToApplication } = await import("@/lib/airtable");
       await assignCouponToApplication(recordId, coupon_code, discount_percent ?? 0, stripe_coupon_id ?? "");
       return NextResponse.json({ success: true });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("Coupon assignment error:", msg);
-      return NextResponse.json({ error: msg }, { status: 500 });
+      return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }
   }
 
-  if (!status) {
-    return NextResponse.json({ error: "Falta status" }, { status: 400 });
-  }
+  if (!status) return NextResponse.json({ error: "Falta status" }, { status: 400 });
 
+  // ── Cambio de status ─────────────────────────────────────────────────────────
   const extra: Record<string, unknown> = {};
   if (rejection_reason) extra.rejection_reason = rejection_reason;
 
@@ -81,24 +80,16 @@ export async function PATCH(req: NextRequest) {
       const app = apps.find((a) => a.id === recordId);
       if (app) {
         const discountPct = app.discount_percent ? Number(app.discount_percent) : 0;
-
         if (discountPct === 100) {
-          // Beca completa — skip Stripe, inscribir directamente
           await updateApplicationStatus(recordId, "Inscrita", { portal_access: true });
           return NextResponse.json({ success: true, inscrita_directa: true });
         }
-
-        const token = await createCheckoutToken({
-          airtableId: recordId,
-          email: app.email!,
-          firstName: app.first_name!,
-          startupName: app.startup_name!,
-          stripeCouponId: app.stripe_coupon_id as string | undefined,
-          discountPercent: discountPct || undefined,
-        });
-
-        const checkoutUrl = `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${token}`;
-        await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
+        const checkoutUrl = await buildCheckoutUrl(recordId, app);
+        if (discountPct > 0) {
+          await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct);
+        } else {
+          await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
+        }
       }
     } catch (err) {
       console.error("Admission email error:", err);
