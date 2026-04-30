@@ -1,22 +1,39 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
-import { loginAction } from "./actions";
-
-const initialState = { error: null as string | null };
 
 export default function PaginaLogin() {
-  const [state, formAction, isPending] = useActionState(
-    async (_prev: typeof initialState, formData: FormData) => {
-      const result = await loginAction(formData);
-      return result ?? initialState;
-    },
-    initialState
-  );
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setIsPending(true);
+    const email = (e.currentTarget.elements.namedItem("email") as HTMLInputElement).value;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Error al ingresar");
+        return;
+      }
+      // Hard navigation para que el browser cargue la cookie
+      window.location.href = data.redirect;
+    } catch {
+      setError("Error de conexión. Intentá de nuevo.");
+    } finally {
+      setIsPending(false);
+    }
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6" style={{ background: "linear-gradient(135deg, #181b2f 0%, #1a0d2e 50%, #181b2f 100%)" }}>
@@ -29,7 +46,7 @@ export default function PaginaLogin() {
           <h1 className="text-xl font-bold text-white mb-2">Acceder al portal</h1>
           <p className="text-sm text-white/40 mb-6">Ingresá con el email que usaste para postular.</p>
 
-          <form action={formAction} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               type="email"
               name="email"
@@ -39,9 +56,9 @@ export default function PaginaLogin() {
               className="bg-white/10 border-white/20 text-white placeholder:text-white/30 focus-visible:ring-white/30"
             />
 
-            {state?.error && (
+            {error && (
               <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                {state.error}
+                {error}
               </p>
             )}
 
