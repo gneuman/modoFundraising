@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
@@ -37,15 +36,13 @@ async function buildCheckoutUrl(recordId: string, app: {
 }
 
 export async function GET(req: NextRequest) {
-  const denied = await verificarAdmin(req);
-  if (denied) return denied;
+
   const apps = await getAllApplications();
   return NextResponse.json(apps);
 }
 
 export async function PATCH(req: NextRequest) {
-  const denied = await verificarAdmin(req);
-  if (denied) return denied;
+
 
   const body = await req.json();
   const { recordId, status, rejection_reason, coupon_code, discount_percent, stripe_coupon_id } = body;

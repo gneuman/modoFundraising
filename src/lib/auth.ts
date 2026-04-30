@@ -83,15 +83,6 @@ export async function obtenerSesion(): Promise<PayloadSesion | null> {
   }
 }
 
-// Lee la sesión desde los headers inyectados por el middleware (solo en rutas /portal)
-export async function obtenerSesionDeHeaders(): Promise<PayloadSesion | null> {
-  const { headers } = await import("next/headers");
-  const headersList = await headers();
-  const email = headersList.get("x-session-email");
-  const role = headersList.get("x-session-role");
-  if (!email || !role) return null;
-  return { email, role: role as "admin" | "founder" };
-}
 
 export async function destruirSesion() {
   const cookies_ = await cookies();

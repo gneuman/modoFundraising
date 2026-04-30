@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { obtenerSesion } from "@/lib/auth";
 import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
 import { sendAdmissionFollowUp } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
@@ -7,11 +6,6 @@ import { createCheckoutToken } from "@/lib/checkout-token";
 // POST /api/admin/applications/followup
 // Envía correo de seguimiento a todas las postulaciones "Admitida" sin pago completado.
 export async function POST() {
-  const session = await obtenerSesion();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const apps = await getAllApplications();
 
   const pendientes = apps.filter(
@@ -57,11 +51,6 @@ export async function POST() {
 // GET /api/admin/applications/followup
 // Devuelve las postulaciones admitidas sin pago (preview antes de enviar).
 export async function GET() {
-  const session = await obtenerSesion();
-  if (!session || session.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const apps = await getAllApplications();
 
   const pendientes = apps

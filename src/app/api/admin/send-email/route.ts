@@ -11,11 +11,10 @@ import {
   sendChurnEmail,
 } from "@/lib/gmail";
 
-// Auth: Bearer token usando EMAIL_API_SECRET o JWT_SECRET como fallback
 function isAuthorized(req: NextRequest): boolean {
   const auth = req.headers.get("authorization") ?? "";
-  const secret = process.env.EMAIL_API_SECRET ?? process.env.JWT_SECRET ?? "";
-  return auth === `Bearer ${secret}`;
+  const secret = process.env.EMAIL_API_SECRET ?? "";
+  return !!secret && auth === `Bearer ${secret}`;
 }
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");

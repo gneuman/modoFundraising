@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllFoundersWithAccess, getCalendarEventIds } from "@/lib/airtable";
 import { addAttendeesToAllEvents } from "@/lib/calendar";
 
@@ -8,9 +7,6 @@ import { addAttendeesToAllEvents } from "@/lib/calendar";
 // Esto incluye founders principales + co-founders invitados via equipo/invitar.
 // addAttendeesToAllEvents ya evita duplicados, así que es seguro correrlo múltiples veces.
 export async function POST(req: NextRequest) {
-  const denied = await verificarAdmin(req);
-  if (denied) return denied;
-
   const [founders, eventIds] = await Promise.all([
     getAllFoundersWithAccess(),
     getCalendarEventIds(),

@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verificarAdmin } from "@/lib/admin-auth";
 import { createStripeCoupon, createStripePromoCode, STRIPE_PRICE_ID_MONTHLY, createSubscriptionCheckout, createStripeCustomer } from "@/lib/stripe";
 import { createCouponRecord, getAllCoupons, getAllApplications } from "@/lib/airtable";
 import { sendCouponLink } from "@/lib/gmail";
 
 export async function GET(req: NextRequest) {
-  const denied = await verificarAdmin(req);
-  if (denied) return denied;
+
   const coupons = await getAllCoupons();
   return NextResponse.json(coupons);
 }
 
 export async function POST(req: NextRequest) {
-  const denied = await verificarAdmin(req);
-  if (denied) return denied;
+
 
   const { name, percentOff, code, description } = await req.json();
   if (!name || !percentOff || !code) {
@@ -36,8 +33,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const denied = await verificarAdmin(req);
-  if (denied) return denied;
+
 
   const { email, firstName, couponId, percentOff } = await req.json();
   if (!email || !firstName || !couponId) {

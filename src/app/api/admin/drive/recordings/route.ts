@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verificarAdmin } from "@/lib/admin-auth";
 import { getMeetRecordings, makeFilePublic } from "@/lib/drive";
 
 export async function GET(req: NextRequest) {
-  const authError = await verificarAdmin(req);
-  if (authError) return authError;
+
 
   const since = req.nextUrl.searchParams.get("since") ?? undefined;
 
@@ -23,8 +21,7 @@ export async function GET(req: NextRequest) {
 
 // Hace pública una grabación y devuelve la embed URL
 export async function POST(req: NextRequest) {
-  const authError = await verificarAdmin(req);
-  if (authError) return authError;
+
 
   const { fileId } = await req.json();
   if (!fileId) return NextResponse.json({ error: "fileId requerido" }, { status: 400 });
