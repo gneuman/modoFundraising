@@ -14,7 +14,8 @@
       "Bash(xargs grep *)",
       "Bash(pip install *)",
       "Bash(graphify --version)",
-      "Bash(graphify install *)"
+      "Bash(graphify install *)",
+      "PowerShell(Start-Process \"c:\\\\Users\\\\Usuario\\\\GNB Labs\\\\Gabriel Neuman\\\\proyectos\\\\clientes\\\\modoFundraising\\\\graphify-out\\\\graph.html\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\modoFundraising\\src\\app\\portal\\clases\\[id]",

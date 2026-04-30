@@ -23,7 +23,7 @@ export async function POST() {
 
   const startupIds = (app.startup_record as string[] | undefined) ?? [];
   await Promise.all([
-    updateApplicationStatus(app.id!, "Churn", { portal_access: false }),
+    updateApplicationStatus(app.id!, "Churn By Founder", { portal_access: false }),
     deactivateAllFoundersForApplication(app.id!),
     startupIds[0] ? updateStartupStatus(startupIds[0], "Churn") : Promise.resolve(),
   ]);

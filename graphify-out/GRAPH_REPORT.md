@@ -10,35 +10,35 @@
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Community 0|Community 0]]
-- [[_COMMUNITY_Community 1|Community 1]]
-- [[_COMMUNITY_Community 2|Community 2]]
-- [[_COMMUNITY_Community 3|Community 3]]
-- [[_COMMUNITY_Community 4|Community 4]]
-- [[_COMMUNITY_Community 5|Community 5]]
-- [[_COMMUNITY_Community 6|Community 6]]
-- [[_COMMUNITY_Community 7|Community 7]]
-- [[_COMMUNITY_Community 9|Community 9]]
-- [[_COMMUNITY_Community 10|Community 10]]
-- [[_COMMUNITY_Community 11|Community 11]]
-- [[_COMMUNITY_Community 16|Community 16]]
-- [[_COMMUNITY_Community 18|Community 18]]
-- [[_COMMUNITY_Community 19|Community 19]]
-- [[_COMMUNITY_Community 68|Community 68]]
-- [[_COMMUNITY_Community 69|Community 69]]
-- [[_COMMUNITY_Community 70|Community 70]]
-- [[_COMMUNITY_Community 71|Community 71]]
-- [[_COMMUNITY_Community 72|Community 72]]
-- [[_COMMUNITY_Community 73|Community 73]]
-- [[_COMMUNITY_Community 74|Community 74]]
-- [[_COMMUNITY_Community 75|Community 75]]
-- [[_COMMUNITY_Community 76|Community 76]]
-- [[_COMMUNITY_Community 77|Community 77]]
-- [[_COMMUNITY_Community 78|Community 78]]
-- [[_COMMUNITY_Community 79|Community 79]]
-- [[_COMMUNITY_Community 80|Community 80]]
-- [[_COMMUNITY_Community 81|Community 81]]
-- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Payment & Stripe|Payment & Stripe]]
+- [[_COMMUNITY_Airtable Data Layer|Airtable Data Layer]]
+- [[_COMMUNITY_Admin CRUD & Sessions|Admin CRUD & Sessions]]
+- [[_COMMUNITY_Auth & JWT|Auth & JWT]]
+- [[_COMMUNITY_Email Notifications|Email Notifications]]
+- [[_COMMUNITY_Portal UI|Portal UI]]
+- [[_COMMUNITY_Apply Form|Apply Form]]
+- [[_COMMUNITY_Brand & Assets|Brand & Assets]]
+- [[_COMMUNITY_Module 9|Module 9]]
+- [[_COMMUNITY_Module 10|Module 10]]
+- [[_COMMUNITY_Module 11|Module 11]]
+- [[_COMMUNITY_Module 16|Module 16]]
+- [[_COMMUNITY_Module 18|Module 18]]
+- [[_COMMUNITY_Module 19|Module 19]]
+- [[_COMMUNITY_Module 68|Module 68]]
+- [[_COMMUNITY_Module 69|Module 69]]
+- [[_COMMUNITY_Module 70|Module 70]]
+- [[_COMMUNITY_Module 71|Module 71]]
+- [[_COMMUNITY_Module 72|Module 72]]
+- [[_COMMUNITY_Module 73|Module 73]]
+- [[_COMMUNITY_Module 74|Module 74]]
+- [[_COMMUNITY_Module 75|Module 75]]
+- [[_COMMUNITY_Module 76|Module 76]]
+- [[_COMMUNITY_Module 77|Module 77]]
+- [[_COMMUNITY_Module 78|Module 78]]
+- [[_COMMUNITY_Module 79|Module 79]]
+- [[_COMMUNITY_Module 80|Module 80]]
+- [[_COMMUNITY_Module 81|Module 81]]
+- [[_COMMUNITY_Module 82|Module 82]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `obtenerSesion()` - 23 edges
@@ -71,158 +71,158 @@
 
 ## Communities
 
-### Community 0 - "Community 0"
+### Community 0 - "Payment & Stripe"
 Cohesion: 0.08
 Nodes (29): POST(), GET(), POST(), PUT(), CuponesPage(), activateAllFoundersForApplication(), createCouponRecord(), createPagoRecord() (+21 more)
 
-### Community 1 - "Community 1"
+### Community 1 - "Airtable Data Layer"
 Cohesion: 0.07
 Nodes (21): POST(), AdminClasesPage(), DashboardPage(), assignCouponToApplication(), countFoundersInscritos(), createApplication(), createAsistencia(), createFounderRecord() (+13 more)
 
-### Community 2 - "Community 2"
+### Community 2 - "Admin CRUD & Sessions"
 Cohesion: 0.07
 Nodes (23): AdminLayout(), GET(), GET(), PATCH(), POST(), GET(), EquipoPage(), POST() (+15 more)
 
-### Community 3 - "Community 3"
+### Community 3 - "Auth & JWT"
 Cohesion: 0.14
 Nodes (14): GET(), getFounderByEmail(), crearSesion(), crearTokenMagic(), crearTokenSesion(), destruirSesion(), esAdmin(), getSecretoMagic() (+6 more)
 
-### Community 4 - "Community 4"
+### Community 4 - "Email Notifications"
 Cohesion: 0.47
 Nodes (19): PATCH(), badge(), btn(), divider(), email(), h1(), p(), sendAdmissionEmail() (+11 more)
 
-### Community 5 - "Community 5"
+### Community 5 - "Portal UI"
 Cohesion: 0.12
 Nodes (17): Icon: Comunidad (Community), Icon: Conocimiento (Knowledge), Icon: Crecimiento (Growth), Icon: Networking, Icon: Reconocimiento (Recognition), Icon: Visibilidad (Visibility), IFSP Logo, IFSP: Impacta Fundraising Strategy Program (+9 more)
 
-### Community 6 - "Community 6"
+### Community 6 - "Apply Form"
 Cohesion: 0.15
 Nodes (3): applyStatus(), marcarSinRespuesta(), moveCard()
 
-### Community 7 - "Community 7"
+### Community 7 - "Brand & Assets"
 Cohesion: 0.31
 Nodes (8): findNextQIdx(), getDisplayText(), handleNext(), handleSkip(), saveToStorage(), submitForm(), uploadLogo(), validateField()
 
-### Community 9 - "Community 9"
+### Community 9 - "Module 9"
 Cohesion: 0.4
 Nodes (2): onSubmit(), uploadLogo()
 
-### Community 10 - "Community 10"
+### Community 10 - "Module 10"
 Cohesion: 0.33
 Nodes (6): Next.js Agent Rules, CLAUDE.md Project Config, Geist Font Family, Next.js Framework, Modo Fundraising Next.js Project, Vercel Platform
 
-### Community 11 - "Community 11"
+### Community 11 - "Module 11"
 Cohesion: 0.33
 Nodes (6): Modo Fundraising 2026 Color Palette, Modo Fundraising 2026 Brand Identity, Logo Modo Fundraising 2026 — Azul, Logo Modo Fundraising 2026 — Blanco, Public Logo MF Azul, Brand Assets Setup Guide
 
-### Community 16 - "Community 16"
+### Community 16 - "Module 16"
 Cohesion: 0.4
 Nodes (5): Stripe Setup Guide, Stripe Product — Suscripción Mensual, Stripe Product — Pago Único, Stripe Payment Service, Stripe Webhook Endpoint
 
-### Community 18 - "Community 18"
+### Community 18 - "Module 18"
 Cohesion: 0.67
 Nodes (2): addDaysSantiago(), toSantiagoInput()
 
-### Community 19 - "Community 19"
+### Community 19 - "Module 19"
 Cohesion: 0.5
 Nodes (4): Favicon Blanco (rocket isotipo, white), Favicon Oscuro (rocket isotipo, dark navy), Public Favicon PNG, Rocket Isotipo — Brand Visual Symbol
 
-### Community 68 - "Community 68"
+### Community 68 - "Module 68"
 Cohesion: 1.0
 Nodes (1): Color Dark Navy #181b2f
 
-### Community 69 - "Community 69"
+### Community 69 - "Module 69"
 Cohesion: 1.0
 Nodes (1): Color Hot Pink #e5007e
 
-### Community 70 - "Community 70"
+### Community 70 - "Module 70"
 Cohesion: 1.0
 Nodes (1): Color Magenta #e217cf
 
-### Community 71 - "Community 71"
+### Community 71 - "Module 71"
 Cohesion: 1.0
 Nodes (1): Color Violet #991de4
 
-### Community 72 - "Community 72"
+### Community 72 - "Module 72"
 Cohesion: 1.0
 Nodes (1): Color Purple #572583
 
-### Community 73 - "Community 73"
+### Community 73 - "Module 73"
 Cohesion: 1.0
 Nodes (1): Color Red-Orange #e64915
 
-### Community 74 - "Community 74"
+### Community 74 - "Module 74"
 Cohesion: 1.0
 Nodes (1): Color Orange #ea680f
 
-### Community 75 - "Community 75"
+### Community 75 - "Module 75"
 Cohesion: 1.0
 Nodes (1): Public Logo MF
 
-### Community 76 - "Community 76"
+### Community 76 - "Module 76"
 Cohesion: 1.0
 Nodes (1): HL-1: Partnership / Handshake Highlight
 
-### Community 77 - "Community 77"
+### Community 77 - "Module 77"
 Cohesion: 1.0
 Nodes (1): HL-2: Strategy Framework Highlight
 
-### Community 78 - "Community 78"
+### Community 78 - "Module 78"
 Cohesion: 1.0
 Nodes (1): HL-3: Innovation / Intelligence Highlight
 
-### Community 79 - "Community 79"
+### Community 79 - "Module 79"
 Cohesion: 1.0
 Nodes (1): HL-4: Recognition / Leadership Highlight
 
-### Community 80 - "Community 80"
+### Community 80 - "Module 80"
 Cohesion: 1.0
 Nodes (1): Master Logo modoFundraising Wordmark
 
-### Community 81 - "Community 81"
+### Community 81 - "Module 81"
 Cohesion: 1.0
 Nodes (1): Obj-C: Talent / People Search
 
-### Community 82 - "Community 82"
+### Community 82 - "Module 82"
 Cohesion: 1.0
 Nodes (1): Obj-D: Global Impact
 
 ## Knowledge Gaps
 - **38 isolated node(s):** `CLAUDE.md Project Config`, `Vercel Platform`, `Brand Assets Setup Guide`, `Stripe Payment Service`, `Stripe Product — Suscripción Mensual` (+33 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 9`** (6 nodes): `nextStep()`, `onSubmit()`, `prevStep()`, `setLogoFile()`, `uploadLogo()`, `application-form.tsx`
+- **Thin community `Module 9`** (6 nodes): `nextStep()`, `onSubmit()`, `prevStep()`, `setLogoFile()`, `uploadLogo()`, `application-form.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 18`** (4 nodes): `addDaysSantiago()`, `santiagoInputToISO()`, `toSantiagoInput()`, `timezone.ts`
+- **Thin community `Module 18`** (4 nodes): `addDaysSantiago()`, `santiagoInputToISO()`, `toSantiagoInput()`, `timezone.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 68`** (1 nodes): `Color Dark Navy #181b2f`
+- **Thin community `Module 68`** (1 nodes): `Color Dark Navy #181b2f`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 69`** (1 nodes): `Color Hot Pink #e5007e`
+- **Thin community `Module 69`** (1 nodes): `Color Hot Pink #e5007e`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 70`** (1 nodes): `Color Magenta #e217cf`
+- **Thin community `Module 70`** (1 nodes): `Color Magenta #e217cf`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 71`** (1 nodes): `Color Violet #991de4`
+- **Thin community `Module 71`** (1 nodes): `Color Violet #991de4`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 72`** (1 nodes): `Color Purple #572583`
+- **Thin community `Module 72`** (1 nodes): `Color Purple #572583`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 73`** (1 nodes): `Color Red-Orange #e64915`
+- **Thin community `Module 73`** (1 nodes): `Color Red-Orange #e64915`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 74`** (1 nodes): `Color Orange #ea680f`
+- **Thin community `Module 74`** (1 nodes): `Color Orange #ea680f`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 75`** (1 nodes): `Public Logo MF`
+- **Thin community `Module 75`** (1 nodes): `Public Logo MF`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 76`** (1 nodes): `HL-1: Partnership / Handshake Highlight`
+- **Thin community `Module 76`** (1 nodes): `HL-1: Partnership / Handshake Highlight`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 77`** (1 nodes): `HL-2: Strategy Framework Highlight`
+- **Thin community `Module 77`** (1 nodes): `HL-2: Strategy Framework Highlight`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 78`** (1 nodes): `HL-3: Innovation / Intelligence Highlight`
+- **Thin community `Module 78`** (1 nodes): `HL-3: Innovation / Intelligence Highlight`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 79`** (1 nodes): `HL-4: Recognition / Leadership Highlight`
+- **Thin community `Module 79`** (1 nodes): `HL-4: Recognition / Leadership Highlight`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 80`** (1 nodes): `Master Logo modoFundraising Wordmark`
+- **Thin community `Module 80`** (1 nodes): `Master Logo modoFundraising Wordmark`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 81`** (1 nodes): `Obj-C: Talent / People Search`
+- **Thin community `Module 81`** (1 nodes): `Obj-C: Talent / People Search`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 82`** (1 nodes): `Obj-D: Global Impact`
+- **Thin community `Module 82`** (1 nodes): `Obj-D: Global Impact`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions

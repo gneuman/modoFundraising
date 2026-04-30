@@ -29,7 +29,8 @@ export type ApplicationStatus =
   | "Rechazada por founder"
   | "Inscrita"
   | "Invitada institucional"
-  | "Churn";
+  | "Churn"
+  | "Churn By Founder";
 
 export type PaymentStatus =
   | "Pendiente"
@@ -116,6 +117,7 @@ export interface PostulacionRecord {
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
   rejection_reason?: string;
+  churn_reason?: string;
   portal_access?: boolean;
   referral_code?: string;
   has_referrals?: string;

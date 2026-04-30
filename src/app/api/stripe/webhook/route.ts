@@ -229,8 +229,8 @@ export async function POST(req: NextRequest) {
       const sub = event.data.object as { id: string };
       const app = apps.find((a) => a.stripe_subscription_id === sub.id);
       if (!app) break;
-      // Only churn if they haven't finished paying (auto-cancel after cuota 3 is OK)
-      if (app.payment_status !== "Cuota 3 pagada") {
+      // Only churn if they haven't finished paying AND didn't cancel themselves
+      if (app.payment_status !== "Cuota 3 pagada" && app.status !== "Churn By Founder") {
         const startupRecordId = (app.startup_record as string[] | undefined)?.[0];
         await deactivatePortalForStartup(app.id!, app.email, app.first_name, startupRecordId);
       }
