@@ -34,15 +34,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // ── /admin/* ──────────────────────────────────────────────────────────────
-  if (pathname.startsWith("/admin")) {
-    const payload = token ? await verificarJWT(token) : null;
-    if (payload?.role === "admin" && esAdminEmail(payload.email)) {
-      return NextResponse.next();
-    }
-    return NextResponse.redirect(new URL("/auth/login", req.url));
-  }
-
   // ── /portal/* ─────────────────────────────────────────────────────────────
   const res = NextResponse.next();
   res.headers.set("x-pathname", pathname);
@@ -51,5 +42,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*", "/portal/:path*"],
+  matcher: ["/api/admin/:path*", "/portal/:path*"],
 };
