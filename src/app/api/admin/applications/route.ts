@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
 import { getAllApplications, updateApplicationStatus, type ApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionEmail, sendRejectionEmail } from "@/lib/resend";
+import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/resend";
 import { createCheckoutToken } from "@/lib/checkout-token";
 
 export async function GET() {
@@ -40,6 +40,12 @@ export async function PATCH(req: NextRequest) {
         discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
       });
       const checkoutUrl = `${process.env.NEXT_PUBLIC_APP_URL}/checkout/${token}`;
+      const discountPercent = app.discount_percent ? Number(app.discount_percent) : 0;
+      if (discountPercent > 0) {
+        await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPercent);
+      } else {
+        await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
+      }
       return NextResponse.json({ url: checkoutUrl });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

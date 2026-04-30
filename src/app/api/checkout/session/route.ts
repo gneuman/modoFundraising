@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { airtableId, email, firstName, startupName, stripeCouponId, discountPercent } = payload;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL!.replace(/\/$/, "");
 
   try {
     // Reuse existing Stripe customer if already created

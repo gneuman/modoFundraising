@@ -81,6 +81,28 @@ export default async function SinAccesoPage() {
     );
   }
 
+  if (status === "Churn") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
+            <XCircle className="h-7 w-7 text-red-400" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold text-zinc-800">Suscripción cancelada</h1>
+            <p className="text-sm text-zinc-500 leading-relaxed">
+              Tu suscripción a Modo Fundraising fue cancelada y ya no tenés acceso al portal.
+              Si creés que es un error, escribinos.
+            </p>
+          </div>
+          <a href="mailto:hello@impacta.vc" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline">
+            hello@impacta.vc
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   if (status === "Rechazada" || status === "Rechazada por founder" || status === "Sin Respuesta") {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50">

@@ -10,6 +10,13 @@ export default async function SuscripcionPage() {
 
   const paymentStatus = profile?.payment_status ?? "Pendiente";
   const portalAccess = profile?.portal_access ?? false;
+  const stripeSubscriptionId = profile?.stripe_subscription_id;
 
-  return <SuscripcionClient paymentStatus={paymentStatus} portalAccess={portalAccess} />;
+  return (
+    <SuscripcionClient
+      paymentStatus={paymentStatus}
+      portalAccess={portalAccess}
+      stripeSubscriptionId={stripeSubscriptionId}
+    />
+  );
 }

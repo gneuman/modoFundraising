@@ -84,10 +84,9 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error");
-      await navigator.clipboard.writeText(data.url);
-      toast.success("Link de pago copiado — reenvialo por email o WhatsApp");
+      toast.success("Email con link de pago enviado");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al generar link");
+      toast.error(err instanceof Error ? err.message : "Error al enviar email");
     } finally {
       setCopiando(null);
     }
@@ -272,7 +271,7 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
                               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               : <Send className="h-3.5 w-3.5" />
                             }
-                            Copiar link de pago
+                            {copiando === a.id ? "Enviando..." : "Enviar link por email"}
                           </button>
                           <button
                             onClick={() => marcarSinRespuesta(a)}

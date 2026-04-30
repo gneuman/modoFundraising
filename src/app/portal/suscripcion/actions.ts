@@ -25,7 +25,7 @@ export async function iniciarPago(mode: "subscription" | "payment") {
   const successUrl = `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${appUrl}/portal/suscripcion`;
   const metadata = { airtableId: profile.postulacion_id, email: session.email, mode };
-  const couponId = (profile as Record<string, unknown>).stripe_coupon_id as string | undefined;
+  const couponId = profile.stripe_coupon_id;
 
   let checkoutSession;
   if (mode === "subscription") {

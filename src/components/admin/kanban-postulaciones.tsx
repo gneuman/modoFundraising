@@ -336,9 +336,9 @@ function ActionsModalView({ app, coupons, onClose, onCouponAssign, onAdmit, onRe
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error");
       await navigator.clipboard.writeText(data.url);
-      toast.success("Link de pago copiado al portapapeles");
+      toast.success("Email con link de pago enviado");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al generar link");
+      toast.error(err instanceof Error ? err.message : "Error al enviar email");
     } finally {
       setCopyingLink(false);
     }
@@ -436,7 +436,7 @@ function ActionsModalView({ app, coupons, onClose, onCouponAssign, onAdmit, onRe
                 className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 py-1 disabled:opacity-50"
               >
                 {copyingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
-                {copyingLink ? "Generando..." : "Copiar link de pago"}
+                {copyingLink ? "Enviando..." : "Enviar link por email"}
               </button>
             </div>
           </div>

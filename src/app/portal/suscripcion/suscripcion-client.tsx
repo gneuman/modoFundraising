@@ -12,15 +12,18 @@ const PAGADO_STATUSES: PaymentStatus[] = ["Cuota 1 pagada", "Cuota 2 pagada", "C
 interface Props {
   paymentStatus: PaymentStatus;
   portalAccess?: boolean;
+  stripeSubscriptionId?: string;
 }
 
-export function SuscripcionClient({ paymentStatus, portalAccess }: Props) {
+export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscriptionId }: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
   const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
+  // Solo puede cancelar si tiene suscripción mensual activa y no completó las 3 cuotas
+  const puedeCancel = haPagado && !!stripeSubscriptionId && paymentStatus !== "Cuota 3 pagada";
 
   async function handleCancel() {
     setCancelling(true);
@@ -130,40 +133,50 @@ export function SuscripcionClient({ paymentStatus, portalAccess }: Props) {
           </div>
 
           <div className="border-t border-zinc-100 pt-4">
-            <p className="text-sm text-zinc-500 mb-4">
-              Si necesitas cancelar tu suscripción, tu acceso al portal permanecerá activo hasta el final del período de facturación actual.
-            </p>
-
-            {!showConfirm ? (
-              <Button
-                variant="outline"
-                onClick={() => setShowConfirm(true)}
-                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-              >
-                Cancelar suscripción
-              </Button>
-            ) : (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-red-700">¿Confirmas la cancelación?</p>
-                    <p className="text-xs text-red-600 mt-1">Perderás acceso al portal y a todas las clases y misiones.</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
+            {puedeCancel && (
+              <>
+                <p className="text-sm text-zinc-500 mb-4">
+                  Si cancelás tu suscripción, tu acceso al portal permanecerá activo hasta el final del período de facturación actual.
+                </p>
+                {!showConfirm ? (
                   <Button
-                    onClick={handleCancel}
-                    disabled={cancelling}
-                    className="bg-red-600 hover:bg-red-700 text-white text-sm"
+                    variant="outline"
+                    onClick={() => setShowConfirm(true)}
+                    className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                   >
-                    {cancelling ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Cancelando...</> : "Sí, cancelar"}
+                    Cancelar suscripción
                   </Button>
-                  <Button variant="outline" onClick={() => setShowConfirm(false)} className="text-sm">
-                    No, mantener
-                  </Button>
-                </div>
-              </div>
+                ) : (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-red-700">¿Confirmás la cancelación?</p>
+                        <p className="text-xs text-red-600 mt-1">Perderás acceso al portal y a todas las clases y misiones.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        className="bg-red-600 hover:bg-red-700 text-white text-sm"
+                      >
+                        {cancelling ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Cancelando...</> : "Sí, cancelar"}
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowConfirm(false)} className="text-sm">
+                        No, mantener
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            {!puedeCancel && haPagado && (
+              <p className="text-sm text-zinc-400">
+                {paymentStatus === "Cuota 3 pagada"
+                  ? "Tu programa está completamente abonado."
+                  : "Pago único — sin renovaciones automáticas."}
+              </p>
             )}
           </div>
         </div>

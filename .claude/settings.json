@@ -10,7 +10,11 @@
       "Bash(where wkhtmltopdf *)",
       "Bash(where chromium *)",
       "Bash(where google-chrome *)",
-      "Bash(npx md-to-pdf *)"
+      "Bash(npx md-to-pdf *)",
+      "Bash(xargs grep *)",
+      "Bash(pip install *)",
+      "Bash(graphify --version)",
+      "Bash(graphify install *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\modoFundraising\\src\\app\\portal\\clases\\[id]",

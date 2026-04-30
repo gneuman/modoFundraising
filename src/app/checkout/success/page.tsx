@@ -1,7 +1,20 @@
+export const dynamic = "force-dynamic";
+
 import Image from "next/image";
 import Link from "next/link";
+import { SuccessRedirect } from "./success-redirect";
 
-export default function CheckoutSuccessPage() {
+interface Props {
+  searchParams: Promise<{ session_id?: string }>;
+}
+
+export default async function CheckoutSuccessPage({ searchParams }: Props) {
+  const { session_id } = await searchParams;
+
+  const portalUrl = session_id
+    ? `/api/auth/checkout-login?session_id=${session_id}`
+    : "/portal";
+
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">
       <header className="bg-white border-b border-zinc-100 px-6 py-4">
@@ -12,29 +25,19 @@ export default function CheckoutSuccessPage() {
         <div className="text-center max-w-md space-y-6">
           <div className="text-6xl">🎉</div>
           <h1 className="text-3xl font-bold text-zinc-800">¡Pago recibido!</h1>
-          <p className="text-zinc-500">
-            Tu acceso al portal de Modo Fundraising 2026 será activado en los próximos minutos.
-            Recibirás un email con tus credenciales de acceso.
+          <p className="text-zinc-500 leading-relaxed">
+            Tu startup fue admitida a <strong className="text-zinc-700">Modo Fundraising 2026</strong>.
+            Tu acceso al portal se está activando.
           </p>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700 text-left space-y-1">
-            <p className="font-semibold">Próximos pasos:</p>
-            <p>1. Revisa tu email — recibirás el link de acceso al portal</p>
-            <p>2. Invita a tu equipo desde el portal</p>
-            <p>3. Completa tu perfil de startup</p>
-          </div>
-
           <Link
-            href="/auth/login"
+            href={portalUrl}
             className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
           >
             Ir al portal →
           </Link>
 
-          <p className="text-xs text-zinc-400">
-            ¿Problemas? Escríbenos a{" "}
-            <a href="mailto:hello@impacta.vc" className="underline">hello@impacta.vc</a>
-          </p>
+          <SuccessRedirect redirectUrl={portalUrl} />
         </div>
       </main>
     </div>

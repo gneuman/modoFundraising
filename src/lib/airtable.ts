@@ -275,6 +275,9 @@ export interface FounderProfile {
   postulacion_id?: string;
   status?: ApplicationStatus;
   payment_status?: PaymentStatus;
+  stripe_coupon_id?: string;
+  stripe_subscription_id?: string;
+  discount_percent?: number;
   // from startup
   startup_record_id?: string;
   startup_name?: string;
@@ -306,6 +309,9 @@ export async function getFounderProfile(email: string): Promise<FounderProfile |
   profile.postulacion_id = postulacion.id;
   profile.status = pf.status as ApplicationStatus | undefined;
   profile.payment_status = pf.payment_status as PaymentStatus | undefined;
+  profile.stripe_coupon_id = pf.stripe_coupon_id as string | undefined;
+  profile.stripe_subscription_id = pf.stripe_subscription_id as string | undefined;
+  profile.discount_percent = pf.discount_percent as number | undefined;
 
   const startupIds = pf.startup_record as string[] | undefined;
   if (startupIds?.length) {
@@ -406,6 +412,23 @@ export async function createStartupRecord(data: ApplicationFormData): Promise<st
     created_at: new Date().toISOString(),
   } as never);
   return record.id;
+}
+
+export async function getStartupById(id: string): Promise<StartupRecord | null> {
+  try {
+    const record = await base(Tables.STARTUPS).find(id);
+    return { id: record.id, ...record.fields } as StartupRecord;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateStartup(id: string, data: Partial<StartupRecord>) {
+  const fields: Record<string, unknown> = { ...data };
+  delete fields.id;
+  delete fields.status;
+  delete fields.created_at;
+  await base(Tables.STARTUPS).update(id, fields as never);
 }
 
 export async function updateStartupStatus(startupRecordId: string, status: string) {
