@@ -79,13 +79,13 @@ export function PortalSidebar({
       </nav>
 
       <div className="p-3 border-t border-zinc-100">
-        <Link
-          href="/api/auth/logout"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition-colors"
+        <button
+          onClick={() => { window.location.href = "/api/auth/logout"; }}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 transition-colors w-full text-left"
         >
           <LogOut className="h-4 w-4" />
           Cerrar sesión
-        </Link>
+        </button>
       </div>
     </aside>
   );
