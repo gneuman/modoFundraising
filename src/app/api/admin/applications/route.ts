@@ -3,7 +3,7 @@ import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
-import { addAttendeesToAllEvents } from "@/lib/calendar";
+import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 
@@ -121,6 +121,27 @@ export async function PATCH(req: NextRequest) {
       if (app) await sendRejectionEmail(app.email!, app.first_name!);
     } catch (err) {
       console.error("Rejection email error:", err);
+    }
+  }
+
+  if (status === "Churn" || status === "Churn By Founder") {
+    try {
+      const apps = await getAllApplications();
+      const app = apps.find((a) => a.id === recordId);
+      const startupId = (app?.startup_record as string[] | undefined)?.[0];
+      if (startupId) {
+        const [founderEmails, eventIds] = await Promise.all([
+          getFounderEmailsByStartup(startupId),
+          getCalendarEventIds(),
+        ]);
+        if (founderEmails.length && eventIds.length) {
+          await Promise.allSettled(
+            founderEmails.map((email) => removeAttendeeFromAllEvents(eventIds, email))
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Calendar remove error:", err instanceof Error ? err.message : err);
     }
   }
 

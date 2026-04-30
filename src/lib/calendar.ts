@@ -116,6 +116,51 @@ export async function addAttendeesToAllEvents(
   }
 }
 
+// Elimina un attendee de todos los eventos del programa
+export async function removeAttendeeFromAllEvents(eventIds: string[], email: string): Promise<void> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+
+  await Promise.allSettled(
+    eventIds.map(async (eventId) => {
+      const res = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
+      const attendees = (res.data.attendees ?? []).filter((a) => a.email !== email);
+      await calendar.events.patch({
+        calendarId: CALENDAR_ID,
+        eventId,
+        sendUpdates: "none", // no notificar al removido
+        requestBody: { attendees },
+      });
+    })
+  );
+}
+
+// Actualiza título, descripción y/o fecha de un evento existente
+export async function updateCalendarEvent(eventId: string, data: {
+  titulo?: string;
+  descripcion?: string;
+  fecha?: string;
+  duracionMinutos?: number;
+}): Promise<void> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+
+  const patch: Record<string, unknown> = {};
+  if (data.titulo) patch.summary = data.titulo;
+  if (data.descripcion !== undefined) patch.description = data.descripcion;
+  if (data.fecha) {
+    const start = new Date(data.fecha);
+    const end = new Date(start.getTime() + (data.duracionMinutos ?? 90) * 60_000);
+    patch.start = { dateTime: start.toISOString(), timeZone: "America/Mexico_City" };
+    patch.end = { dateTime: end.toISOString(), timeZone: "America/Mexico_City" };
+  }
+
+  await calendar.events.patch({
+    calendarId: CALENDAR_ID,
+    eventId,
+    sendUpdates: "all", // notifica a los asistentes si cambia la fecha
+    requestBody: patch,
+  });
+}
+
 // Crea un calendario dedicado para el programa (solo se ejecuta una vez)
 export async function createProgramCalendar(name: string): Promise<string> {
   const calendar = google.calendar({ version: "v3", auth: getAuth() });

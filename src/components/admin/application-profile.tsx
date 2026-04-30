@@ -127,10 +127,13 @@ export function ApplicationProfile({ app, coupons, onClose, onStatusChange, onCo
           },
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
       toast.success("Email con link de pago enviado");
-    } catch {
-      toast.error("Error al enviar link");
+    } catch (err) {
+      toast.error(`Error al enviar link: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSendingLink(false);
     }

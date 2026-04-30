@@ -264,6 +264,24 @@ export async function createFounderRecord(data: ApplicationFormData): Promise<st
   return record.id;
 }
 
+// Devuelve todos los founders que tienen acceso al portal (incluyendo co-founders invitados)
+export async function getAllFoundersWithAccess(): Promise<{ id: string; email: string; first_name: string; last_name: string }[]> {
+  const records = await base(Tables.FOUNDERS)
+    .select({ filterByFormula: `{portal_access} = 1`, fields: ["email", "first_name", "last_name"] })
+    .all();
+  return records
+    .map((r) => {
+      const f = r.fields as Record<string, unknown>;
+      return {
+        id: r.id,
+        email: (f.email as string) ?? "",
+        first_name: (f.first_name as string) ?? "",
+        last_name: (f.last_name as string) ?? "",
+      };
+    })
+    .filter((f) => f.email);
+}
+
 // Devuelve los emails de todos los founders activos de una startup dada
 export async function getFounderEmailsByStartup(startupId: string): Promise<string[]> {
   const records = await base(Tables.FOUNDERS)

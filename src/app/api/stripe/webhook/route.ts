@@ -16,7 +16,7 @@ import {
   sendPaymentFailedEmail,
   sendChurnEmail,
 } from "@/lib/gmail";
-import { addAttendeesToAllEvents } from "@/lib/calendar";
+import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
 // Activates portal for the main founder + any team members linked to the startup
 async function activatePortalForStartup(
@@ -81,11 +81,27 @@ async function deactivatePortalForStartup(
   firstName: string | undefined,
   startupRecordId: string | undefined,
 ) {
+  // Obtener emails antes de desactivar (después de deactivate ya no tienen portal_access)
+  const founderEmails = startupRecordId
+    ? await getFounderEmailsByStartup(startupRecordId).catch(() => [] as string[])
+    : [];
+
   await Promise.all([
     updateApplicationStatus(airtableId, "Churn", { portal_access: false }),
     deactivateAllFoundersForApplication(airtableId),
     startupRecordId ? updateStartupStatus(startupRecordId, "Churn") : Promise.resolve(),
   ]);
+
+  // Remover founders de todos los eventos de Calendar
+  if (founderEmails.length) {
+    try {
+      const eventIds = await getCalendarEventIds();
+      await Promise.allSettled(founderEmails.map((em) => removeAttendeeFromAllEvents(eventIds, em)));
+    } catch (err) {
+      console.error("Calendar remove error:", err instanceof Error ? err.message : err);
+    }
+  }
+
   if (email && firstName) await sendChurnEmail(email, firstName);
 }
 
