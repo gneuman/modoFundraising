@@ -14,6 +14,7 @@ import {
   Code2,
   LogOut,
   Building2,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/admin/empresas",      label: "Empresas",       icon: Building2 },
   { href: "/admin/revenue",       label: "Revenue",        icon: DollarSign },
   { href: "/admin/cupones",       label: "Cupones",        icon: Tag },
+  { href: "/admin/calendario",    label: "Calendario",     icon: CalendarDays },
   { href: "/admin/clases",        label: "Clases",         icon: BookOpen },
   { href: "/admin/misiones",      label: "Misiones",       icon: Target },
   { href: "/admin/recursos",      label: "Recursos",       icon: Link2 },
