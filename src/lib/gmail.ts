@@ -12,11 +12,18 @@ function getOAuth2Client() {
   return auth;
 }
 
+function encodeSubject(subject: string): string {
+  if (/[^\x00-\x7F]/.test(subject)) {
+    return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+  }
+  return subject;
+}
+
 function buildRawEmail(to: string, subject: string, html: string): string {
   const message = [
     `From: ${FROM}`,
     `To: ${to}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubject(subject)}`,
     "MIME-Version: 1.0",
     'Content-Type: text/html; charset="UTF-8"',
     "",
