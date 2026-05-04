@@ -124,7 +124,7 @@ export async function sendReferralRequest(
     html: email(`
       ${h1(`Hola ${referralName}`)}
       ${p(`<strong>${founderName}</strong> de <strong>${startupName}</strong> te agregó como recomendador en su postulación a Modo Fundraising 2026.`)}
-      ${p("Tu recomendación suma puntos a su perfil. Si los conocés y podés respaldarlos, respondé a este email o escribinos.")}
+      ${p("Tu recomendación suma puntos a su perfil. Si los conoces y puedes respaldarlos, responde a este email o escríbenos.")}
       ${divider()}
       <a href="mailto:hello@impacta.vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
       ${small("— Equipo Impacta VC")}
@@ -145,7 +145,7 @@ export async function sendAdmissionEmail(emailAddr: string, firstName: string, c
       ${p("Completá tu inscripción antes de que tu lugar expire:")}
       ${btn(checkoutUrl, "Completar inscripción →", "#16a34a")}
       ${divider()}
-      ${small("¿Preguntas? Respondé a este email y te contestamos. Tu lugar está reservado por tiempo limitado.")}
+      ${small("¿Preguntas? Responde a este email y te contestamos. Tu lugar está reservado por tiempo limitado.")}
     `),
   });
 }
@@ -160,7 +160,7 @@ export async function sendRejectionEmail(emailAddr: string, firstName: string) {
       ${p("Gracias por tu interés en <strong>Modo Fundraising 2026</strong>. Tras revisar tu postulación, en esta ocasión no podemos continuar con tu candidatura.")}
       ${p("Esto no es un reflejo de tu potencial. Te animamos a seguir construyendo y esperamos verte en futuras ediciones del programa.")}
       ${divider()}
-      ${small("Si tenés preguntas, respondé a este email.<br/>— Equipo Impacta VC")}
+      ${small("Si tienes preguntas, responde a este email.<br/>— Equipo Impacta VC")}
     `),
   });
 }
@@ -177,7 +177,7 @@ export async function sendAdmissionFollowUp(emailAddr: string, firstName: string
       ${p("Aún no completaste tu inscripción a <strong>Modo Fundraising 2026</strong>. Tu lugar está reservado, pero por tiempo limitado.")}
       ${btn(checkoutUrl, "Completar inscripción →", "#d97706")}
       ${divider()}
-      ${small("¿Tenés dudas o necesitás hablar con alguien antes de decidir? Respondé este email.<br/>— Equipo Impacta VC")}
+      ${small("¿Tienes dudas o necesitas hablar con alguien antes de decidir? Responde este email.<br/>— Equipo Impacta VC")}
     `),
   });
 }
@@ -194,7 +194,7 @@ export async function sendOnboardingEmail(emailAddr: string, firstName: string, 
       ${p("Tu inscripción a <strong>Modo Fundraising 2026</strong> está confirmada. Tu portal ya está activo:")}
       ${btn(portalUrl, "Acceder a mi portal →")}
       ${divider()}
-      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#18181b;">Desde tu portal podés:</p>
+      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#18181b;">Desde tu portal puedes:</p>
       <ul style="margin:0;padding-left:20px;font-size:14px;color:#52525b;line-height:2;">
         <li>Ver el calendario de clases y links de acceso</li>
         <li>Acceder a grabaciones de sesiones anteriores</li>
@@ -218,7 +218,7 @@ export async function sendPaymentConfirmation(emailAddr: string, firstName: stri
       ${p(`Confirmamos la recepción de tu <strong>cuota ${installment} de 3</strong> para Modo Fundraising 2026.`)}
       ${installment < 3 ? p(`Tu próxima cuota se procesará automáticamente en 30 días.`) : p("Completaste el programa al 100%. ¡Gracias por tu confianza!")}
       ${divider()}
-      ${small("¿Dudas sobre tu facturación? Respondé este email.<br/>— Equipo Impacta VC")}
+      ${small("¿Dudas sobre tu facturación? Responde este email.<br/>— Equipo Impacta VC")}
     `),
   });
 }
@@ -232,10 +232,10 @@ export async function sendPaymentFailedEmail(emailAddr: string, firstName: strin
       ${badge("⚠️ Pago fallido", "#dc2626")}
       <div style="height:16px;"></div>
       ${h1(`Hola ${firstName}, hay un problema con tu pago`)}
-      ${p("No pudimos procesar tu cuota mensual de Modo Fundraising 2026. Por favor actualizá tu método de pago para mantener tu acceso al portal.")}
+      ${p("No pudimos procesar tu cuota mensual de Modo Fundraising 2026. Por favor actualiza tu método de pago para mantener tu acceso al portal.")}
       ${btn(`${portalUrl}/suscripcion`, "Actualizar método de pago →", "#dc2626")}
       ${divider()}
-      ${small(`Este es el aviso ${attempt} de 3. Si no se resuelve, tu acceso será suspendido.<br/>¿Necesitás ayuda? Respondé este email.<br/>— Equipo Impacta VC`)}
+      ${small(`Este es el aviso ${attempt} de 3. Si no se resuelve, tu acceso será suspendido.<br/>¿Necesitas ayuda? Responde este email.<br/>— Equipo Impacta VC`)}
     `),
   });
 }
@@ -248,7 +248,7 @@ export async function sendChurnEmail(emailAddr: string, firstName: string) {
     html: email(`
       ${h1(`Hola ${firstName}`)}
       ${p("Tu suscripción a <strong>Modo Fundraising 2026</strong> fue cancelada y tu acceso al portal fue revocado.")}
-      ${p("Lamentamos verte partir. ¿Podés contarnos por qué decidiste salir? Tu feedback nos ayuda a mejorar.")}
+      ${p("Lamentamos verte partir. ¿Puedes contarnos por qué decidiste salir? Tu feedback nos ayuda a mejorar.")}
       <a href="mailto:hello@impacta.vc?subject=Feedback%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Enviar feedback →</a>
       ${divider()}
       ${small("— Equipo Impacta VC")}
@@ -269,12 +269,12 @@ export async function sendCouponLink(emailAddr: string, firstName: string, check
       <div style="height:16px;"></div>
       ${h1(`Hola ${firstName}`)}
       ${isFullScholarship
-        ? p("Tenés una <strong>beca completa</strong> reservada para Modo Fundraising 2026. Tu acceso es gratuito — solo necesitás activarla.")
-        : p(`Tenés un <strong>${discountPercent}% de descuento</strong> reservado para Modo Fundraising 2026. Usá el botón para inscribirte con tu beneficio ya aplicado.`)
+        ? p("Tienes una <strong>beca completa</strong> reservada para Modo Fundraising 2026. Tu acceso es gratuito — solo necesitas activarla.")
+        : p(`Tienes un <strong>${discountPercent}% de descuento</strong> reservado para Modo Fundraising 2026. Usa el botón para inscribirte con tu beneficio ya aplicado.`)
       }
       ${btn(checkoutUrl, isFullScholarship ? "Activar beca →" : "Inscribirme con descuento →", "#7c3aed")}
       ${divider()}
-      ${small("Este enlace es personal e intransferible. ¿Preguntas? Respondé este email.<br/>— Equipo Impacta VC")}
+      ${small("Este enlace es personal e intransferible. ¿Preguntas? Responde este email.<br/>— Equipo Impacta VC")}
     `),
   });
 }

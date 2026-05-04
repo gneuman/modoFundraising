@@ -212,7 +212,7 @@ export default function ApiDocsPage() {
       <div>
         <h1 className="text-2xl font-bold text-zinc-800">API Reference</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          Todos los endpoints admin. Usá el Bearer token desde n8n, Make o cualquier herramienta externa.
+          Todos los endpoints admin. Usa el Bearer token desde n8n, Make o cualquier herramienta externa.
         </p>
       </div>
 

@@ -74,7 +74,7 @@ export default function PaginaLogin() {
         </div>
 
         <p className="text-center text-xs text-white/30">
-          ¿No tenés acceso?{" "}
+          ¿No tienes acceso?{" "}
           <a href="/apply" className="text-white/50 hover:text-white underline transition-colors">
             Postulá al programa
           </a>

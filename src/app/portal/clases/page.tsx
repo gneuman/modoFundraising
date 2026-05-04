@@ -213,8 +213,8 @@ export default async function ClasesPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
           <Calendar className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
           <div className="flex-1 space-y-2">
-            <p className="text-sm font-semibold text-blue-800">Tené todas las clases en tu agenda</p>
-            <p className="text-xs text-blue-600">Agregá el calendario del programa a Google Calendar, Apple Calendar o cualquier app de agenda.</p>
+            <p className="text-sm font-semibold text-blue-800">Agrega todas las clases a tu agenda</p>
+            <p className="text-xs text-blue-600">Agrega el calendario del programa a Google Calendar, Apple Calendar o cualquier app de agenda.</p>
             <div className="flex flex-wrap gap-2">
               <a
                 href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(process.env.GOOGLE_CALENDAR_ID)}`}

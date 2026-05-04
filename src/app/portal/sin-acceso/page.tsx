@@ -53,7 +53,7 @@ export default async function SinAccesoPage() {
           {/* Discount badge */}
           {hasDiscount && (
             <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 text-center text-sm text-purple-700 font-semibold">
-              🎉 Tenés un descuento del {discountPct}% aplicado
+              🎉 Tienes un descuento del {discountPct}% aplicado
             </div>
           )}
 
@@ -69,7 +69,7 @@ export default async function SinAccesoPage() {
           ) : (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-center">
               <p className="font-semibold mb-1">Link de pago en camino</p>
-              <p>Revisá tu email o escribinos a <a href="mailto:hello@impacta.vc" className="underline font-medium">hello@impacta.vc</a></p>
+              <p>Revisa tu email o escríbenos a <a href="mailto:hello@impacta.vc" className="underline font-medium">hello@impacta.vc</a></p>
             </div>
           )}
 
@@ -117,8 +117,8 @@ export default async function SinAccesoPage() {
           <div className="space-y-2">
             <h1 className="text-xl font-bold text-zinc-800">Suscripción cancelada</h1>
             <p className="text-sm text-zinc-500 leading-relaxed">
-              Tu suscripción a Modo Fundraising fue cancelada y ya no tenés acceso al portal.
-              Si creés que es un error, escribinos.
+              Tu suscripción a Modo Fundraising fue cancelada y ya no tienes acceso al portal.
+              Si crees que es un error, escríbenos.
             </p>
           </div>
           <a href="mailto:hello@impacta.vc" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline">
