@@ -15,7 +15,9 @@
       "Bash(pip install *)",
       "Bash(graphify --version)",
       "Bash(graphify install *)",
-      "PowerShell(Start-Process \"c:\\\\Users\\\\Usuario\\\\GNB Labs\\\\Gabriel Neuman\\\\proyectos\\\\clientes\\\\modoFundraising\\\\graphify-out\\\\graph.html\")"
+      "PowerShell(Start-Process \"c:\\\\Users\\\\Usuario\\\\GNB Labs\\\\Gabriel Neuman\\\\proyectos\\\\clientes\\\\modoFundraising\\\\graphify-out\\\\graph.html\")",
+      "mcp__claude_ai_Linear__list_projects",
+      "mcp__claude_ai_Linear__save_issue"
     ],
     "additionalDirectories": [
       "C:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\modoFundraising\\src\\app\\portal\\clases\\[id]",

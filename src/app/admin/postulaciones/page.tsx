@@ -1,13 +1,14 @@
-import { getAllApplications, getAllCoupons } from "@/lib/airtable";
+import { getAllApplications, getAllCoupons, getAllPagos } from "@/lib/airtable";
 import { PostulacionesClient } from "@/components/admin/postulaciones-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function PostulacionesPage() {
-  const [data, coupons] = await Promise.all([
+  const [data, coupons, pagos] = await Promise.all([
     getAllApplications(),
     getAllCoupons(),
+    getAllPagos(),
   ]);
 
-  return <PostulacionesClient initialData={data} initialCoupons={coupons} />;
+  return <PostulacionesClient initialData={data} initialCoupons={coupons} initialPagos={pagos} />;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ApplicationRecord } from "@/lib/airtable";
+import type { ApplicationRecord, EmpresaStats } from "@/lib/airtable";
 import { cn } from "@/lib/utils";
 
 type HealthLevel = "green" | "yellow" | "red" | "gray";
@@ -36,13 +36,12 @@ function Badge({ label, variant }: { label: string; variant: "green" | "blue" | 
   );
 }
 
-function paymentHealth(status: string | undefined): { level: HealthLevel; label: string } {
-  if (!status || status === "Pendiente") return { level: "yellow", label: "Pendiente" };
-  if (status === "Cuota 1 pagada") return { level: "yellow", label: "Cuota 1" };
-  if (status === "Cuota 2 pagada") return { level: "yellow", label: "Cuota 2" };
-  if (status === "Cuota 3 pagada") return { level: "green", label: "Al día ✓" };
-  if (status === "Baja") return { level: "red", label: "Baja" };
-  return { level: "gray", label: status };
+function progressHealth(done: number, total: number): HealthLevel {
+  if (total === 0) return "gray";
+  const pct = done / total;
+  if (pct >= 0.75) return "green";
+  if (pct >= 0.4) return "yellow";
+  return "red";
 }
 
 function statusBadge(status: string | undefined) {
@@ -52,7 +51,13 @@ function statusBadge(status: string | undefined) {
   return <Badge label={status ?? "—"} variant="zinc" />;
 }
 
-export function HealthCheckTable({ startups }: { startups: ApplicationRecord[] }) {
+export function HealthCheckTable({
+  startups,
+  empresasStats,
+}: {
+  startups: ApplicationRecord[];
+  empresasStats: EmpresaStats[];
+}) {
   if (!startups.length) {
     return (
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-10 text-center">
@@ -60,6 +65,8 @@ export function HealthCheckTable({ startups }: { startups: ApplicationRecord[] }
       </div>
     );
   }
+
+  const statsMap = new Map(empresasStats.map((s) => [s.startupId, s]));
 
   return (
     <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
@@ -69,16 +76,26 @@ export function HealthCheckTable({ startups }: { startups: ApplicationRecord[] }
             <tr className="border-b border-zinc-100 bg-zinc-50/80">
               <th className="text-left px-5 py-3.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Startup</th>
               <th className="text-left px-5 py-3.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">País</th>
-              <th className="text-left px-5 py-3.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Industria</th>
-              <th className="text-center px-5 py-3.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Pagos</th>
+              <th className="text-center px-5 py-3.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Asistencia</th>
+              <th className="text-center px-5 py-3.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Misiones</th>
               <th className="text-center px-5 py-3.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Portal</th>
               <th className="text-center px-5 py-3.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Estado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-50">
             {startups.map((s) => {
-              const pmt = paymentHealth(s.payment_status);
+              const startupId = (s.startup_record?.[0] as string | undefined) ?? "";
+              const stats = statsMap.get(startupId);
+              const asistLevel = stats ? progressHealth(stats.clasesVistas, stats.totalClases) : "gray";
+              const misionLevel = stats ? progressHealth(stats.misionesCompletadas, stats.totalMisiones) : "gray";
               const portalLevel: HealthLevel = s.portal_access ? "green" : "red";
+
+              const asistLabel = stats
+                ? `${stats.clasesVistas}/${stats.totalClases}`
+                : "—";
+              const misionLabel = stats
+                ? `${stats.misionesCompletadas}/${stats.totalMisiones}`
+                : "—";
 
               return (
                 <tr key={s.id} className="hover:bg-zinc-50/60 transition-colors">
@@ -92,14 +109,15 @@ export function HealthCheckTable({ startups }: { startups: ApplicationRecord[] }
                     {s.startup_country_ops || "—"}
                   </td>
                   <td className="px-5 py-4">
-                    <span className="text-xs text-zinc-500 line-clamp-1">
-                      {s.startup_industries || "—"}
-                    </span>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <Dot level={asistLevel} />
+                      <span className="text-xs text-zinc-600">{asistLabel}</span>
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-center gap-1.5">
-                      <Dot level={pmt.level} />
-                      <span className="text-xs text-zinc-600">{pmt.label}</span>
+                      <Dot level={misionLevel} />
+                      <span className="text-xs text-zinc-600">{misionLabel}</span>
                     </div>
                   </td>
                   <td className="px-5 py-4">

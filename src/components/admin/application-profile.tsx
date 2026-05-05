@@ -4,15 +4,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   X, ExternalLink, CheckCircle, XCircle, Send, Loader2,
-  Building2, Globe, Phone, Mail, Tag,
+  Building2, Globe, Phone, Mail, Tag, CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import type { ApplicationRecord, ApplicationStatus, CouponRecord } from "@/lib/airtable";
+import type { ApplicationRecord, ApplicationStatus, CouponRecord, PagoRecord } from "@/lib/airtable";
 
 interface Props {
   app: ApplicationRecord;
   coupons: CouponRecord[];
+  pagos?: PagoRecord[];
   onClose: () => void;
   onStatusChange: (id: string, status: ApplicationStatus) => void;
   onCouponAssign: (id: string, coupon: CouponRecord) => void;
@@ -47,7 +48,7 @@ const STATUS_COLORS: Record<string, string> = {
   "Churn": "bg-red-100 text-red-600",
 };
 
-export function ApplicationProfile({ app, coupons, onClose, onStatusChange, onCouponAssign }: Props) {
+export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatusChange, onCouponAssign }: Props) {
   const [admitting, setAdmitting] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
   const [showRejectReason, setShowRejectReason] = useState(false);
@@ -386,6 +387,94 @@ export function ApplicationProfile({ app, coupons, onClose, onStatusChange, onCo
               </div>
             )}
           </Section>
+
+          {/* Inscripción — visible when any of these fields have data */}
+          {(app.payment_status || app.portal_access !== undefined || app.follow_up_1_sent || app.follow_up_2_sent) && (
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1">Inscripción</p>
+              <div className="grid grid-cols-2 gap-3">
+                {app.payment_status && (
+                  <Field label="Estado de pago" value={app.payment_status} />
+                )}
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-0.5">Acceso al portal</p>
+                  <p className="text-sm text-zinc-700">{app.portal_access ? "Habilitado" : "Sin acceso"}</p>
+                </div>
+                <div className="col-span-2 flex flex-wrap gap-2">
+                  <span className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border",
+                    app.follow_up_1_sent
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-zinc-50 text-zinc-400 border-zinc-200"
+                  )}>
+                    Seguimiento 1: {app.follow_up_1_sent ? "Enviado" : "Pendiente"}
+                  </span>
+                  <span className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border",
+                    app.follow_up_2_sent
+                      ? "bg-red-50 text-red-600 border-red-200"
+                      : "bg-zinc-50 text-zinc-400 border-zinc-200"
+                  )}>
+                    Seguimiento 2: {app.follow_up_2_sent ? "Enviado" : "Pendiente"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Historial de pagos — solo para Inscrita */}
+          {app.status === "Inscrita" && (() => {
+            const pagosFiltrados = pagos.filter(
+              (p) => p.startup_name === app.startup_name || p.email === app.email
+            );
+            return (
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1">
+                  Historial de pagos
+                </p>
+                {pagosFiltrados.length === 0 ? (
+                  <p className="text-sm text-zinc-400 italic">Sin pagos registrados</p>
+                ) : (
+                  <div className="space-y-2">
+                    {pagosFiltrados.map((p, i) => (
+                      <div
+                        key={p.id ?? i}
+                        className="flex items-center justify-between gap-2 bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                          <div>
+                            <p className="font-medium text-zinc-700">
+                              Cuota {p.cuota ?? "—"}
+                            </p>
+                            {p.paid_at && (
+                              <p className="text-xs text-zinc-400">
+                                {new Date(p.paid_at).toLocaleDateString("es", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {p.amount != null && (
+                            <p className="font-semibold text-green-700">
+                              ${Number(p.amount).toLocaleString()}
+                            </p>
+                          )}
+                          {p.status && (
+                            <p className="text-xs text-zinc-400 capitalize">{p.status}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Referrals */}
           {(app.referral_1_name || app.referral_2_name || app.referral_3_name) && (

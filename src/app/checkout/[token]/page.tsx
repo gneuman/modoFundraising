@@ -12,8 +12,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
   const BASE = 349;
   const TOTAL = BASE * 3; // $1,047
   const discount = discountPercent ?? 0;
-  const monthlyPrice = Math.round(BASE * (1 - discount / 100) * 100) / 100;
-  const fullPrice = Math.round(TOTAL * (1 - discount / 100) * 100) / 100;
+  const monthlyPrice = Math.round(BASE * (1 - discount / 100));
+  const fullPrice = Math.round(TOTAL * (1 - discount / 100));
   const fullSaving = TOTAL - fullPrice;
 
   return (

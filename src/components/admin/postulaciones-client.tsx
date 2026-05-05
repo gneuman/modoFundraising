@@ -5,14 +5,15 @@ import { LayoutGrid, Table2, Bell, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PostulacionesTable } from "@/components/admin/postulaciones-table";
 import { KanbanPostulaciones } from "@/components/admin/kanban-postulaciones";
-import type { ApplicationRecord, CouponRecord } from "@/lib/airtable";
+import type { ApplicationRecord, CouponRecord, PagoRecord } from "@/lib/airtable";
 
 interface Props {
   initialData: ApplicationRecord[];
   initialCoupons: CouponRecord[];
+  initialPagos: PagoRecord[];
 }
 
-export function PostulacionesClient({ initialData, initialCoupons }: Props) {
+export function PostulacionesClient({ initialData, initialCoupons, initialPagos }: Props) {
   const [vista, setVista] = useState<"tabla" | "kanban">("kanban");
   const [enviandoSeguimiento, setEnviandoSeguimiento] = useState(false);
 
@@ -79,7 +80,7 @@ export function PostulacionesClient({ initialData, initialCoupons }: Props) {
       </div>
 
       {vista === "kanban" ? (
-        <KanbanPostulaciones initialData={initialData} coupons={initialCoupons} />
+        <KanbanPostulaciones initialData={initialData} coupons={initialCoupons} pagos={initialPagos} />
       ) : (
         <PostulacionesTable initialData={initialData} />
       )}

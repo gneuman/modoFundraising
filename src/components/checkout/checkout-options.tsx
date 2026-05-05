@@ -56,14 +56,14 @@ export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, ha
 
         <div>
           <div className="text-3xl font-bold text-zinc-800">
-            US${monthlyPrice.toLocaleString("en", { minimumFractionDigits: 0 })}
+            US${monthlyPrice.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             <span className="text-base font-normal text-zinc-400">/mes</span>
           </div>
           {hasDiscount && (
             <p className="text-xs text-zinc-400 line-through mt-0.5">US$349/mes</p>
           )}
           <p className="text-sm text-zinc-500 mt-2">
-            Total US${(monthlyPrice * 3).toLocaleString("en", { minimumFractionDigits: 0 })} · 3 cobros automáticos
+            Total US${(monthlyPrice * 3).toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} · 3 cobros automáticos
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, ha
         {/* Best value badge */}
         <div className="absolute -top-3 right-4">
           <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-            {fullSaving > 0 ? `Ahorra US$${fullSaving}` : "Pago único"}
+            {fullSaving > 0 ? `Ahorra US$${fullSaving.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : "Pago único"}
           </span>
         </div>
 
@@ -103,7 +103,7 @@ export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, ha
 
         <div>
           <div className="text-3xl font-bold text-zinc-800">
-            US${fullPrice.toLocaleString("en", { minimumFractionDigits: 0 })}
+            US${fullPrice.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </div>
           {hasDiscount && (
             <p className="text-xs text-zinc-400 line-through mt-0.5">US$1,047</p>

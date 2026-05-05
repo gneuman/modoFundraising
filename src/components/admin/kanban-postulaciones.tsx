@@ -10,15 +10,15 @@ import { Input } from "@/components/ui/input";
 import { ApplicationProfile } from "@/components/admin/application-profile";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { ApplicationRecord, ApplicationStatus, CouponRecord } from "@/lib/airtable";
+import type { ApplicationRecord, ApplicationStatus, CouponRecord, PagoRecord } from "@/lib/airtable";
 
 // ─── Pipeline columns ─────────────────────────────────────────────────────────
 
 const COLUMNS: { id: ApplicationStatus; label: string; border: string; header: string }[] = [
   { id: "Nueva postulación", label: "Nueva postulación", border: "border-t-zinc-400",  header: "bg-zinc-100 text-zinc-700" },
   { id: "Admitida",          label: "Admitida",           border: "border-t-blue-500",  header: "bg-blue-50 text-blue-700" },
-  { id: "Sin Respuesta",     label: "Sin respuesta",      border: "border-t-zinc-300",  header: "bg-zinc-50 text-zinc-500" },
   { id: "Inscrita",          label: "Inscrita",           border: "border-t-green-500", header: "bg-green-50 text-green-700" },
+  { id: "Sin Respuesta",     label: "Sin respuesta",      border: "border-t-zinc-300",  header: "bg-zinc-50 text-zinc-500" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -176,7 +176,9 @@ function KanbanCard({
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg border bg-blue-50 text-blue-700 border-blue-200">
             <CreditCard className="h-3 w-3 shrink-0" />
-            <span className="font-medium">Esperando pago</span>
+            <span className="font-medium">
+              {a.payment_status && a.payment_status !== "Pendiente" ? a.payment_status : "Esperando pago"}
+            </span>
             <button
               onMouseDown={(e) => e.stopPropagation()}
               onClick={handleResendCheckout}
@@ -187,6 +189,33 @@ function KanbanCard({
               Copiar link
             </button>
           </div>
+          {/* Price with discount */}
+          <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-zinc-50 text-zinc-600 border-zinc-200">
+            <Tag className="h-3 w-3 shrink-0" />
+            {a.discount_percent ? (
+              <>
+                <span className="line-through text-zinc-400">US$349</span>
+                <span className="font-semibold text-emerald-700">
+                  US${Math.round(349 * (1 - (a.discount_percent as number) / 100)).toLocaleString()}
+                </span>
+                <span className="text-zinc-400">({a.discount_percent as number}% off)</span>
+              </>
+            ) : (
+              <span className="font-semibold">US$349</span>
+            )}
+          </div>
+          {/* Follow-up status */}
+          {(a.follow_up_1_sent || a.follow_up_2_sent) && (
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border",
+              a.follow_up_2_sent
+                ? "bg-red-50 text-red-600 border-red-200"
+                : "bg-amber-50 text-amber-700 border-amber-200"
+            )}>
+              <Send className="h-3 w-3 shrink-0" />
+              <span>Follow-up {a.follow_up_2_sent ? "2/2" : "1/2"} enviado</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -476,9 +505,10 @@ function ActionsModalView({ app, coupons, onClose, onCouponAssign, onAdmit, onRe
 
 // ─── Board ────────────────────────────────────────────────────────────────────
 
-export function KanbanPostulaciones({ initialData, coupons }: {
+export function KanbanPostulaciones({ initialData, coupons, pagos }: {
   initialData: ApplicationRecord[];
   coupons: CouponRecord[];
+  pagos: PagoRecord[];
 }) {
   const [data, setData] = useState(initialData);
   const [search, setSearch] = useState("");
@@ -743,6 +773,7 @@ export function KanbanPostulaciones({ initialData, coupons }: {
         <ApplicationProfile
           app={profileApp}
           coupons={coupons}
+          pagos={pagos}
           onClose={() => setProfileApp(null)}
           onStatusChange={(id, status) => {
             setData((prev) => prev.map((a) => a.id === id ? { ...a, status } : a));

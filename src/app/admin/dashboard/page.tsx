@@ -1,4 +1,4 @@
-import { getAllApplications, getAllPagos, getProximaClase, countFoundersInscritos } from "@/lib/airtable";
+import { getAllApplications, getAllPagos, getProximaClase, countFoundersInscritos, getEmpresasStats } from "@/lib/airtable";
 import { STRIPE_MODE } from "@/lib/stripe";
 import { DashboardStats } from "@/components/admin/dashboard-stats";
 import { HealthCheckTable } from "@/components/admin/health-check-table";
@@ -6,11 +6,12 @@ import { HealthCheckTable } from "@/components/admin/health-check-table";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [apps, pagos, proximaClase, foundersInscritos] = await Promise.all([
+  const [apps, pagos, proximaClase, foundersInscritos, empresasStats] = await Promise.all([
     getAllApplications(),
     getAllPagos(),
     getProximaClase(),
     countFoundersInscritos(),
+    getEmpresasStats(),
   ]);
 
   const total = apps.length;
@@ -78,7 +79,7 @@ export default async function DashboardPage() {
           </div>
           <span className="text-xs text-zinc-400 tabular-nums">{inscritasList.length} startup{inscritasList.length !== 1 ? "s" : ""}</span>
         </div>
-        <HealthCheckTable startups={inscritasList} />
+        <HealthCheckTable startups={inscritasList} empresasStats={empresasStats} />
       </div>
     </div>
   );

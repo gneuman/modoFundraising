@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
-  Users,
   DollarSign,
   Tag,
   BookOpen,
@@ -22,7 +21,6 @@ import Image from "next/image";
 const NAV = [
   { href: "/admin/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
   { href: "/admin/postulaciones", label: "Postulaciones",  icon: FileText },
-  { href: "/admin/inscritos",     label: "Inscritos",      icon: Users },
   { href: "/admin/empresas",      label: "Empresas",       icon: Building2 },
   { href: "/admin/revenue",       label: "Revenue",        icon: DollarSign },
   { href: "/admin/cupones",       label: "Cupones",        icon: Tag },
