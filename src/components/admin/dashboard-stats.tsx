@@ -94,6 +94,7 @@ export function DashboardStats({
   const formatDate = (iso?: string) => {
     if (!iso) return "";
     return new Date(iso).toLocaleDateString("es", {
+      timeZone: "America/Santiago",
       weekday: "short",
       day: "numeric",
       month: "short",

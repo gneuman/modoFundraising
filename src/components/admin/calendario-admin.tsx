@@ -6,6 +6,7 @@ import {
   AlertCircle, Copy, Check, UserPlus, ChevronLeft, ChevronRight, X, List,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatHora, formatFechaSinHora as formatFechaLarga } from "@/lib/timezone";
 
 interface CalEvent {
   id: string;
@@ -17,16 +18,6 @@ interface CalEvent {
   htmlLink: string;
   attendeesCount: number;
   status: string;
-}
-
-function formatHora(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-}
-
-function formatFechaLarga(iso: string) {
-  return new Date(iso).toLocaleDateString("es-MX", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  });
 }
 
 function CopyButton({ text }: { text: string }) {

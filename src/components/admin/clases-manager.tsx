@@ -7,6 +7,7 @@ import {
   Video, Calendar, Loader2, ExternalLink, Edit2, Check, X, HardDrive, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatFechaCorta, toSantiagoInput, santiagoInputToISO } from "@/lib/timezone";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { ClaseRecord, MisionRecord, RecursoRecord } from "@/lib/airtable";
@@ -81,7 +82,7 @@ function NuevaClaseForm({ onCreated }: { onCreated: (clase: ClaseWithContent) =>
         body: JSON.stringify({
           ...form,
           semana: Number(form.semana) || 0,
-          fecha: form.fecha || undefined,
+          fecha: form.fecha ? santiagoInputToISO(form.fecha) : undefined,
         }),
       });
       const { id } = await res.json();
@@ -234,7 +235,11 @@ function NuevoRecursoForm({ claseId, claseFecha, onCreated }: {
       const res = await fetch("/api/admin/recursos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, claseId }),
+        body: JSON.stringify({
+          ...form,
+          fecha_disponible: form.fecha_disponible ? santiagoInputToISO(form.fecha_disponible) : undefined,
+          claseId,
+        }),
       });
       const { id } = await res.json();
       onCreated({ id, ...form, clase: [claseId] } as RecursoRecord);
@@ -401,7 +406,7 @@ function DriveRecordingPicker({ claseFecha, onSelect }: {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-zinc-800 truncate">{rec.name}</p>
             <p className="text-xs text-zinc-400">
-              {new Date(rec.createdTime).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              {formatFechaCorta(rec.createdTime)}
             </p>
           </div>
           <button
@@ -454,7 +459,7 @@ function ClaseAdminCard({ clase, onChange }: {
             {clase.fecha && (
               <span className="text-xs text-zinc-400 flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                {new Date(clase.fecha).toLocaleDateString("es-MX", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                {formatFechaCorta(clase.fecha)}
               </span>
             )}
             <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_COLOR[clase.status ?? "Próxima"])}>
@@ -491,8 +496,8 @@ function ClaseAdminCard({ clase, onChange }: {
               <p className="text-xs text-zinc-400 font-medium flex items-center gap-1"><Calendar className="h-3 w-3" /> Fecha y hora</p>
               <input
                 type="datetime-local"
-                defaultValue={clase.fecha ? clase.fecha.slice(0, 16) : ""}
-                onBlur={(e) => { if (e.target.value) patchClase("fecha", e.target.value); }}
+                defaultValue={toSantiagoInput(clase.fecha)}
+                onBlur={(e) => { if (e.target.value) patchClase("fecha", santiagoInputToISO(e.target.value)); }}
                 className="text-sm border border-zinc-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
               />
             </div>

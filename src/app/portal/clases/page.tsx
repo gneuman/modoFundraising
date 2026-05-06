@@ -3,22 +3,9 @@ import { getClasesWithContent, type ClaseRecord, type MisionRecord, type Recurso
 import { Video, Calendar, Play, BookOpen, Target, FileText, Link2, Wrench, ExternalLink, Clock } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { formatFecha, formatFechaCorta } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
-
-function formatFecha(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("es-MX", {
-    weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
-  });
-}
-
-function formatFechaCorta(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("es-MX", {
-    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-  });
-}
 
 function daysLeft(iso?: string) {
   if (!iso) return null;

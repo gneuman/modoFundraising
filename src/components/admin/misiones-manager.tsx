@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { MisionRecord, ClaseRecord, RecursoRecord } from "@/lib/airtable";
+import { dateOnlyToISO, toSantiagoDate } from "@/lib/timezone";
 
 type ClaseFull = ClaseRecord & { misionesData: MisionRecord[]; recursosData: RecursoRecord[] };
 
@@ -65,7 +66,7 @@ function NuevaMisionForm({ clases, onCreated }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          fecha_limite: form.fecha_limite || undefined,
+          fecha_limite: form.fecha_limite ? dateOnlyToISO(form.fecha_limite) : undefined,
           claseId: claseId || undefined,
         }),
       });
@@ -152,7 +153,7 @@ function MisionRow({ mision, clases, onChange }: {
           titulo: draft.titulo,
           descripcion: draft.descripcion,
           instrucciones: draft.instrucciones,
-          fecha_limite: draft.fecha_limite || undefined,
+          fecha_limite: draft.fecha_limite ? dateOnlyToISO(draft.fecha_limite) : undefined,
           status: draft.status,
           claseId: draft.claseId || undefined,
         }),
@@ -184,7 +185,7 @@ function MisionRow({ mision, clases, onChange }: {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <p className="text-xs text-zinc-500 font-medium">Fecha límite</p>
-            <Input type="date" value={draft.fecha_limite ? draft.fecha_limite.slice(0, 10) : ""}
+            <Input type="date" value={toSantiagoDate(draft.fecha_limite)}
               onChange={(e) => setDraft({ ...draft, fecha_limite: e.target.value })} />
           </div>
           <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}

@@ -10,15 +10,9 @@ import {
 } from "@/lib/airtable";
 import { Target, Clock, BookOpen, CheckCircle2, Circle, AlertCircle, Star, FileCheck, ListChecks } from "lucide-react";
 import { NpsForm } from "@/components/portal/nps-form";
+import { formatFechaSinHora as formatFecha } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
-
-function formatFecha(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("es-MX", {
-    weekday: "long", day: "numeric", month: "long",
-  });
-}
 
 function daysLeft(iso?: string): number | null {
   if (!iso) return null;

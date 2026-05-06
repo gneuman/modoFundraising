@@ -7,16 +7,9 @@ import {
   Video, ExternalLink, Clock, AlertCircle, CheckCircle2, Circle, Wrench, BookOpen,
 } from "lucide-react";
 import { VideoPlayer } from "@/components/portal/video-player";
+import { formatFechaConAnio as formatFecha } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
-
-function formatFecha(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("es-MX", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-}
 
 function daysLeft(iso?: string) {
   if (!iso) return null;
