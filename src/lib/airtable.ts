@@ -12,6 +12,7 @@ export const Tables = {
   CUPONES: "Cupones MF26",
   CLASES: "Clases MF26",
   MISIONES: "Misiones MF26",
+  TAREAS: "Tareas MF26",
   RECURSOS: "Recursos MF26",
   ASISTENCIAS: "Asistencias MF26",
   MISIONES_COMPLETADAS: "Misiones Completadas MF26",
@@ -1045,6 +1046,28 @@ export async function getAllFeedback(): Promise<FeedbackRecord[]> {
 // ─── Video Play Log ────────────────────────────────────────────────────────────
 // Reutiliza Asistencias MF26 para registrar que un founder reprodujo la grabación
 
+// ─── Tareas ───────────────────────────────────────────────────────────────────
+
+export interface TareaRecord {
+  id?: string;
+  titulo?: string;
+  descripcion?: string;
+  tipo?: "NPS" | "Entrega" | "Checklist";
+  orden?: number;
+  mision?: string[];
+  clases_nps?: string[];
+}
+
+export async function getTareasByMision(misionId: string): Promise<TareaRecord[]> {
+  const records = await base(Tables.TAREAS)
+    .select({
+      filterByFormula: `SEARCH("${misionId}", ARRAYJOIN({mision}))`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as TareaRecord);
+}
+
 export async function logVideoPlay(startupId: string, claseId: string): Promise<void> {
   await upsertAsistencia({ startupId, claseId, asistio: true });
 }
@@ -1062,9 +1085,9 @@ export interface EmpresaStats {
   misionesCompletadas: number;
 }
 
-export async function getEmpresasStats(): Promise<EmpresaStats[]> {
+export async function getEmpresasStats(preloadedApps?: PostulacionRecord[]): Promise<EmpresaStats[]> {
   const [apps, allClases, allMisiones, asistencias, misionesCompletadas] = await Promise.all([
-    getAllApplications(),
+    preloadedApps ? Promise.resolve(preloadedApps) : getAllApplications(),
     base(Tables.CLASES).select({ fields: ["titulo"] }).all(),
     base(Tables.MISIONES).select({ fields: ["titulo"] }).all(),
     getAllAsistencias(),
@@ -1101,28 +1124,42 @@ export async function getEmpresasStats(): Promise<EmpresaStats[]> {
 }
 
 export async function getClasesWithContent(): Promise<(ClaseRecord & {
-  misionesData: MisionRecord[];
+  misionesData: (MisionRecord & { tareasData: TareaRecord[] })[];
   recursosData: RecursoRecord[];
 })[]> {
-  const [clases, misiones, recursos] = await Promise.all([
+  const [clases, misiones, tareas, recursos] = await Promise.all([
     base(Tables.CLASES)
       .select({ sort: [{ field: "semana", direction: "asc" }] })
       .all(),
     base(Tables.MISIONES).select().all(),
+    base(Tables.TAREAS).select({ sort: [{ field: "orden", direction: "asc" }] }).all(),
     base(Tables.RECURSOS).select().all(),
   ]);
 
-  // Group misiones and recursos by their linked clase ID
-  const misionesByClase = new Map<string, MisionRecord[]>();
+  // Group tareas by mision ID
+  const tareasByMision = new Map<string, TareaRecord[]>();
+  for (const t of tareas) {
+    const f = t.fields as Record<string, unknown>;
+    const misionIds = (f.mision as string[]) ?? [];
+    const record = { id: t.id, ...f } as TareaRecord;
+    for (const mid of misionIds) {
+      if (!tareasByMision.has(mid)) tareasByMision.set(mid, []);
+      tareasByMision.get(mid)!.push(record);
+    }
+  }
+
+  // Group misiones by clase ID (with their tareas)
+  const misionesByClase = new Map<string, (MisionRecord & { tareasData: TareaRecord[] })[]>();
   for (const m of misiones) {
     const f = m.fields as Record<string, unknown>;
     const claseIds = (f.clase as string[]) ?? [];
-    const record = { id: m.id, ...f } as MisionRecord;
+    const record = { id: m.id, ...f, tareasData: tareasByMision.get(m.id) ?? [] } as MisionRecord & { tareasData: TareaRecord[] };
     for (const cid of claseIds) {
       if (!misionesByClase.has(cid)) misionesByClase.set(cid, []);
       misionesByClase.get(cid)!.push(record);
     }
   }
+
   const recursosByClase = new Map<string, RecursoRecord[]>();
   for (const r of recursos) {
     const f = r.fields as Record<string, unknown>;

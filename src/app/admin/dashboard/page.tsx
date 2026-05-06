@@ -6,13 +6,13 @@ import { HealthCheckTable } from "@/components/admin/health-check-table";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [apps, pagos, proximaClase, foundersInscritos, empresasStats] = await Promise.all([
+  const [apps, pagos, proximaClase, foundersInscritos] = await Promise.all([
     getAllApplications(),
     getAllPagos(),
     getProximaClase(),
     countFoundersInscritos(),
-    getEmpresasStats(),
   ]);
+  const empresasStats = await getEmpresasStats(apps);
 
   const total = apps.length;
   const nuevas = apps.filter((a) => a.status === "Nueva postulación").length;
