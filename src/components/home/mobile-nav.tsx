@@ -7,9 +7,11 @@ import Image from "next/image";
 const NAV_LINKS = [
   { href: "/", label: "Programa" },
   { href: "/cronograma", label: "Cronograma" },
+  { href: "/live-interviews", label: "Live Interviews" },
   { href: "/advisory", label: "Advisory" },
   { href: "/masterclasses", label: "Masterclasses" },
   { href: "/rockstars", label: "Rockstars" },
+  { href: "/house-rules", label: "House Rules" },
   { href: "/qa", label: "Q&A" },
 ];
 

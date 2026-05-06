@@ -25,7 +25,9 @@
       "Bash(npx tsx *)",
       "mcp__claude_ai_Linear__list_teams",
       "mcp__claude_ai_Linear__save_project",
-      "Bash(curl -s \"https://api.airtable.com/v0/appGm9DW6WOKnDEAW/Clases%20MF26?fields%5B%5D=titulo&fields%5B%5D=fecha&sort%5B0%5D%5Bfield%5D=fecha&sort%5B0%5D%5Bdirection%5D=asc\" \\\\ *)"
+      "Bash(curl -s \"https://api.airtable.com/v0/appGm9DW6WOKnDEAW/Clases%20MF26?fields%5B%5D=titulo&fields%5B%5D=fecha&sort%5B0%5D%5Bfield%5D=fecha&sort%5B0%5D%5Bdirection%5D=asc\" \\\\ *)",
+      "Bash(Get-ChildItem -Path . -Force)",
+      "Bash(Select-Object Name)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\modoFundraising\\src\\app\\portal\\clases\\[id]",
