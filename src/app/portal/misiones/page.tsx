@@ -1,6 +1,15 @@
 import { obtenerSesion } from "@/lib/auth";
-import { getClasesWithContent, type MisionRecord, type ClaseRecord, type RecursoRecord } from "@/lib/airtable";
-import { Target, Clock, BookOpen, CheckCircle2, Circle, AlertCircle } from "lucide-react";
+import {
+  getClasesWithContent,
+  getAllApplications,
+  getAllFeedback,
+  type MisionRecord,
+  type ClaseRecord,
+  type RecursoRecord,
+  type TareaRecord,
+} from "@/lib/airtable";
+import { Target, Clock, BookOpen, CheckCircle2, Circle, AlertCircle, Star, FileCheck, ListChecks } from "lucide-react";
+import { NpsForm } from "@/components/portal/nps-form";
 
 export const dynamic = "force-dynamic";
 
@@ -16,28 +25,78 @@ function daysLeft(iso?: string): number | null {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 }
 
+function TipoIcon({ tipo }: { tipo?: string }) {
+  if (tipo === "NPS") return <Star className="h-4 w-4 text-blue-500 shrink-0" />;
+  if (tipo === "Entrega") return <FileCheck className="h-4 w-4 text-amber-500 shrink-0" />;
+  return <ListChecks className="h-4 w-4 text-zinc-400 shrink-0" />;
+}
+
+function TareaNps({
+  tarea,
+  clases,
+  submitted,
+}: {
+  tarea: TareaRecord;
+  clases: { id: string; titulo: string }[];
+  submitted: boolean;
+}) {
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Star className="h-4 w-4 text-blue-500" />
+        <p className="text-sm font-semibold text-blue-800">{tarea.titulo}</p>
+      </div>
+      {tarea.descripcion && (
+        <p className="text-xs text-blue-600">{tarea.descripcion}</p>
+      )}
+      <NpsForm tarea={tarea} clases={clases} initialSubmitted={submitted} />
+    </div>
+  );
+}
+
+function TareaItem({ tarea }: { tarea: TareaRecord }) {
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-zinc-100 last:border-0">
+      <TipoIcon tipo={tarea.tipo} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-zinc-700">{tarea.titulo}</p>
+        {tarea.descripcion && (
+          <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">{tarea.descripcion}</p>
+        )}
+      </div>
+      <span className="text-xs text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full shrink-0">
+        {tarea.tipo}
+      </span>
+    </div>
+  );
+}
+
 function MisionCard({
   mision,
   clase,
+  clasesTitulos,
+  feedbackSubmitted,
 }: {
-  mision: MisionRecord;
-  clase?: ClaseRecord & { misionesData: MisionRecord[]; recursosData: RecursoRecord[] };
+  mision: MisionRecord & { tareasData: TareaRecord[] };
+  clase?: ClaseRecord & { misionesData: (MisionRecord & { tareasData: TareaRecord[] })[]; recursosData: RecursoRecord[] };
+  clasesTitulos: { id: string; titulo: string }[];
+  feedbackSubmitted: boolean;
 }) {
   const days = daysLeft(mision.fecha_limite);
   const isActiva = mision.status === "Activa";
   const isCerrada = mision.status === "Cerrada";
-  const isProxima = mision.status === "Próxima" || !mision.status;
 
   let urgencyBorder = "border-zinc-200";
   if (isActiva) {
-    if (days !== null && days <= 2) urgencyBorder = "border-red-300";
-    else urgencyBorder = "border-amber-300";
+    urgencyBorder = days !== null && days <= 2 ? "border-red-300" : "border-amber-300";
   }
-  if (isCerrada) urgencyBorder = "border-zinc-200";
+
+  const tareasSinNps = mision.tareasData.filter((t) => t.tipo !== "NPS");
+  const tareaNps = mision.tareasData.find((t) => t.tipo === "NPS");
 
   return (
     <div className={`bg-white rounded-2xl border-2 ${urgencyBorder} overflow-hidden transition-all`}>
-      <div className="p-5 space-y-3">
+      <div className="p-5 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -73,11 +132,34 @@ function MisionCard({
           <p className="text-sm text-zinc-500 leading-relaxed">{mision.descripcion}</p>
         )}
 
-        {/* Instrucciones */}
-        {mision.instrucciones && isActiva && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-zinc-700 whitespace-pre-line">
-            <p className="font-semibold text-amber-800 text-xs uppercase tracking-wide mb-1">Instrucciones</p>
-            {mision.instrucciones}
+        {/* Tareas — solo cuando está activa o cerrada */}
+        {(isActiva || isCerrada) && mision.tareasData.length > 0 && (
+          <div className="space-y-3">
+            {/* Tarea NPS primero */}
+            {tareaNps && clasesTitulos.length > 0 && (
+              <TareaNps
+                tarea={tareaNps}
+                clases={clasesTitulos}
+                submitted={feedbackSubmitted}
+              />
+            )}
+
+            {/* Resto de tareas */}
+            {tareasSinNps.length > 0 && (
+              <div className="bg-zinc-50 rounded-xl border border-zinc-100 px-4 divide-y divide-zinc-100">
+                {tareasSinNps.map((t) => (
+                  <TareaItem key={t.id} tarea={t} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Próxima: preview de tareas */}
+        {!isActiva && !isCerrada && mision.tareasData.length > 0 && (
+          <div className="text-xs text-zinc-400 flex items-center gap-1.5">
+            <ListChecks className="h-3.5 w-3.5" />
+            {mision.tareasData.length} tareas · disponibles cuando la misión esté activa
           </div>
         )}
 
@@ -89,7 +171,7 @@ function MisionCard({
             "text-zinc-500"
           }`}>
             <Clock className="h-3.5 w-3.5" />
-            {isCerrada ? "Cerrada" : days === null ? "" :
+            {days === null ? "" :
               days < 0 ? "Vencida" :
               days === 0 ? "Vence hoy" :
               days === 1 ? "Vence mañana" :
@@ -108,17 +190,40 @@ function MisionCard({
 
 export default async function MisionesPage() {
   const session = await obtenerSesion();
-  const clases = await getClasesWithContent();
+  const [clases, allFeedback, apps] = await Promise.all([
+    getClasesWithContent(),
+    getAllFeedback(),
+    getAllApplications(),
+  ]);
 
-  // Flatten all missions with their parent class
-  const allMisiones: { mision: MisionRecord; clase: (typeof clases)[0] }[] = [];
+  // Encontrar startupId del founder
+  const app = apps.find(
+    (a) =>
+      a.email === session?.email &&
+      (a.status === "Inscrita" || a.status === "Invitada institucional")
+  );
+  const startupId = app?.startup_record?.[0] as string | undefined;
+
+  // Set de claseIds con feedback ya enviado por esta startup
+  const feedbackClaseIds = new Set(
+    allFeedback
+      .filter((f) => startupId && f.startup_record?.includes(startupId))
+      .flatMap((f) => f.clase_record ?? [])
+  );
+
+  // Flatten misiones con su clase padre
+  const allMisiones: {
+    mision: MisionRecord & { tareasData: TareaRecord[] };
+    clase: (typeof clases)[0];
+  }[] = [];
+
   for (const clase of clases) {
     for (const mision of clase.misionesData) {
       allMisiones.push({ mision, clase });
     }
   }
 
-  // Sort: Activa first, then Próxima, then Cerrada
+  // Ordenar: Activa → Próxima → Cerrada
   const ORDER: Record<string, number> = { Activa: 0, Próxima: 1, Cerrada: 2 };
   allMisiones.sort((a, b) => {
     const oa = ORDER[a.mision.status ?? "Próxima"] ?? 1;
@@ -129,6 +234,9 @@ export default async function MisionesPage() {
 
   const activas = allMisiones.filter((m) => m.mision.status === "Activa").length;
   const cerradas = allMisiones.filter((m) => m.mision.status === "Cerrada").length;
+
+  // Mapa de clases por ID para lookup rápido
+  const claseById = new Map(clases.map((c) => [c.id!, c]));
 
   return (
     <div className="space-y-6">
@@ -160,9 +268,27 @@ export default async function MisionesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {allMisiones.map(({ mision, clase }) => (
-            <MisionCard key={mision.id} mision={mision} clase={clase} />
-          ))}
+          {allMisiones.map(({ mision, clase }) => {
+            const tareaNps = mision.tareasData.find((t) => t.tipo === "NPS");
+            const clasesTitulos = (tareaNps?.clases_nps ?? [])
+              .map((id) => claseById.get(id))
+              .filter(Boolean)
+              .map((c) => ({ id: c!.id!, titulo: c!.titulo ?? "" }));
+
+            const feedbackSubmitted =
+              clasesTitulos.length > 0 &&
+              clasesTitulos.every((c) => feedbackClaseIds.has(c.id));
+
+            return (
+              <MisionCard
+                key={mision.id}
+                mision={mision}
+                clase={clase}
+                clasesTitulos={clasesTitulos}
+                feedbackSubmitted={feedbackSubmitted}
+              />
+            );
+          })}
         </div>
       )}
     </div>
