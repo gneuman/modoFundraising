@@ -57,17 +57,31 @@ export function toSantiagoInput(iso?: string): string {
 // datetime-local string (Santiago) → UTC ISO string for Airtable
 export function santiagoInputToISO(localStr: string): string {
   if (!localStr) return "";
-  // Get the UTC offset for Santiago at approximately this time
-  const probe = new Date(localStr + "Z"); // treat as UTC to probe the offset
-  const parts = new Intl.DateTimeFormat("en", {
-    timeZone: TZ,
-    timeZoneName: "shortOffset",
-  }).formatToParts(probe);
-  const tzName = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT-3";
-  const match = tzName.match(/GMT([+-]\d+)/);
-  const h = match ? parseInt(match[1]) : -3;
-  const offset = `${h >= 0 ? "+" : "-"}${String(Math.abs(h)).padStart(2, "0")}:00`;
-  return new Date(`${localStr}:00${offset}`).toISOString();
+  // Iterative approach: probe with an estimated UTC time, then correct using
+  // the actual offset returned for that UTC time. One iteration is enough
+  // because Santiago's DST transitions never happen at the exact boundary.
+  const probe1 = new Date(localStr + "Z"); // first pass: treat local as UTC
+  const getOffset = (d: Date): number => {
+    const parts = new Intl.DateTimeFormat("en", {
+      timeZone: TZ,
+      timeZoneName: "shortOffset",
+    }).formatToParts(d);
+    const tzName = parts.find((p) => p.type === "timeZoneName")?.value ?? "GMT-4";
+    const match = tzName.match(/GMT([+-]\d{1,2})(?::(\d{2}))?/);
+    if (!match) return -4;
+    const h = parseInt(match[1]);
+    const m = match[2] ? parseInt(match[2]) : 0;
+    return h < 0 ? h - m / 60 : h + m / 60;
+  };
+  const offset1 = getOffset(probe1);
+  // Shift the probe by the estimated offset to get closer to real UTC
+  const probe2 = new Date(probe1.getTime() - offset1 * 3600000);
+  const offset2 = getOffset(probe2);
+  const absH = Math.abs(offset2);
+  const hh = String(Math.floor(absH)).padStart(2, "0");
+  const mm = String(Math.round((absH % 1) * 60)).padStart(2, "0");
+  const sign = offset2 >= 0 ? "+" : "-";
+  return new Date(`${localStr}:00${sign}${hh}:${mm}`).toISOString();
 }
 
 // Date-only string "YYYY-MM-DD" → UTC ISO (medianoche Santiago)

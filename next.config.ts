@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "v5.airtableusercontent.com" },
       { protocol: "https", hostname: "*.airtableusercontent.com" },
+      { protocol: "https", hostname: "upload.wikimedia.org" },
+      { protocol: "https", hostname: "*.wikimedia.org" },
+      { protocol: "https", hostname: "logo.clearbit.com" },
     ],
   },
 };
