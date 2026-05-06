@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "v5.airtableusercontent.com" },
+      { protocol: "https", hostname: "*.airtableusercontent.com" },
+    ],
+  },
 };
 
 export default nextConfig;

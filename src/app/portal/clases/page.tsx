@@ -2,6 +2,7 @@ import { obtenerSesion } from "@/lib/auth";
 import { getClasesWithContent, type ClaseRecord, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
 import { Video, Calendar, Play, BookOpen, Target, FileText, Link2, Wrench, ExternalLink, Clock } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { formatFecha, formatFechaCorta } from "@/lib/timezone";
 
@@ -33,11 +34,23 @@ function ClaseRow({ clase }: { clase: ClaseFull }) {
       {/* Main row */}
       <Link href={`/portal/clases/${clase.id}`}
         className="flex items-center gap-4 px-5 py-4 hover:bg-zinc-50/70 transition-colors group">
-        {/* Week bubble */}
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm
-          ${isGrabada ? "bg-green-50 text-green-700" : isLive ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"}`}>
-          {clase.semana ?? "–"}
-        </div>
+        {/* Portada o número */}
+        {clase.Portada?.[0] ? (
+          <div className="w-16 h-10 rounded-xl overflow-hidden shrink-0 bg-zinc-100">
+            <Image
+              src={clase.Portada[0].thumbnails?.large?.url ?? clase.Portada[0].url}
+              alt={clase.titulo ?? ""}
+              width={64} height={40}
+              className="w-full h-full object-cover"
+              unoptimized
+            />
+          </div>
+        ) : (
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm
+            ${isGrabada ? "bg-green-50 text-green-700" : isLive ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"}`}>
+            {clase.titulo?.match(/^S(\d+)/)?.[1] ?? clase.semana ?? "–"}
+          </div>
+        )}
 
         {/* Title + date */}
         <div className="flex-1 min-w-0">
@@ -177,7 +190,7 @@ export default async function ClasesPage() {
         <div className="bg-white rounded-xl border border-zinc-200 p-3">
           <p className="text-xs text-zinc-500">Próxima</p>
           <p className="text-xs font-semibold text-blue-600 mt-0.5 leading-tight">
-            {proxima ? `S${proxima.semana} — ${proxima.titulo}` : "Por definir"}
+            {proxima ? proxima.titulo : "Por definir"}
           </p>
         </div>
       </div>

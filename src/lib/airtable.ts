@@ -17,6 +17,18 @@ export const Tables = {
   ASISTENCIAS: "Asistencias MF26",
   MISIONES_COMPLETADAS: "Misiones Completadas MF26",
   FEEDBACK: "Feedback MF26",
+  // CMS público
+  HOME_METRICS: "home_metrics",
+  HOME_TESTIMONIOS: "home_testimonios",
+  HOME_CASOS_EXITO: "home_casos_exito",
+  HOME_LOGOS_ALUMNI: "home_logos_alumni",
+  HOME_LOGOS_PARTNERS: "home_logos_partners",
+  ADVISORS: "advisors",
+  MASTERCLASSES: "masterclasses",
+  LIVE_INTERVIEWS: "live_interviews",
+  HOUSE_RULES: "house_rules",
+  ROCKSTARS: "rockstars",
+  QA: "qa",
 } as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -705,6 +717,7 @@ export interface ClaseRecord {
   meet_link?: string;
   calendar_event_id?: string;
   status?: "Próxima" | "En vivo" | "Grabada";
+  Portada?: { url: string; thumbnails?: { large?: { url: string } } }[];
   // Inverse linked fields (auto-created by Airtable)
   misiones?: string[];
   recursos?: string[];
@@ -1129,7 +1142,7 @@ export async function getClasesWithContent(): Promise<(ClaseRecord & {
 })[]> {
   const [clases, misiones, tareas, recursos] = await Promise.all([
     base(Tables.CLASES)
-      .select({ sort: [{ field: "semana", direction: "asc" }] })
+      .select({ sort: [{ field: "fecha", direction: "asc" }] })
       .all(),
     base(Tables.MISIONES).select().all(),
     base(Tables.TAREAS).select({ sort: [{ field: "orden", direction: "asc" }] }).all(),
@@ -1177,4 +1190,328 @@ export async function getClasesWithContent(): Promise<(ClaseRecord & {
     misionesData: misionesByClase.get(c.id) ?? [],
     recursosData: recursosByClase.get(c.id) ?? [],
   }));
+}
+
+// ─── CMS Público ──────────────────────────────────────────────────────────────
+// Todas las tablas de contenido del sitio público viven en Airtable.
+// Patrón común: campo `activa` (bool), `orden` (number).
+
+// ── home_metrics ──────────────────────────────────────────────────────────────
+
+export interface HomeMetrics {
+  id?: string;
+  edicion: string;
+  capital_levantado_usd: number;
+  n_startups: number;
+  n_paises: number;
+  n_inversionistas: number;
+  n_masterclasses: number;
+  nps: number;
+  activa: boolean;
+}
+
+export async function getHomeMetrics(edicion = "2025"): Promise<HomeMetrics | null> {
+  const records = await base(Tables.HOME_METRICS)
+    .select({ filterByFormula: `AND({edicion} = "${edicion}", {activa} = 1)`, maxRecords: 1 })
+    .firstPage();
+  if (!records.length) return null;
+  return { id: records[0].id, ...records[0].fields } as HomeMetrics;
+}
+
+// ── home_testimonios ──────────────────────────────────────────────────────────
+
+export interface HomeTestimonio {
+  id?: string;
+  nombre: string;
+  empresa: string;
+  ronda: string;
+  quote: string;
+  foto_url: string;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getHomeTestimonios(): Promise<HomeTestimonio[]> {
+  const records = await base(Tables.HOME_TESTIMONIOS)
+    .select({
+      filterByFormula: `{activa} = 1`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as HomeTestimonio);
+}
+
+// ── home_casos_exito ──────────────────────────────────────────────────────────
+
+export interface HomeCasoExito {
+  id?: string;
+  startup_nombre: string;
+  logo_url: string;
+  monto_usd: number;
+  investors: string;
+  hook: string;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getHomeCasosExito(): Promise<HomeCasoExito[]> {
+  const records = await base(Tables.HOME_CASOS_EXITO)
+    .select({
+      filterByFormula: `{activa} = 1`,
+      sort: [{ field: "orden", direction: "asc" }],
+      maxRecords: 6,
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as HomeCasoExito);
+}
+
+// ── home_logos_alumni ─────────────────────────────────────────────────────────
+
+export interface HomeLogoAlumni {
+  id?: string;
+  nombre: string;
+  logo_url: string;
+  alt: string;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getHomeLogosAlumni(): Promise<HomeLogoAlumni[]> {
+  const records = await base(Tables.HOME_LOGOS_ALUMNI)
+    .select({
+      filterByFormula: `{activa} = 1`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as HomeLogoAlumni);
+}
+
+// ── home_logos_partners ───────────────────────────────────────────────────────
+
+export type SponsorTier = 1 | 2 | 3;
+export type SponsorType = "corporate" | "paying" | "program";
+
+export interface HomeLogoPartner {
+  id?: string;
+  nombre: string;
+  logo_url: string;
+  alt: string;
+  tier: SponsorTier;
+  type: SponsorType;
+  website_url?: string;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getHomeLogosPartners(): Promise<HomeLogoPartner[]> {
+  const records = await base(Tables.HOME_LOGOS_PARTNERS)
+    .select({
+      filterByFormula: `{activa} = 1`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as HomeLogoPartner);
+}
+
+export async function getHomeLogosPartnersByTier(tier: SponsorTier): Promise<HomeLogoPartner[]> {
+  const records = await base(Tables.HOME_LOGOS_PARTNERS)
+    .select({
+      filterByFormula: `AND({activa} = 1, {tier} = ${tier})`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as HomeLogoPartner);
+}
+
+// ── advisors ──────────────────────────────────────────────────────────────────
+
+export interface Advisor {
+  id?: string;
+  nombre: string;
+  foto_url: string;
+  cargo: string;
+  track_record: string;
+  especialidad: string;
+  ideal_para: string;
+  formato: string;
+  pricing_display: string;
+  modalidad: string;
+  calendly_url: string;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getAdvisors(): Promise<Advisor[]> {
+  const records = await base(Tables.ADVISORS)
+    .select({
+      filterByFormula: `{activa} = 1`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as Advisor);
+}
+
+// ── masterclasses ─────────────────────────────────────────────────────────────
+
+export type ContentEstado = "Abierto" | "Exclusivo" | "Próximo";
+
+export interface Masterclass {
+  id?: string;
+  titulo: string;
+  tema: string;
+  partner: string;
+  speaker: string;
+  video_url_youtube: string;
+  thumbnail_url: string;
+  insight_gratis: string;
+  insight_bloqueado_1: string;
+  insight_bloqueado_2: string;
+  estado: ContentEstado;
+  fecha: string;
+  duracion_min: number;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getMasterclasses(): Promise<Masterclass[]> {
+  const records = await base(Tables.MASTERCLASSES)
+    .select({
+      filterByFormula: `{activa} = 1`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as Masterclass);
+}
+
+// ── live_interviews ───────────────────────────────────────────────────────────
+
+export interface LiveInterview {
+  id?: string;
+  titulo: string;
+  entrevistado_nombre: string;
+  entrevistado_cargo: string;
+  entrevistado_empresa: string;
+  entrevistado_foto_url: string;
+  tema: string;
+  video_url_youtube: string;
+  thumbnail_url: string;
+  aprendizaje_gratis: string;
+  aprendizaje_bloqueado_1: string;
+  aprendizaje_bloqueado_2: string;
+  estado: ContentEstado;
+  fecha: string;
+  duracion_min: number;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getLiveInterviews(): Promise<LiveInterview[]> {
+  const records = await base(Tables.LIVE_INTERVIEWS)
+    .select({
+      filterByFormula: `{activa} = 1`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as LiveInterview);
+}
+
+// ── house_rules ───────────────────────────────────────────────────────────────
+
+export interface HouseRule {
+  id?: string;
+  titulo: string;
+  descripcion: string;
+  icono: string;
+  categoria: string;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getHouseRules(): Promise<HouseRule[]> {
+  const records = await base(Tables.HOUSE_RULES)
+    .select({
+      filterByFormula: `{activa} = 1`,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as HouseRule);
+}
+
+// ── rockstars ─────────────────────────────────────────────────────────────────
+
+export type RockstarTipo = "Rockstar" | "Partner" | "Speaker" | "Mentor" | "Investor" | "Founder";
+export type RockstarTag = "VC" | "Founder" | "Legal" | "Growth" | "Fundraising" | "Impact" | "Climate" | "Fintech" | "AI";
+
+export interface Rockstar {
+  id?: string;
+  nombre: string;
+  foto_url: string;
+  cargo: string;
+  empresa: string;
+  track_record_oneliner: string;
+  tipo: RockstarTipo;
+  linkedin_url: string;
+  tags: RockstarTag[];
+  confirmed_mf26: boolean;
+  featured: boolean;
+  featured_this_week: boolean;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getRockstars(filters?: {
+  tipo?: RockstarTipo;
+  tag?: RockstarTag;
+  confirmed_mf26?: boolean;
+  featured_this_week?: boolean;
+}): Promise<Rockstar[]> {
+  const conditions = ["{activa} = 1"];
+  if (filters?.tipo) conditions.push(`{tipo} = "${filters.tipo}"`);
+  if (filters?.tag) conditions.push(`FIND("${filters.tag}", ARRAYJOIN({tags}))`);
+  if (filters?.confirmed_mf26) conditions.push(`{confirmed_mf26} = 1`);
+  if (filters?.featured_this_week) conditions.push(`{featured_this_week} = 1`);
+
+  const formula = conditions.length === 1 ? conditions[0] : `AND(${conditions.join(", ")})`;
+
+  const records = await base(Tables.ROCKSTARS)
+    .select({
+      filterByFormula: formula,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as Rockstar);
+}
+
+export async function getFeaturedRockstarThisWeek(): Promise<Rockstar | null> {
+  const results = await getRockstars({ featured_this_week: true });
+  return results[0] ?? null;
+}
+
+// ── qa ────────────────────────────────────────────────────────────────────────
+
+export type QACategoria = "Programa" | "Logística" | "Pago" | "Selección" | "Post-programa";
+export type QASource = "existente" | "whatsapp" | "email";
+
+export interface QAItem {
+  id?: string;
+  pregunta: string;
+  respuesta: string;
+  categoria: QACategoria;
+  orden: number;
+  activa: boolean;
+  source: QASource;
+}
+
+export async function getQA(categoria?: QACategoria): Promise<QAItem[]> {
+  const conditions = ["{activa} = 1"];
+  if (categoria) conditions.push(`{categoria} = "${categoria}"`);
+  const formula = conditions.length === 1 ? conditions[0] : `AND(${conditions.join(", ")})`;
+
+  const records = await base(Tables.QA)
+    .select({
+      filterByFormula: formula,
+      sort: [{ field: "orden", direction: "asc" }],
+    })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as QAItem);
 }

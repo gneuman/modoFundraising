@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { obtenerSesion } from "@/lib/auth";
 import { getClaseById, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ChevronLeft, Calendar, Target, FileText, Link2,
   Video, ExternalLink, Clock, AlertCircle, CheckCircle2, Circle, Wrench, BookOpen,
@@ -137,12 +138,27 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
         <ChevronLeft className="h-4 w-4" /> Todas las clases
       </Link>
 
+      {/* Portada */}
+      {clase.Portada?.[0] && (
+        <div className="rounded-2xl overflow-hidden bg-zinc-100 w-full aspect-video max-h-52">
+          <Image
+            src={clase.Portada[0].thumbnails?.large?.url ?? clase.Portada[0].url}
+            alt={clase.titulo ?? ""}
+            width={800} height={450}
+            className="w-full h-full object-cover"
+            unoptimized
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="space-y-3">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-            <span className="text-base font-bold text-blue-600">{clase.semana ?? "–"}</span>
-          </div>
+          {!clase.Portada?.[0] && (
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <span className="text-base font-bold text-blue-600">{clase.titulo?.match(/^S(\d+)/)?.[1] ?? clase.semana ?? "–"}</span>
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
