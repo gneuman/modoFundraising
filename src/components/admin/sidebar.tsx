@@ -14,6 +14,7 @@ import {
   LogOut,
   Building2,
   CalendarDays,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -27,8 +28,9 @@ const NAV = [
   { href: "/admin/calendario",    label: "Calendario",     icon: CalendarDays },
   { href: "/admin/clases",        label: "Clases",         icon: BookOpen },
   { href: "/admin/misiones",      label: "Misiones",       icon: Target },
-  { href: "/admin/recursos",      label: "Recursos",       icon: Link2 },
-  { href: "/admin/api",           label: "API Docs",       icon: Code2 },
+  { href: "/admin/recursos",       label: "Recursos",        icon: Link2 },
+  { href: "/admin/comunicaciones", label: "Comunicaciones",  icon: Mail },
+  { href: "/admin/api",            label: "API Docs",        icon: Code2 },
 ];
 
 export function AdminSidebar() {

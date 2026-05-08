@@ -15,7 +15,8 @@ import {
   sendPaymentConfirmation,
   sendPaymentFailedEmail,
   sendChurnEmail,
-} from "@/lib/gmail";
+  sendPortalDeactivatedEmail,
+} from "@/lib/resend";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
 // Activates portal for the main founder + any team members linked to the startup
@@ -102,7 +103,7 @@ async function deactivatePortalForStartup(
     }
   }
 
-  if (email && firstName) await sendChurnEmail(email, firstName);
+  if (email && firstName) await sendChurnEmail(email, firstName, airtableId);
 }
 
 export async function POST(req: NextRequest) {
@@ -247,6 +248,9 @@ export async function POST(req: NextRequest) {
       if (attempt >= 4) {
         const startupRecordId = (app.startup_record as string[] | undefined)?.[0];
         await deactivatePortalForStartup(app.id!, app.email, app.first_name, startupRecordId);
+        if (app.email && app.first_name) {
+          await sendPortalDeactivatedEmail(app.email, app.first_name);
+        }
       } else {
         if (app.email && app.first_name) {
           await sendPaymentFailedEmail(

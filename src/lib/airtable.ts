@@ -17,6 +17,8 @@ export const Tables = {
   ASISTENCIAS: "Asistencias MF26",
   MISIONES_COMPLETADAS: "Misiones Completadas MF26",
   FEEDBACK: "Feedback MF26",
+  EMAIL_TEMPLATES: "Email Templates MF26",
+  AUTOMATION_RULES: "Automation Rules MF26",
   // CMS público
   HOME_METRICS: "home_metrics",
   HOME_TESTIMONIOS: "home_testimonios",
@@ -1514,4 +1516,137 @@ export async function getQA(categoria?: QACategoria): Promise<QAItem[]> {
     })
     .all();
   return records.map((r) => ({ id: r.id, ...r.fields }) as QAItem);
+}
+
+// ─── Email Templates ──────────────────────────────────────────────────────────
+
+export type TriggerEvent =
+  | "checkout_completed"
+  | "invoice_paid_cuota2"
+  | "invoice_paid_cuota3"
+  | "payment_failed_1"
+  | "payment_failed_2"
+  | "payment_failed_3"
+  | "admission_approved"
+  | "admission_rejected"
+  | "follow_up_1"
+  | "follow_up_2"
+  | "subscription_cancelled"
+  | "portal_deactivated"
+  | "application_received"
+  | "onboarding";
+
+export interface EmailTemplate {
+  id?: string;
+  name: string;
+  label: string;
+  subject: string;
+  body_html: string;
+  active: boolean;
+}
+
+export interface AutomationRule {
+  id?: string;
+  name: string;
+  trigger_event: TriggerEvent;
+  trigger_condition?: string;
+  template_id: string[];
+  template?: EmailTemplate;
+  delay_hours: number;
+  channel: "email" | "whatsapp";
+  active: boolean;
+  order: number;
+}
+
+export async function getEmailTemplates(): Promise<EmailTemplate[]> {
+  const records = await base(Tables.EMAIL_TEMPLATES)
+    .select({ sort: [{ field: "name", direction: "asc" }] })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as EmailTemplate);
+}
+
+export async function getEmailTemplate(name: string): Promise<EmailTemplate | null> {
+  const records = await base(Tables.EMAIL_TEMPLATES)
+    .select({ filterByFormula: `{name} = "${name}"`, maxRecords: 1 })
+    .firstPage();
+  if (!records.length) return null;
+  return { id: records[0].id, ...records[0].fields } as EmailTemplate;
+}
+
+export async function upsertEmailTemplate(data: Omit<EmailTemplate, "id">): Promise<string> {
+  const existing = await base(Tables.EMAIL_TEMPLATES)
+    .select({ filterByFormula: `{name} = "${data.name}"`, maxRecords: 1 })
+    .firstPage();
+  if (existing.length) {
+    await base(Tables.EMAIL_TEMPLATES).update(existing[0].id, data as never);
+    return existing[0].id;
+  }
+  const record = await base(Tables.EMAIL_TEMPLATES).create(data as never);
+  return record.id;
+}
+
+export async function updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<void> {
+  const fields: Record<string, unknown> = { ...data };
+  delete fields.id;
+  await base(Tables.EMAIL_TEMPLATES).update(id, fields as never);
+}
+
+export async function getAutomationRules(triggerEvent?: TriggerEvent): Promise<AutomationRule[]> {
+  const formula = triggerEvent
+    ? `AND({active} = 1, {trigger_event} = "${triggerEvent}")`
+    : "{active} = 1";
+  const records = await base(Tables.AUTOMATION_RULES)
+    .select({ filterByFormula: formula, sort: [{ field: "order", direction: "asc" }] })
+    .all();
+
+  const rules = records.map((r) => ({ id: r.id, ...r.fields }) as AutomationRule);
+
+  // Enrich with template data
+  const templateIds = [...new Set(rules.flatMap((r) => r.template_id ?? []))];
+  if (!templateIds.length) return rules;
+
+  const templates = await Promise.all(templateIds.map((tid) => base(Tables.EMAIL_TEMPLATES).find(tid)));
+  const templateMap = new Map(templates.map((t) => [t.id, { id: t.id, ...t.fields } as EmailTemplate]));
+
+  return rules.map((rule) => ({
+    ...rule,
+    template: rule.template_id?.[0] ? templateMap.get(rule.template_id[0]) : undefined,
+  }));
+}
+
+export async function upsertAutomationRule(data: Omit<AutomationRule, "id" | "template">): Promise<string> {
+  const existing = await base(Tables.AUTOMATION_RULES)
+    .select({ filterByFormula: `{name} = "${data.name}"`, maxRecords: 1 })
+    .firstPage();
+  const fields: Record<string, unknown> = {
+    name: data.name,
+    trigger_event: data.trigger_event,
+    trigger_condition: data.trigger_condition ?? "",
+    template_id: data.template_id,
+    delay_hours: data.delay_hours,
+    channel: data.channel,
+    active: data.active,
+    order: data.order,
+  };
+  if (existing.length) {
+    await base(Tables.AUTOMATION_RULES).update(existing[0].id, fields as never);
+    return existing[0].id;
+  }
+  const record = await base(Tables.AUTOMATION_RULES).create(fields as never);
+  return record.id;
+}
+
+export async function updateAutomationRule(id: string, data: Partial<AutomationRule>): Promise<void> {
+  const fields: Record<string, unknown> = { ...data };
+  delete fields.id;
+  delete fields.template;
+  await base(Tables.AUTOMATION_RULES).update(id, fields as never);
+}
+
+export async function deleteAutomationRule(id: string): Promise<void> {
+  await base(Tables.AUTOMATION_RULES).destroy(id);
+}
+
+export async function saveChurnReason(postulacionId: string, reason: string): Promise<void> {
+  await base(Tables.POSTULACIONES).update(postulacionId, { churn_reason: reason } as never);
 }
