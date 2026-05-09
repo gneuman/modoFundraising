@@ -1,14 +1,23 @@
 "use client";
 
-const WHATSAPP_URL = "https://wa.me/56912345678?text=Hola%2C%20quiero%20info%20sobre%20Modo%20Fundraising%202026";
+import { usePathname } from "next/navigation";
+import { track } from "@/lib/analytics";
+
+// TODO: reemplazar con número real de WhatsApp Business (chip WOM, operadora Nicole)
+const WHATSAPP_NUMBER = "56912345678";
+const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hola%2C%20quiero%20info%20sobre%20Modo%20Fundraising%202026`;
 
 export function WhatsAppButton() {
+  const pathname = usePathname();
+  if (pathname === "/apply") return null;
+
   return (
     <a
       href={WHATSAPP_URL}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Hablar por WhatsApp"
+      onClick={() => track.whatsappClick(pathname)}
       className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#1ebe5d] shadow-[0_4px_24px_#25D36660] transition-all hover:scale-110 active:scale-95"
     >
       <svg viewBox="0 0 24 24" fill="white" className="w-7 h-7">

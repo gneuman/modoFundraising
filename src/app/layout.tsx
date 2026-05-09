@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Montserrat, Questrial } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { WhatsAppButton } from "@/components/home/whatsapp-button";
+import { GTMScript, GTMNoScript } from "@/components/analytics/gtm";
+import { AttributionCapture } from "@/components/analytics/attribution-capture";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -50,6 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={`${montserrat.variable} ${questrial.variable}`}>
       <body className="font-sans antialiased bg-white text-zinc-900">
+        <GTMScript />
+        <GTMNoScript />
+        <AttributionCapture />
         {children}
         <WhatsAppButton />
         <Toaster richColors position="top-right" />
