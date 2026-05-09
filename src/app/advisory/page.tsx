@@ -1,65 +1,38 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Nav } from "@/components/home/mobile-nav";
 import { Footer } from "@/components/home/footer";
+import { getAdvisors, type Advisor } from "@/lib/airtable";
+
+export const revalidate = 900;
 
 export const metadata = {
   title: "Advisory Board — Modo Fundraising 2026",
   description: "Los mejores founders e inversores de LatAm que guían el programa.",
 };
 
-const ADVISORS = [
-  {
-    nombre: "David Alvo",
-    rol: "Founder & Managing Partner",
-    empresa: "Impacta VC",
-    bio: "Inversor y operador con más de 10 años acelerando startups en LatAm. Diseñó el modelo pedagógico de Modo Fundraising.",
-    initials: "DA",
-    tags: ["Venture Capital", "Fundraising", "LatAm"],
-  },
-  {
-    nombre: "Yoel Chlimper",
-    rol: "Founder & CEO",
-    empresa: "Confidencial",
-    bio: "Experto en narrativa de fundadores y construcción de marca personal para el ecosistema de VC.",
-    initials: "YC",
-    tags: ["Storytelling", "Pitch", "Branding"],
-  },
-  {
-    nombre: "Nathan B.",
-    rol: "Head of Business Development",
-    empresa: "Confidencial",
-    bio: "Especialista en cold outreach, estrategias de acceso a inversores y construcción de pipelines de fundraising a escala.",
-    initials: "NB",
-    tags: ["Outreach", "Growth", "BD"],
-  },
-  {
-    nombre: "Por confirmar",
-    rol: "General Partner",
-    empresa: "Fondo LatAm",
-    bio: "Inversor con tesis activa en seed y pre-seed en LatAm. Más de 40 inversiones en 8 países.",
-    initials: "VC",
-    tags: ["Seed", "Pre-seed", "LatAm"],
-  },
-  {
-    nombre: "Por confirmar",
-    rol: "Founder (2x exit)",
-    empresa: "Portfolio Impacta VC",
-    bio: "Founder que levantó más de US$8M en dos rondas distintas. Comparte el proceso real de negociación con VCs.",
-    initials: "F",
-    tags: ["Founder", "Exit", "Negociación"],
-  },
-  {
-    nombre: "Por confirmar",
-    rol: "Partner",
-    empresa: "Firma Legal",
-    bio: "Especialista en estructuración de term sheets, due diligence y contratos de inversión en jurisdicciones latinoamericanas.",
-    initials: "LE",
-    tags: ["Legal", "Term Sheet", "Due Diligence"],
-  },
-];
+function initials(name: string) {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
 
-export default function AdvisoryPage() {
+export default async function AdvisoryPage() {
+  const advisors = await getAdvisors().catch(() => [] as Advisor[]);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": advisors.map((a) => ({
+      "@type": "Person",
+      name: a.nombre,
+      jobTitle: a.cargo,
+      description: a.track_record,
+      url: "https://modofundraising.com/advisory",
+      ...(a.foto_url ? { image: a.foto_url } : {}),
+    })),
+  };
+
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
 
@@ -83,31 +56,56 @@ export default function AdvisoryPage() {
 
       {/* Grid advisors */}
       <section className="max-w-6xl mx-auto px-4 py-16">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {ADVISORS.map((a) => (
-            <div
-              key={a.nombre}
-              className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all flex flex-col gap-4"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-[#00e5c0]/20 border border-[#00e5c0]/30 flex items-center justify-center text-lg font-black text-[#00e5c0] flex-shrink-0">
-                  {a.initials}
+        {advisors.length === 0 ? (
+          <p className="text-white/40 text-center py-20">Próximamente — el advisory board se está confirmando.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {advisors.map((a) => (
+              <div
+                key={a.id ?? a.nombre}
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all flex flex-col gap-4"
+              >
+                <div className="flex items-center gap-4">
+                  {a.foto_url ? (
+                    <Image
+                      src={a.foto_url}
+                      alt={a.nombre}
+                      width={56}
+                      height={56}
+                      className="rounded-full object-cover border border-white/10 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-[#00e5c0]/20 border border-[#00e5c0]/30 flex items-center justify-center text-lg font-black text-[#00e5c0] flex-shrink-0">
+                      {initials(a.nombre)}
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-black text-white">{a.nombre}</div>
+                    <div className="text-white/50 text-xs">{a.cargo}</div>
+                    <div className="text-[#00e5c0] text-xs font-semibold">{a.especialidad}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-black text-white">{a.nombre}</div>
-                  <div className="text-white/50 text-xs">{a.rol}</div>
-                  <div className="text-[#00e5c0] text-xs font-semibold">{a.empresa}</div>
+                <p className="text-white/60 text-sm leading-relaxed flex-1">{a.track_record}</p>
+                <div className="text-white/40 text-xs border-t border-white/10 pt-3 space-y-1">
+                  {a.ideal_para && <p><span className="text-white/30">Ideal para:</span> {a.ideal_para}</p>}
+                  {a.formato && <p><span className="text-white/30">Formato:</span> {a.formato}</p>}
+                  {a.modalidad && <p><span className="text-white/30">Modalidad:</span> {a.modalidad}</p>}
+                  {a.pricing_display && <p className="text-[#00e5c0] font-semibold">{a.pricing_display}</p>}
                 </div>
+                {a.calendly_url && (
+                  <a
+                    href={a.calendly_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-center text-xs font-bold border border-[#00e5c0]/30 text-[#00e5c0] rounded-lg py-2 hover:bg-[#00e5c0]/10 transition-colors"
+                  >
+                    Agendar sesión →
+                  </a>
+                )}
               </div>
-              <p className="text-white/60 text-sm leading-relaxed flex-1">{a.bio}</p>
-              <div className="flex flex-wrap gap-2">
-                {a.tags.map((t) => (
-                  <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50">{t}</span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Propuesta de valor */}
@@ -134,9 +132,7 @@ export default function AdvisoryPage() {
 
       {/* CTA */}
       <section className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <h2 className="text-4xl font-black mb-4">
-          ¿Querés acceder a esta red?
-        </h2>
+        <h2 className="text-4xl font-black mb-4">¿Querés acceder a esta red?</h2>
         <p className="text-white/50 mb-8">Postulá al programa y conectá directamente con el advisory board.</p>
         <Link
           href="/apply"
@@ -148,5 +144,6 @@ export default function AdvisoryPage() {
 
       <Footer />
     </div>
+    </>
   );
 }

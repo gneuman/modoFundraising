@@ -1,106 +1,39 @@
 import Link from "next/link";
 import { Nav } from "@/components/home/mobile-nav";
 import { Footer } from "@/components/home/footer";
+import { getQA, type QAItem, type QACategoria } from "@/lib/airtable";
+
+export const revalidate = 900;
 
 export const metadata = {
   title: "Q&A — Modo Fundraising 2026",
   description: "Las preguntas más frecuentes sobre el programa.",
 };
 
-const FAQ = [
-  {
-    categoria: "El programa",
-    preguntas: [
-      {
-        q: "¿Qué es exactamente Modo Fundraising?",
-        a: "Es un programa de 13 semanas, 100% online, diseñado para founders que están levantando una ronda entre US$500K y US$5M. Cada semana combinamos clases en vivo, sesiones Rockstar (prácticas), masterclasses con expertos y misiones que aplicás directo a tu proceso.",
-      },
-      {
-        q: "¿Cuándo empieza la edición 2026?",
-        a: "La edición 2026 arranca el 30 de junio. Las postulaciones cierran el 22 de junio. El programa finaliza con la sesión de Graduation el 1 de octubre.",
-      },
-      {
-        q: "¿Cuánto tiempo requiere por semana?",
-        a: "El mínimo comprometido son las 2 clases semanales (martes y jueves, 12:00–13:30 CLT) más el tiempo para completar la misión semanal. En total, entre 5 y 8 horas por semana dependiendo de tu ritmo.",
-      },
-      {
-        q: "¿Las clases son grabadas?",
-        a: "Sí. Todas las clases quedan grabadas y disponibles en el portal dentro de las 24hs posteriores a la sesión. También accedés al archivo completo de ediciones anteriores (+80 masterclasses).",
-      },
-    ],
-  },
-  {
-    categoria: "Admisión",
-    preguntas: [
-      {
-        q: "¿Quién puede postular?",
-        a: "Founders que están activamente levantando (o a punto de levantar) una ronda pre-seed, seed o post-seed entre US$500K y US$5M. El programa no es para startups en idea stage ni para empresas que ya cerraron su ronda.",
-      },
-      {
-        q: "¿Cómo es el proceso de admisión?",
-        a: "Completás el formulario de postulación, el equipo revisa tu aplicación, y si hay fit agendamos una call de 20 minutos para conocerte. La decisión de admisión llega dentro de los 5 días hábiles.",
-      },
-      {
-        q: "¿Cuántos founders entran por edición?",
-        a: "El programa es intencionalmente pequeño. Cada cohorte tiene entre 20 y 30 founders para garantizar calidad en las sesiones Rockstar y atención personalizada.",
-      },
-      {
-        q: "¿Puedo postular si mi startup es de fuera de LatAm?",
-        a: "El programa está diseñado con foco en el ecosistema LatAm. Si tu startup opera en LatAm o está levantando con fondos LatAm, hay fit. Si estás en otra región, conversemos en la call de admisión.",
-      },
-    ],
-  },
-  {
-    categoria: "Precio y pago",
-    preguntas: [
-      {
-        q: "¿Cuánto cuesta el programa?",
-        a: "US$349 por mes durante 3 meses (total US$1.047). El pago es mensual y podés cancelar en cualquier momento hasta el segundo mes.",
-      },
-      {
-        q: "¿Aceptan pago anual o único?",
-        a: "Por ahora solo ofrecemos plan mensual. Si necesitás un pago único o tenés una situación especial, escribinos a hello@impacta.vc.",
-      },
-      {
-        q: "¿Hay becas o descuentos?",
-        a: "En cada edición reservamos 2–3 lugares con descuento para founders en situación de alta necesidad. Si es tu caso, mencionalo en el formulario de postulación.",
-      },
-    ],
-  },
-  {
-    categoria: "Garantía",
-    preguntas: [
-      {
-        q: "¿Cómo funciona la garantía money back?",
-        a: "Tenés 14 días desde tu primer pago para pedir el reembolso sin justificación. El reembolso es sobre el monto neto (post-comisiones de Stripe). No aplica al pago anual.",
-      },
-      {
-        q: "¿Hay requisito de asistencia para el reembolso?",
-        a: "No. Si en los primeros 14 días sentís que el programa no es para vos, te devolvemos el dinero. Sin preguntas.",
-      },
-    ],
-  },
-  {
-    categoria: "Después del programa",
-    preguntas: [
-      {
-        q: "¿Qué acceso tengo después de terminar?",
-        a: "Los alumni mantienen acceso de por vida al archivo de masterclasses y al grupo de alumni en WhatsApp. También son invitados a las sesiones anuales de networking con VCs.",
-      },
-      {
-        q: "¿Impacta VC puede invertir en mi startup?",
-        a: "Sí. Impacta VC y sus fondos afiliados se reservan el derecho de invertir hasta el 20% de la ronda de startups seleccionadas, sujeto a due diligence, fit de tesis y aprobación interna. No es automático ni obligatorio.",
-      },
-      {
-        q: "¿Me conectan con inversores específicos?",
-        a: "El programa provee acceso a una red de inversores, no garantías de inversión. Las conexiones dependen del fit de tu startup con las tesis de los fondos y de tu desempeño durante el programa.",
-      },
-    ],
-  },
-];
+const CATEGORIAS: QACategoria[] = ["Programa", "Logística", "Pago", "Selección", "Post-programa"];
 
-export default function QAPage() {
+export default async function QAPage() {
+  const items = await getQA().catch(() => [] as QAItem[]);
+
+  // Group by category, preserving order
+  const grouped = CATEGORIAS.map((cat) => ({
+    categoria: cat,
+    preguntas: items.filter((i) => i.categoria === cat),
+  })).filter((g) => g.preguntas.length > 0);
+
+  const jsonLd = items.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((i) => ({
+      "@type": "Question",
+      name: i.pregunta,
+      acceptedAnswer: { "@type": "Answer", text: i.respuesta },
+    })),
+  } : null;
+
   return (
+    <>
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
     <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
 
@@ -125,34 +58,34 @@ export default function QAPage() {
 
       {/* FAQ */}
       <section className="max-w-4xl mx-auto px-4 py-16 space-y-14">
-        {FAQ.map((cat) => (
-          <div key={cat.categoria}>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#00e5c0] mb-6">{cat.categoria}</h2>
-            <div className="space-y-4">
-              {cat.preguntas.map((item) => (
-                <div
-                  key={item.q}
-                  className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all"
-                >
-                  <h3 className="font-black text-white mb-3 text-base">{item.q}</h3>
-                  <p className="text-white/60 text-sm leading-relaxed">{item.a}</p>
-                </div>
-              ))}
+        {grouped.length === 0 ? (
+          <p className="text-white/40 text-center py-20">Próximamente — las preguntas se están cargando.</p>
+        ) : (
+          grouped.map((cat) => (
+            <div key={cat.categoria}>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-[#00e5c0] mb-6">{cat.categoria}</h2>
+              <div className="space-y-4">
+                {cat.preguntas.map((item) => (
+                  <div
+                    key={item.id ?? item.pregunta}
+                    className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all"
+                  >
+                    <h3 className="font-black text-white mb-3 text-base">{item.pregunta}</h3>
+                    <p className="text-white/60 text-sm leading-relaxed">{item.respuesta}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </section>
 
       {/* Still have questions */}
       <section className="bg-white/5 border-y border-white/10 py-20 px-4">
         <div className="max-w-2xl mx-auto text-center">
           <div className="text-5xl mb-4">💬</div>
-          <h2 className="text-4xl font-black mb-4">
-            ¿No encontraste lo que buscabas?
-          </h2>
-          <p className="text-white/60 text-lg mb-8">
-            Escribinos directo. Respondemos en menos de 24 horas.
-          </p>
+          <h2 className="text-4xl font-black mb-4">¿No encontraste lo que buscabas?</h2>
+          <p className="text-white/60 text-lg mb-8">Escribinos directo. Respondemos en menos de 24 horas.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="mailto:hello@impacta.vc"
@@ -188,5 +121,6 @@ export default function QAPage() {
 
       <Footer />
     </div>
+    </>
   );
 }

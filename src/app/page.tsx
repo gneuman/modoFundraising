@@ -160,7 +160,33 @@ export default async function HomePage() {
     { label: "NPS", value: metrics ? `${metrics.nps}` : "9.2" },
   ];
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: "Modo Fundraising 2026",
+    description: "Programa intensivo de 13 semanas para founders LatAm que quieren levantar su próxima ronda de inversión.",
+    provider: { "@type": "Organization", name: "Impacta VC", url: "https://impacta.vc" },
+    url: "https://modofundraising.com",
+    courseMode: "online",
+    inLanguage: "es",
+    offers: {
+      "@type": "Offer",
+      price: "349",
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      validThrough: "2026-06-22",
+    },
+    hasCourseInstance: {
+      "@type": "CourseInstance",
+      courseMode: "online",
+      startDate: "2026-06-30",
+      endDate: "2026-09-28",
+    },
+  };
+
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
 
       {/* ── 1. Topbar ──────────────────────────────────────────────────────────── */}
@@ -552,5 +578,6 @@ export default async function HomePage() {
 
       <Footer />
     </div>
+    </>
   );
 }
