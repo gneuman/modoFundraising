@@ -1,39 +1,29 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Nav } from "@/components/home/mobile-nav";
 import { Footer } from "@/components/home/footer";
+import { getLiveInterviews, type LiveInterview } from "@/lib/airtable";
+
+export const revalidate = 900;
 
 export const metadata = {
   title: "Live Interviews — Modo Fundraising 2026",
   description: "Entrevistas en vivo con founders e inversores reales de LatAm. Sin filtros, sin PR.",
 };
 
-const TIPOS: Record<string, string> = {
-  "Founder Story":   "bg-[#00e5c0]/15 text-[#00e5c0] border-[#00e5c0]/30",
-  "VC Perspective":  "bg-[#0d6efd]/15 text-[#60a5fa] border-[#0d6efd]/30",
-  "Deck Review":     "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30",
-  "Investor AMA":    "bg-[#a855f7]/15 text-[#c084fc] border-[#a855f7]/30",
-  "Tactic Deep Dive":"bg-[#f87171]/15 text-[#f87171] border-[#f87171]/30",
-  "Expert Session":  "bg-white/10 text-white/60 border-white/20",
-  "Negotiation":     "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30",
-  "Panel AMA":       "bg-[#00e5c0]/15 text-[#00e5c0] border-[#00e5c0]/30",
+function initials(name: string) {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
+
+const ESTADO_STYLES: Record<string, string> = {
+  Abierto: "bg-[#00e5c0]/15 text-[#00e5c0] border-[#00e5c0]/30",
+  Exclusivo: "bg-[#a855f7]/15 text-[#c084fc] border-[#a855f7]/30",
+  Próximo: "bg-white/10 text-white/50 border-white/20",
 };
 
-const INTERVIEWS = [
-  { nro: 1,  titulo: "Founder que levantó seed en 60 días",           tipo: "Founder Story",    semana: 1,  fecha: "3 Jul",   speaker: "Por confirmar · Portfolio Impacta VC",  desc: "Qué hizo diferente, cómo construyó el pipeline y cómo manejó los rechazos." },
-  { nro: 2,  titulo: "VC LatAm — Qué busco en un seed deal",          tipo: "VC Perspective",   semana: 2,  fecha: "10 Jul",  speaker: "Por confirmar · Fondo Seed LatAm",       desc: "Tesis de inversión, cómo evalúa founders y qué hace que un deal se cierre." },
-  { nro: 3,  titulo: "Cómo construí mi pitch deck ganador",           tipo: "Deck Review",      semana: 3,  fecha: "17 Jul",  speaker: "Por confirmar · Startup LatAm",          desc: "Muestra su pitch deck real, itera en vivo y responde preguntas del grupo." },
-  { nro: 4,  titulo: "Angel Investor — El proceso de decisión",       tipo: "Investor AMA",     semana: 4,  fecha: "24 Jul",  speaker: "Por confirmar · Angel Network",           desc: "Cómo evalúa deals pre-seed, qué documentos pide y cómo acercarse efectivamente." },
-  { nro: 5,  titulo: "Levantando capital con tracción mínima",        tipo: "Founder Story",    semana: 5,  fecha: "31 Jul",  speaker: "Por confirmar · Portfolio Impacta VC",   desc: "Cómo convirtió la narrativa en su principal activo cuando los números eran pequeños." },
-  { nro: 6,  titulo: "Partner de Kaszek — Qué mueve el needle",      tipo: "VC Perspective",   semana: 6,  fecha: "7 Ago",   speaker: "Por confirmar · Kaszek",                 desc: "Estado del ecosistema, sectores de interés y cómo piensan el pricing en seed." },
-  { nro: 7,  titulo: "Cold outreach que convirtió — Casos reales",   tipo: "Tactic Deep Dive", semana: 7,  fecha: "14 Ago",  speaker: "Por confirmar · Startup B2B LatAm",      desc: "Los cold emails reales que generaron reuniones con VCs de primer nivel." },
-  { nro: 8,  titulo: "Cómo conseguí mi lead investor",               tipo: "Founder Story",    semana: 8,  fecha: "21 Ago",  speaker: "Por confirmar · Portfolio Impacta VC",   desc: "El proceso exacto para identificar, acercarse y convencer al lead investor." },
-  { nro: 9,  titulo: "Due Diligence desde adentro",                  tipo: "Expert Session",   semana: 9,  fecha: "28 Ago",  speaker: "Por confirmar · Firma Legal VC",         desc: "Documentos que piden, cuánto dura y cómo prepararse para no frenar el cierre." },
-  { nro: 10, titulo: "Negociando valuación — El arte del no inmediato", tipo: "Negotiation",   semana: 10, fecha: "4 Sep",   speaker: "Por confirmar · Fondo Pre-seed",         desc: "Cómo piensan la valuación los fondos y qué argumentos les funcionan a los founders." },
-  { nro: 11, titulo: "Cómo generé FOMO entre 5 fondos",             tipo: "Tactic Deep Dive", semana: 11, fecha: "11 Sep",  speaker: "Por confirmar · Startup SaaS LatAm",     desc: "Cómo generó urgencia sin mentir y coordinó los tiempos con múltiples fondos." },
-  { nro: 12, titulo: "Panel de cierre — 3 VCs, 30 preguntas",       tipo: "Panel AMA",        semana: 12, fecha: "25 Sep",  speaker: "Panel de 3 inversores · Fondos LatAm",   desc: "Sesión final abierta. Los founders del programa hacen las preguntas. Sin filtros." },
-];
+export default async function LiveInterviewsPage() {
+  const interviews = await getLiveInterviews().catch(() => [] as LiveInterview[]);
 
-export default function LiveInterviewsPage() {
   return (
     <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
@@ -53,7 +43,7 @@ export default function LiveInterviewsPage() {
               Sin guión, sin PR, sin respuestas ensayadas.
             </p>
             <div className="flex flex-wrap gap-3">
-              {["12 sesiones en vivo", "Grabadas y disponibles", "Q&A abierto"].map((item) => (
+              {["Sesiones en vivo", "Grabadas y disponibles", "Q&A abierto"].map((item) => (
                 <span key={item} className="bg-white/10 border border-white/20 rounded-full px-3 py-1 text-sm font-semibold text-white">{item}</span>
               ))}
             </div>
@@ -61,37 +51,61 @@ export default function LiveInterviewsPage() {
         </div>
       </section>
 
-      {/* Leyenda de tipos */}
-      <section className="border-y border-white/10 py-6">
-        <div className="max-w-6xl mx-auto px-4 flex flex-wrap gap-3 items-center">
-          <span className="text-white/30 text-xs uppercase tracking-widest mr-2">Formato</span>
-          {Object.entries(TIPOS).map(([tipo, color]) => (
-            <span key={tipo} className={`text-xs font-semibold px-3 py-1 rounded-full border ${color}`}>{tipo}</span>
-          ))}
-        </div>
-      </section>
-
       {/* Grid */}
       <section className="max-w-6xl mx-auto px-4 py-16">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {INTERVIEWS.map((li) => (
-            <div
-              key={li.nro}
-              className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all flex flex-col gap-3"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-white/30 text-xs font-mono">LI{li.nro.toString().padStart(2, "0")}</span>
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${TIPOS[li.tipo]}`}>{li.tipo}</span>
+        {interviews.length === 0 ? (
+          <p className="text-white/40 text-center py-20">Próximamente — las entrevistas se están confirmando.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {interviews.map((li, idx) => (
+              <div
+                key={li.id ?? li.titulo}
+                className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all flex flex-col gap-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-white/30 text-xs font-mono">LI{String(idx + 1).padStart(2, "0")}</span>
+                  {li.estado && (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${ESTADO_STYLES[li.estado] ?? ESTADO_STYLES["Próximo"]}`}>
+                      {li.estado}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {li.entrevistado_foto_url ? (
+                    <Image
+                      src={li.entrevistado_foto_url}
+                      alt={li.entrevistado_nombre}
+                      width={40}
+                      height={40}
+                      className="rounded-full object-cover border border-white/10 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#00e5c0]/20 border border-[#00e5c0]/30 flex items-center justify-center text-xs font-black text-[#00e5c0] flex-shrink-0">
+                      {initials(li.entrevistado_nombre ?? "?")}
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-black text-white text-sm leading-tight">{li.titulo}</h3>
+                    {li.fecha && <p className="text-white/40 text-xs mt-0.5">{li.fecha}{li.duracion_min ? ` · ${li.duracion_min} min` : ""}</p>}
+                  </div>
+                </div>
+
+                {li.aprendizaje_gratis && (
+                  <p className="text-white/60 text-xs leading-relaxed flex-1">{li.aprendizaje_gratis}</p>
+                )}
+
+                <div className="border-t border-white/10 pt-2">
+                  <p className="text-[#00e5c0] text-xs font-semibold">{li.entrevistado_nombre}</p>
+                  {li.entrevistado_cargo && (
+                    <p className="text-white/40 text-xs">{li.entrevistado_cargo}{li.entrevistado_empresa ? ` · ${li.entrevistado_empresa}` : ""}</p>
+                  )}
+                  {li.tema && <p className="text-white/30 text-xs mt-1">{li.tema}</p>}
+                </div>
               </div>
-              <div>
-                <h3 className="font-black text-white text-base leading-tight">{li.titulo}</h3>
-                <p className="text-white/40 text-xs mt-1">{li.fecha} · Semana {li.semana}</p>
-              </div>
-              <p className="text-white/60 text-xs leading-relaxed flex-1">{li.desc}</p>
-              <p className="text-[#00e5c0] text-xs font-semibold border-t border-white/10 pt-2">{li.speaker}</p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Propuesta de valor */}

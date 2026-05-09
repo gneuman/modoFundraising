@@ -1,129 +1,24 @@
 import { Nav } from "@/components/home/mobile-nav";
 import { Footer } from "@/components/home/footer";
+import { getHouseRules, type HouseRule } from "@/lib/airtable";
+
+export const revalidate = 900;
 
 export const metadata = {
   title: "House Rules — Modo Fundraising 2026",
   description: "Las reglas que hacen que el programa funcione para todos.",
 };
 
-const CATEGORIAS = [
-  {
-    id: "comunidad",
-    label: "Comunidad",
-    icon: "🤝",
-    reglas: [
-      {
-        nro: 1,
-        titulo: "Lo que se habla en el programa, queda en el programa",
-        desc: "Los founders comparten información sensible sobre sus rondas, números y procesos. Esa información es confidencial. No se comparte fuera del grupo ni en redes sociales.",
-        obligatoria: true,
-      },
-      {
-        nro: 2,
-        titulo: "No hay competencia, hay comunidad",
-        desc: "Varios founders pueden estar levantando rondas similares al mismo tiempo. Eso no los hace competidores — los hace aliados. Ayudarse entre founders es una de las fuentes de valor más grandes del programa.",
-        obligatoria: true,
-      },
-    ],
-  },
-  {
-    id: "asistencia",
-    label: "Asistencia",
-    icon: "📡",
-    reglas: [
-      {
-        nro: 3,
-        titulo: "Las clases son en vivo por una razón",
-        desc: "El valor del programa está en la interacción, no solo en el contenido. Las clases en vivo tienen preguntas, debates y feedback en tiempo real que no existe en la grabación. Comprometete a estar.",
-        obligatoria: false,
-      },
-      {
-        nro: 4,
-        titulo: "Si no podés asistir, avisá",
-        desc: "La vida pasa. Si no podés estar en una sesión, avisá con anticipación en el grupo. No es obligatorio, pero es respeto al equipo y a tus compañeros.",
-        obligatoria: false,
-      },
-    ],
-  },
-  {
-    id: "misiones",
-    label: "Misiones",
-    icon: "🎯",
-    reglas: [
-      {
-        nro: 5,
-        titulo: "Las misiones son para hacerlas, no para tenerlas",
-        desc: "Cada misión está diseñada para que la apliques directamente a tu proceso de fundraising. El que no hace las misiones no está en el programa — está viendo el programa. La diferencia es enorme.",
-        obligatoria: true,
-      },
-      {
-        nro: 6,
-        titulo: "Compartir tu progreso en las sesiones Rockstar",
-        desc: "Las sesiones Rockstar funcionan cuando todos comparten su avance. No tenés que tener todo perfecto — tenés que haber intentado. Compartir trabajo en progreso es parte del aprendizaje.",
-        obligatoria: false,
-      },
-    ],
-  },
-  {
-    id: "feedback",
-    label: "Feedback",
-    icon: "💬",
-    reglas: [
-      {
-        nro: 7,
-        titulo: "El feedback es un regalo, no un ataque",
-        desc: "En las sesiones de revisión de pitch decks y estrategias, el feedback puede ser duro. Está orientado a hacerte mejor, no a bajarte el ánimo. Recibilo y dalo desde ese lugar.",
-        obligatoria: false,
-      },
-      {
-        nro: 8,
-        titulo: "Llenar el formulario de feedback cada semana",
-        desc: "El programa mejora con tu input. Tarda 2 minutos. Es la Tarea 1 de cada misión. Si algo no funciona, queremos saberlo — no para justificarnos, sino para arreglarlo.",
-        obligatoria: true,
-      },
-    ],
-  },
-  {
-    id: "inversores",
-    label: "Inversores",
-    icon: "💼",
-    reglas: [
-      {
-        nro: 9,
-        titulo: "No hacer cold outreach a inversores del programa sin permiso",
-        desc: "Los VCs que participan como speakers o mentores lo hacen en un contexto específico. Contactarlos directamente sin una intro del equipo de Impacta VC puede quemar esa relación para todos. Siempre pedí la intro primero.",
-        obligatoria: true,
-      },
-      {
-        nro: 10,
-        titulo: "Ser honesto sobre el estado de tu ronda",
-        desc: "No hay que inflar números ni fingir más tracción de la que tenés. Los inversores son muy buenos detectando esto — y cuando lo detectan, el daño es irreparable. La honestidad es la base de cualquier relación de inversión duradera.",
-        obligatoria: true,
-      },
-    ],
-  },
-  {
-    id: "comportamiento",
-    label: "Comportamiento",
-    icon: "🛡️",
-    reglas: [
-      {
-        nro: 11,
-        titulo: "Respeto total — tolerancia cero",
-        desc: "El programa es un espacio seguro para founders de todos los backgrounds. Cualquier forma de acoso, discriminación o conducta irrespetuosa resulta en expulsión inmediata sin reembolso.",
-        obligatoria: true,
-      },
-      {
-        nro: 12,
-        titulo: "No grabar ni redistribuir las sesiones",
-        desc: "Las clases y masterclasses tienen derechos de autor. No está permitido grabar, descargar ni redistribuir el contenido fuera de la plataforma del programa.",
-        obligatoria: true,
-      },
-    ],
-  },
-];
+export default async function HouseRulesPage() {
+  const rules = await getHouseRules().catch(() => [] as HouseRule[]);
 
-export default function HouseRulesPage() {
+  // Group by categoria
+  const categorias = Array.from(new Set(rules.map((r) => r.categoria))).filter(Boolean);
+  const grouped = categorias.map((cat) => ({
+    categoria: cat,
+    reglas: rules.filter((r) => r.categoria === cat),
+  }));
+
   return (
     <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
@@ -160,47 +55,23 @@ export default function HouseRulesPage() {
         </div>
       </section>
 
-      {/* Reglas por categoría */}
+      {/* Reglas */}
       <section className="max-w-4xl mx-auto px-4 py-16 space-y-14">
-        {CATEGORIAS.map((cat) => (
-          <div key={cat.id}>
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-2xl">{cat.icon}</span>
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[#00e5c0]">{cat.label}</h2>
+        {rules.length === 0 ? (
+          <p className="text-white/40 text-center py-20">Próximamente — las reglas se están cargando.</p>
+        ) : grouped.length > 0 ? (
+          grouped.map((cat) => (
+            <div key={cat.categoria}>
+              <div className="flex items-center gap-3 mb-6">
+                {cat.reglas[0]?.icono && <span className="text-2xl">{cat.reglas[0].icono}</span>}
+                <h2 className="text-xs font-bold uppercase tracking-widest text-[#00e5c0]">{cat.categoria}</h2>
+              </div>
+              <RulesGrid reglas={cat.reglas} />
             </div>
-            <div className="space-y-4">
-              {cat.reglas.map((regla) => (
-                <div
-                  key={regla.nro}
-                  className={`bg-white/5 border rounded-2xl p-6 transition-all ${
-                    regla.obligatoria
-                      ? "border-[#00e5c0]/20 hover:border-[#00e5c0]/40"
-                      : "border-white/10 hover:border-white/20"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span
-                      className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                        regla.obligatoria ? "bg-[#00e5c0]" : "bg-white/20"
-                      }`}
-                    />
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-black text-white text-base">{regla.titulo}</h3>
-                        {regla.obligatoria && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#00e5c0]/15 text-[#00e5c0] border border-[#00e5c0]/30 font-semibold flex-shrink-0">
-                            Obligatoria
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-white/60 text-sm leading-relaxed font-[var(--font-questrial)]">{regla.desc}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <RulesGrid reglas={rules} />
+        )}
       </section>
 
       {/* Closing note */}
@@ -217,6 +88,39 @@ export default function HouseRulesPage() {
       </section>
 
       <Footer />
+    </div>
+  );
+}
+
+function RulesGrid({ reglas }: { reglas: HouseRule[] }) {
+  return (
+    <div className="space-y-4">
+      {reglas.map((regla, idx) => (
+        <div
+          key={regla.id ?? idx}
+          className={`bg-white/5 border rounded-2xl p-6 transition-all ${
+            regla.activa
+              ? "border-[#00e5c0]/20 hover:border-[#00e5c0]/40"
+              : "border-white/10 hover:border-white/20"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <span className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${regla.activa ? "bg-[#00e5c0]" : "bg-white/20"}`} />
+            <div>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {regla.icono && <span className="text-lg">{regla.icono}</span>}
+                <h3 className="font-black text-white text-base">{regla.titulo}</h3>
+                {regla.activa && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-[#00e5c0]/15 text-[#00e5c0] border border-[#00e5c0]/30 font-semibold flex-shrink-0">
+                    Obligatoria
+                  </span>
+                )}
+              </div>
+              <p className="text-white/60 text-sm leading-relaxed font-[var(--font-questrial)]">{regla.descripcion}</p>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,88 +1,29 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Nav } from "@/components/home/mobile-nav";
 import { Footer } from "@/components/home/footer";
+import { getMasterclasses, type Masterclass } from "@/lib/airtable";
+
+export const revalidate = 900;
 
 export const metadata = {
   title: "Masterclasses — Modo Fundraising 2026",
   description: "Sesiones especiales con los mejores inversores y founders de LatAm.",
 };
 
-const MASTERCLASSES = [
-  {
-    nro: 1,
-    titulo: "Cómo evalúa un VC en 5 minutos",
-    speaker: "Partner · Fondo Tier 1 LatAm",
-    initials: "VC",
-    desc: "Qué busca un inversor en el primer deck, qué preguntas hace internamente, y qué hace que un founder pase a la siguiente etapa.",
-    tags: ["Due Diligence", "Evaluación", "First Call"],
-    semana: 2,
-  },
-  {
-    nro: 2,
-    titulo: "De Pre-seed a Seed: la transición",
-    speaker: "Founder · US$2.4M levantados",
-    initials: "F1",
-    desc: "Qué métricas necesitás mostrar, cómo cambia la narrativa entre rondas, y cómo gestionar el bridge mientras buscás el lead.",
-    tags: ["Pre-seed", "Seed", "Métricas"],
-    semana: 3,
-  },
-  {
-    nro: 3,
-    titulo: "Pitch en Silicon Valley siendo LatAm",
-    speaker: "Founder · Portfolio Y Combinator",
-    initials: "YC",
-    desc: "Cómo presentarte como una oportunidad global siendo una empresa LatAm. Qué cambiar del pitch y qué defender.",
-    tags: ["YC", "Global", "Narrativa"],
-    semana: 5,
-  },
-  {
-    nro: 4,
-    titulo: "Negociación de valuación",
-    speaker: "GP · Fondo Pre-seed",
-    initials: "GP",
-    desc: "Cómo llegar a un número de valuación que el mercado soporte. Comparables, múltiplos y el arte de decir no al primer offer.",
-    tags: ["Valuación", "Negociación", "Term Sheet"],
-    semana: 7,
-  },
-  {
-    nro: 5,
-    titulo: "Fundraising en mercados bajistas",
-    speaker: "Founder · 3 rondas levantadas",
-    initials: "F3",
-    desc: "Cómo levantar cuando el mercado no ayuda. Estrategias para mantener el proceso vivo y cerrar con buenos términos igual.",
-    tags: ["Mercado", "Resiliencia", "Estrategia"],
-    semana: 9,
-  },
-  {
-    nro: 6,
-    titulo: "Due Diligence: qué esperan los fondos",
-    speaker: "Partner · Firma Legal VC",
-    initials: "LE",
-    desc: "El proceso de DD desde adentro. Qué documentos piden, qué banderas rojas buscan, y cómo preparar tu data room.",
-    tags: ["Due Diligence", "Legal", "Data Room"],
-    semana: 11,
-  },
-  {
-    nro: 7,
-    titulo: "Investor updates que generan deals",
-    speaker: "Founder · 3x founder, 1 exit",
-    initials: "3X",
-    desc: "Cómo comunicarte con tus inversores para mantener momentum, generar referidos y construir reputación en el ecosistema.",
-    tags: ["Comunicación", "Momentum", "Red"],
-    semana: 12,
-  },
-  {
-    nro: 8,
-    titulo: "Closing Session con VCs invitados",
-    speaker: "Panel de inversores activos",
-    initials: "PA",
-    desc: "Sesión de cierre abierta: preguntas directas a un panel de VCs sobre el estado del mercado y qué están buscando en 2026.",
-    tags: ["Panel", "Q&A", "Cierre"],
-    semana: 14,
-  },
-];
+function initials(name: string) {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
 
-export default function MasterclassesPage() {
+const ESTADO_STYLES: Record<string, string> = {
+  Abierto: "bg-[#00e5c0]/15 text-[#00e5c0] border-[#00e5c0]/30",
+  Exclusivo: "bg-[#a855f7]/15 text-[#c084fc] border-[#a855f7]/30",
+  Próximo: "bg-white/10 text-white/50 border-white/20",
+};
+
+export default async function MasterclassesPage() {
+  const masterclasses = await getMasterclasses().catch(() => [] as Masterclass[]);
+
   return (
     <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
@@ -117,34 +58,55 @@ export default function MasterclassesPage() {
         <h2 className="text-3xl font-black mb-2">Masterclasses <span className="text-[#00e5c0]">MF26</span></h2>
         <p className="text-white/50 mb-10">Edición 2026 · Calendario tentativo sujeto a confirmación de speakers.</p>
 
-        <div className="grid sm:grid-cols-2 gap-5">
-          {MASTERCLASSES.map((mc) => (
-            <div
-              key={mc.nro}
-              className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all flex flex-col gap-4"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#00e5c0]/20 border border-[#00e5c0]/30 flex items-center justify-center text-sm font-black text-[#00e5c0] flex-shrink-0">
-                  {mc.initials}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-white/30 text-xs font-mono">MC{mc.nro.toString().padStart(2, "0")}</span>
-                    <span className="text-white/30 text-xs">· Semana {mc.semana}</span>
+        {masterclasses.length === 0 ? (
+          <p className="text-white/40 text-center py-20">Próximamente — las masterclasses se están confirmando.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-5">
+            {masterclasses.map((mc, idx) => (
+              <div
+                key={mc.id ?? mc.titulo}
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all flex flex-col gap-4"
+              >
+                <div className="flex items-start gap-4">
+                  {mc.thumbnail_url ? (
+                    <Image
+                      src={mc.thumbnail_url}
+                      alt={mc.titulo}
+                      width={48}
+                      height={48}
+                      className="rounded-xl object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-[#00e5c0]/20 border border-[#00e5c0]/30 flex items-center justify-center text-sm font-black text-[#00e5c0] flex-shrink-0">
+                      {initials(mc.speaker ?? mc.partner ?? "MC")}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white/30 text-xs font-mono">MC{String(idx + 1).padStart(2, "0")}</span>
+                      {mc.tema && <span className="text-white/30 text-xs">· {mc.tema}</span>}
+                    </div>
+                    <h3 className="font-black text-white text-base leading-tight">{mc.titulo}</h3>
+                    <p className="text-[#00e5c0] text-xs font-semibold mt-0.5">{mc.speaker}</p>
                   </div>
-                  <h3 className="font-black text-white text-base leading-tight">{mc.titulo}</h3>
-                  <p className="text-[#00e5c0] text-xs font-semibold mt-0.5">{mc.speaker}</p>
+                  {mc.estado && (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${ESTADO_STYLES[mc.estado] ?? ESTADO_STYLES["Próximo"]}`}>
+                      {mc.estado}
+                    </span>
+                  )}
+                </div>
+                {mc.insight_gratis && (
+                  <p className="text-white/60 text-sm leading-relaxed flex-1">{mc.insight_gratis}</p>
+                )}
+                <div className="flex items-center justify-between text-xs text-white/30 border-t border-white/10 pt-3">
+                  {mc.fecha && <span>{mc.fecha}</span>}
+                  {mc.duracion_min && <span>{mc.duracion_min} min</span>}
+                  {mc.partner && <span>{mc.partner}</span>}
                 </div>
               </div>
-              <p className="text-white/60 text-sm leading-relaxed flex-1">{mc.desc}</p>
-              <div className="flex flex-wrap gap-2">
-                {mc.tags.map((t) => (
-                  <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50">{t}</span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Archivo histórico */}
