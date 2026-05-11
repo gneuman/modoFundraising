@@ -259,6 +259,32 @@ export function ChatForm({ onSuccess }: Props) {
     }
     setError(null);
 
+    // Validate email against existing applications before continuing
+    if (q.id === "email" && typeof val === "string" && val) {
+      setBotTyping(true);
+      try {
+        const res = await fetch(`/api/check-email?email=${encodeURIComponent(val.trim().toLowerCase())}`);
+        const data = await res.json();
+        if (data.exists) {
+          setBotTyping(false);
+          setMessages((prev) => [
+            ...prev,
+            { from: "user", text: val as string },
+            {
+              from: "bot",
+              text: `Ya tenemos una postulación registrada con ese email. Si creés que es un error o querés consultarnos algo, escribinos a maca@impacta.vc`,
+            },
+          ]);
+          setQIdx(QUESTIONS.length); // halt the form
+          return;
+        }
+      } catch {
+        // Si falla el check, continuar igual
+      } finally {
+        setBotTyping(false);
+      }
+    }
+
     const storedVal = q.type === "file" ? "" : val;
     const newData: FormState = { ...formData, [q.id]: storedVal };
     setFormData(newData);

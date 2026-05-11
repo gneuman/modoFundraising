@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Montserrat, Questrial } from "next/font/google";
+import { Montserrat, Questrial, Bebas_Neue } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { WhatsAppButton } from "@/components/home/whatsapp-button";
 import { GTMScript, GTMNoScript } from "@/components/analytics/gtm";
@@ -15,6 +15,12 @@ const questrial = Questrial({
   subsets: ["latin"],
   weight: "400",
   variable: "--font-questrial",
+});
+
+const bebasNeue = Bebas_Neue({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-bebas-neue",
 });
 
 const BASE_URL = "https://modofundraising.com";
@@ -50,7 +56,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${montserrat.variable} ${questrial.variable}`}>
+    <html lang="es" className={`${montserrat.variable} ${questrial.variable} ${bebasNeue.variable}`}>
       <body className="font-sans antialiased bg-white text-zinc-900">
         <GTMScript />
         <GTMNoScript />
