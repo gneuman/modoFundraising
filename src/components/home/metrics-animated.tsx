@@ -34,7 +34,7 @@ export function MetricsAnimated({ metrics }: MetricsAnimatedProps) {
           key={label}
           className={`transition-all duration-700 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
         >
-          <div className="text-3xl md:text-4xl font-black text-[#00e5c0]">
+          <div className="text-3xl md:text-4xl font-black text-[var(--brand-teal)]">
             {value}{suffix}
           </div>
           <div className="text-white/50 text-sm mt-1">{label}</div>

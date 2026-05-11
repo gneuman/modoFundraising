@@ -47,11 +47,11 @@ const COOKIES = [
 
 export default function CookiesPage() {
   return (
-    <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
+    <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
 
       <section className="max-w-3xl mx-auto px-4 py-20">
-        <p className="text-[#00e5c0] text-sm font-bold uppercase tracking-widest mb-4">Legal</p>
+        <p className="text-[var(--brand-teal)] text-sm font-bold uppercase tracking-widest mb-4">Legal</p>
         <h1 className="text-4xl md:text-5xl font-black mb-2">Política de Cookies</h1>
         <p className="text-white/40 text-sm mb-12">Última actualización: mayo 2026</p>
 
@@ -67,10 +67,10 @@ export default function CookiesPage() {
 
             <div className="space-y-3 mb-6">
               {[
-                { tipo: "Esenciales", color: "bg-[#00e5c0]/15 text-[#00e5c0] border-[#00e5c0]/30", desc: "Necesarias para que el sitio funcione. Sin ellas, partes del sitio no funcionarían correctamente. No se pueden desactivar." },
-                { tipo: "Funcionales", color: "bg-[#60a5fa]/15 text-[#60a5fa] border-[#60a5fa]/30", desc: "Mejoran la funcionalidad del sitio recordando tus elecciones." },
-                { tipo: "Analítica", color: "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30", desc: "Nos ayudan a entender cómo los visitantes interactúan con el sitio. Toda la información es anonimizada." },
-                { tipo: "Marketing", color: "bg-[#f87171]/15 text-[#f87171] border-[#f87171]/30", desc: "Se usan para mostrar publicidad relevante. Podés optar por no recibirlas." },
+                { tipo: "Esenciales", color: "bg-[var(--brand-teal)]/15 text-[var(--brand-teal)] border-[var(--brand-teal)]/30", desc: "Necesarias para que el sitio funcione. Sin ellas, partes del sitio no funcionarían correctamente. No se pueden desactivar." },
+                { tipo: "Funcionales", color: "bg-[var(--brand-blue-light)]/15 text-[var(--brand-blue-light)] border-[var(--brand-blue-light)]/30", desc: "Mejoran la funcionalidad del sitio recordando tus elecciones." },
+                { tipo: "Analítica", color: "bg-[var(--brand-amber)]/15 text-[var(--brand-amber)] border-[var(--brand-amber)]/30", desc: "Nos ayudan a entender cómo los visitantes interactúan con el sitio. Toda la información es anonimizada." },
+                { tipo: "Marketing", color: "bg-[var(--brand-red)]/15 text-[var(--brand-red)] border-[var(--brand-red)]/30", desc: "Se usan para mostrar publicidad relevante. Podés optar por no recibirlas." },
               ].map(({ tipo, color, desc }) => (
                 <div key={tipo} className="flex gap-3 items-start">
                   <span className={`text-xs font-bold px-2 py-1 rounded-full border flex-shrink-0 mt-0.5 ${color}`}>{tipo}</span>
@@ -96,7 +96,7 @@ export default function CookiesPage() {
                 <tbody>
                   {COOKIES.map((c) => (
                     <tr key={c.nombre} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3 pr-4 font-mono text-xs text-[#00e5c0]">{c.nombre}</td>
+                      <td className="py-3 pr-4 font-mono text-xs text-[var(--brand-teal)]">{c.nombre}</td>
                       <td className="py-3 pr-4 text-white/60">{c.tipo}</td>
                       <td className="py-3 pr-4 text-white/60">{c.origen}</td>
                       <td className="py-3 pr-4 text-white/60 whitespace-nowrap">{c.duracion}</td>
@@ -110,7 +110,7 @@ export default function CookiesPage() {
 
           <div>
             <h2 className="text-white font-black text-xl mb-3">Cómo gestionar las cookies</h2>
-            <p className="mb-4">Podés controlar y/o eliminar las cookies como quieras. Para más información, visitá <a href="https://aboutcookies.org" target="_blank" rel="noopener noreferrer" className="text-[#00e5c0] hover:underline">aboutcookies.org</a>.</p>
+            <p className="mb-4">Podés controlar y/o eliminar las cookies como quieras. Para más información, visitá <a href="https://aboutcookies.org" target="_blank" rel="noopener noreferrer" className="text-[var(--brand-teal)] hover:underline">aboutcookies.org</a>.</p>
 
             <div className="space-y-3">
               {[
@@ -121,7 +121,7 @@ export default function CookiesPage() {
               ].map(({ browser, url }) => (
                 <div key={browser} className="flex items-center gap-3">
                   <span className="text-white/60 text-sm w-16">{browser}</span>
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-[#00e5c0] text-sm hover:underline truncate">{url}</a>
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-[var(--brand-teal)] text-sm hover:underline truncate">{url}</a>
                 </div>
               ))}
             </div>
@@ -141,7 +141,7 @@ export default function CookiesPage() {
 
           <div>
             <h2 className="text-white font-black text-xl mb-3">Contacto</h2>
-            <p>Si tenés dudas sobre el uso de cookies: <a href="mailto:hello@impacta.vc" className="text-[#00e5c0] hover:underline">hello@impacta.vc</a></p>
+            <p>Si tenés dudas sobre el uso de cookies: <a href="mailto:hello@impacta.vc" className="text-[var(--brand-teal)] hover:underline">hello@impacta.vc</a></p>
           </div>
 
         </div>

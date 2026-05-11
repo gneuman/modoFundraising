@@ -170,7 +170,7 @@ export function ApplicationForm({ onSuccess }: Props) {
     }
   }
 
-  const inputClass = "w-full rounded-lg border border-white/20 bg-white/10 text-white placeholder-white/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00e5c0] focus:border-transparent";
+  const inputClass = "w-full rounded-lg border border-white/20 bg-white/10 text-white placeholder-white/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-teal)] focus:border-transparent";
   const errorClass = "border-red-400/60 focus:ring-red-400";
 
   return (
@@ -330,7 +330,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("founder_team_women")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("founder_team_women")} value={opt} className="accent-[var(--brand-teal)]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -340,7 +340,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No", "Ya operamos en USA"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("startup_usa_intl")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("startup_usa_intl")} value={opt} className="accent-[var(--brand-teal)]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -370,7 +370,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No (esta sería nuestra primera ronda)"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("prior_fundraising")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("prior_fundraising")} value={opt} className="accent-[var(--brand-teal)]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -392,7 +392,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No (pero la iniciaremos en los próximos 12 meses)"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("round_open")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("round_open")} value={opt} className="accent-[var(--brand-teal)]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -451,7 +451,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("has_referrals")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("has_referrals")} value={opt} className="accent-[var(--brand-teal)]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -493,7 +493,7 @@ export function ApplicationForm({ onSuccess }: Props) {
                 <button
                   type="button"
                   onClick={() => setReferralCount((c) => c + 1)}
-                  className="flex items-center gap-2 text-[#00e5c0] text-sm font-medium hover:text-[#00c9aa]"
+                  className="flex items-center gap-2 text-[var(--brand-teal)] text-sm font-medium hover:text-[var(--brand-teal-dark)]"
                 >
                   <Plus className="h-4 w-4" /> Agregar otro recomendador
                 </button>
@@ -528,7 +528,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("ias_interested")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("ias_interested")} value={opt} className="accent-[var(--brand-teal)]" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -544,7 +544,7 @@ export function ApplicationForm({ onSuccess }: Props) {
                 </div>
               ) : (
                 <label className="cursor-pointer">
-                  <span className="text-sm text-white/40">Arrastra tu logo aquí o <span className="text-[#00e5c0] font-medium">haz clic para seleccionar</span></span>
+                  <span className="text-sm text-white/40">Arrastra tu logo aquí o <span className="text-[var(--brand-teal)] font-medium">haz clic para seleccionar</span></span>
                   <input
                     type="file"
                     className="hidden"
@@ -580,7 +580,7 @@ export function ApplicationForm({ onSuccess }: Props) {
                     <a
                       href="/bases-legales"
                       target="_blank"
-                      className="text-[#00e5c0] underline"
+                      className="text-[var(--brand-teal)] underline"
                     >
                       Bases Legales de Modo Fundraising 2026
                     </a>
@@ -602,14 +602,14 @@ export function ApplicationForm({ onSuccess }: Props) {
         ) : <div />}
 
         {step < TOTAL_STEPS ? (
-          <Button type="button" onClick={nextStep} className="flex items-center gap-2 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-bold">
+          <Button type="button" onClick={nextStep} className="flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-bold">
             Siguiente <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
           <Button
             type="submit"
             disabled={submitting || uploadingLogo}
-            className="flex items-center gap-2 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-bold px-8"
+            className="flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-bold px-8"
           >
             {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : "Enviar postulación 🚀"}
           </Button>

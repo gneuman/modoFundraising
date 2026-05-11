@@ -395,7 +395,7 @@ export function ChatForm({ onSuccess }: Props) {
                 setInputVal(`${e.target.value}${phoneNum}`);
                 setError(null);
               }}
-              className="rounded-lg border border-[rgba(229,0,126,0.35)] bg-[#181b2f] text-white px-2 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#e5007e]/50 focus:border-[#e5007e] w-44 flex-shrink-0"
+              className="rounded-lg border border-[rgba(229,0,126,0.35)] bg-[var(--brand-dark)] text-white px-2 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/50 focus:border-[var(--brand-pink)] w-44 flex-shrink-0"
             >
               {PHONE_CODES.map((c) => (
                 <option key={c.code} value={c.code}>{c.label}</option>
@@ -448,7 +448,7 @@ export function ChatForm({ onSuccess }: Props) {
           <select
             value={inputVal as string}
             onChange={(e) => { setInputVal(e.target.value); setError(null); }}
-            className="w-full rounded-lg border border-[rgba(229,0,126,0.35)] bg-[#181b2f] text-white px-3 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#e5007e]/50 focus:border-[#e5007e]"
+            className="w-full rounded-lg border border-[rgba(229,0,126,0.35)] bg-[var(--brand-dark)] text-white px-3 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/50 focus:border-[var(--brand-pink)]"
           >
             <option value="">Selecciona una opción</option>
             {q.options?.map((o) => (
@@ -465,7 +465,7 @@ export function ChatForm({ onSuccess }: Props) {
                 key={opt}
                 type="button"
                 onClick={() => handleNext(opt)}
-                className="px-4 py-2 rounded-xl text-sm font-sans font-medium border border-[rgba(229,0,126,0.35)] bg-white/10 text-white transition-all hover:border-[#e5007e]"
+                className="px-4 py-2 rounded-xl text-sm font-sans font-medium border border-[rgba(229,0,126,0.35)] bg-white/10 text-white transition-all hover:border-[var(--brand-pink)]"
                 onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, #e5007e, #e217cf)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "")}
               >

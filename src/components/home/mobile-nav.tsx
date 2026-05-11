@@ -20,7 +20,7 @@ export function Nav() {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-[#0a0e1a]/95 backdrop-blur border-b border-white/10">
+      <nav className="sticky top-0 z-50 bg-[var(--brand-navy)]/95 backdrop-blur border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/">
             <Image
@@ -45,7 +45,7 @@ export function Nav() {
           <div className="flex items-center gap-3">
             <Link
               href="/apply"
-              className="bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-bold text-sm px-5 py-2 rounded-full transition-colors whitespace-nowrap"
+              className="bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-bold text-sm px-5 py-2 rounded-full transition-colors whitespace-nowrap"
             >
               Postular
             </Link>
@@ -67,7 +67,7 @@ export function Nav() {
       {open && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
-          <div className="absolute top-0 right-0 bottom-0 w-72 bg-[#0d1220] border-l border-white/10 flex flex-col pt-20 px-6 gap-2">
+          <div className="absolute top-0 right-0 bottom-0 w-72 bg-[var(--brand-navy-deep)] border-l border-white/10 flex flex-col pt-20 px-6 gap-2">
             {NAV_LINKS.map(({ href, label }) => (
               <Link
                 key={href}
@@ -80,7 +80,7 @@ export function Nav() {
             ))}
             <Link
               href="/apply"
-              className="mt-6 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-bold text-center py-3 rounded-xl transition-colors"
+              className="mt-6 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-bold text-center py-3 rounded-xl transition-colors"
               onClick={() => setOpen(false)}
             >
               Postular ahora →

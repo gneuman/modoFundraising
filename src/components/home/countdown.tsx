@@ -35,7 +35,7 @@ export function Countdown({ targetIso, className = "", compact = false }: Countd
 
   if (compact) {
     return (
-      <span className={`tabular-nums font-bold text-[#00e5c0] ${className}`}>
+      <span className={`tabular-nums font-bold text-[var(--brand-teal)] ${className}`}>
         {time.days}d {pad(time.hours)}h {pad(time.minutes)}m {pad(time.seconds)}s
       </span>
     );
@@ -52,7 +52,7 @@ export function Countdown({ targetIso, className = "", compact = false }: Countd
     <div className={`flex gap-3 ${className}`}>
       {items.map(({ label, value }) => (
         <div key={label} className="flex flex-col items-center">
-          <span className="text-2xl font-bold text-[#00e5c0] tabular-nums leading-none">{value}</span>
+          <span className="text-2xl font-bold text-[var(--brand-teal)] tabular-nums leading-none">{value}</span>
           <span className="text-[10px] text-white/50 uppercase tracking-widest mt-0.5">{label}</span>
         </div>
       ))}

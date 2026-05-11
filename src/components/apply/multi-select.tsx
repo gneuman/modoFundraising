@@ -28,8 +28,8 @@ export function MultiSelect({ options, value, onChange, error }: MultiSelectProp
           className={cn(
             "px-3 py-1.5 rounded-full text-sm font-sans font-medium border transition-colors",
             value.includes(opt)
-              ? "text-white border-[#e5007e]"
-              : "bg-white/5 text-white/60 border-[rgba(229,0,126,0.3)] hover:border-[#e5007e] hover:text-white"
+              ? "text-white border-[var(--brand-pink)]"
+              : "bg-white/5 text-white/60 border-[rgba(229,0,126,0.3)] hover:border-[var(--brand-pink)] hover:text-white"
           )}
           style={value.includes(opt) ? { background: "linear-gradient(135deg, #e5007e, #e217cf)" } : {}}
         >

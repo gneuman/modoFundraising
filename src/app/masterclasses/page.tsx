@@ -16,8 +16,8 @@ function initials(name: string) {
 }
 
 const ESTADO_STYLES: Record<string, string> = {
-  Abierto: "bg-[#00e5c0]/15 text-[#00e5c0] border-[#00e5c0]/30",
-  Exclusivo: "bg-[#a855f7]/15 text-[#c084fc] border-[#a855f7]/30",
+  Abierto: "bg-[var(--brand-teal)]/15 text-[var(--brand-teal)] border-[var(--brand-teal)]/30",
+  Exclusivo: "bg-[var(--brand-violet)]/15 text-[var(--brand-violet-light)] border-[var(--brand-violet)]/30",
   Próximo: "bg-white/10 text-white/50 border-white/20",
 };
 
@@ -25,18 +25,18 @@ export default async function MasterclassesPage() {
   const masterclasses = await getMasterclasses().catch(() => [] as Masterclass[]);
 
   return (
-    <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
+    <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0e1a] via-[#0d1b3e] to-[#0a0e1a]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-navy)] via-[var(--brand-navy-mid)] to-[var(--brand-navy)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_#00e5c015_0%,_transparent_60%)]" />
         <div className="relative max-w-6xl mx-auto px-4 py-20">
           <div className="max-w-3xl">
-            <p className="text-[#00e5c0] text-sm font-bold uppercase tracking-widest mb-4">Sesiones especiales · 2026</p>
+            <p className="text-[var(--brand-teal)] text-sm font-bold uppercase tracking-widest mb-4">Sesiones especiales · 2026</p>
             <h1 className="text-5xl md:text-6xl font-black leading-none mb-4 tracking-tight">
-              Master<span className="text-[#00e5c0]">classes</span>
+              Master<span className="text-[var(--brand-teal)]">classes</span>
             </h1>
             <p className="text-white/60 text-lg leading-relaxed">
               Además de las clases del programa, cada edición trae speakers externos: founders que levantaron rondas reales,
@@ -55,7 +55,7 @@ export default async function MasterclassesPage() {
 
       {/* Grid masterclasses */}
       <section className="max-w-6xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-black mb-2">Masterclasses <span className="text-[#00e5c0]">MF26</span></h2>
+        <h2 className="text-3xl font-black mb-2">Masterclasses <span className="text-[var(--brand-teal)]">MF26</span></h2>
         <p className="text-white/50 mb-10">Edición 2026 · Calendario tentativo sujeto a confirmación de speakers.</p>
 
         {masterclasses.length === 0 ? (
@@ -65,7 +65,7 @@ export default async function MasterclassesPage() {
             {masterclasses.map((mc, idx) => (
               <div
                 key={mc.id ?? mc.titulo}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all flex flex-col gap-4"
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[var(--brand-teal)]/30 hover:bg-[var(--brand-teal)]/5 transition-all flex flex-col gap-4"
               >
                 <div className="flex items-start gap-4">
                   {mc.thumbnail_url ? (
@@ -77,7 +77,7 @@ export default async function MasterclassesPage() {
                       className="rounded-xl object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-xl bg-[#00e5c0]/20 border border-[#00e5c0]/30 flex items-center justify-center text-sm font-black text-[#00e5c0] flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-[var(--brand-teal)]/20 border border-[var(--brand-teal)]/30 flex items-center justify-center text-sm font-black text-[var(--brand-teal)] flex-shrink-0">
                       {initials(mc.speaker ?? mc.partner ?? "MC")}
                     </div>
                   )}
@@ -87,7 +87,7 @@ export default async function MasterclassesPage() {
                       {mc.tema && <span className="text-white/30 text-xs">· {mc.tema}</span>}
                     </div>
                     <h3 className="font-black text-white text-base leading-tight">{mc.titulo}</h3>
-                    <p className="text-[#00e5c0] text-xs font-semibold mt-0.5">{mc.speaker}</p>
+                    <p className="text-[var(--brand-teal)] text-xs font-semibold mt-0.5">{mc.speaker}</p>
                   </div>
                   {mc.estado && (
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${ESTADO_STYLES[mc.estado] ?? ESTADO_STYLES["Próximo"]}`}>
@@ -114,7 +114,7 @@ export default async function MasterclassesPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-5xl mb-4">🎬</div>
           <h2 className="text-4xl font-black mb-4">
-            +80 masterclasses <span className="text-[#00e5c0]">grabadas</span>
+            +80 masterclasses <span className="text-[var(--brand-teal)]">grabadas</span>
           </h2>
           <p className="text-white/60 text-lg leading-relaxed mb-6">
             Todos los alumnos del programa acceden al archivo histórico completo de ediciones anteriores.
@@ -127,7 +127,7 @@ export default async function MasterclassesPage() {
               { value: "3", label: "Ediciones anteriores" },
             ].map(({ value, label }) => (
               <div key={label}>
-                <div className="text-4xl font-black text-[#00e5c0]">{value}</div>
+                <div className="text-4xl font-black text-[var(--brand-teal)]">{value}</div>
                 <div className="text-white/50 text-sm mt-1">{label}</div>
               </div>
             ))}
@@ -138,12 +138,12 @@ export default async function MasterclassesPage() {
       {/* CTA */}
       <section className="max-w-2xl mx-auto px-4 py-24 text-center">
         <h2 className="text-4xl font-black mb-4">
-          Accedé al archivo <span className="text-[#00e5c0]">completo</span>
+          Accedé al archivo <span className="text-[var(--brand-teal)]">completo</span>
         </h2>
         <p className="text-white/50 mb-8">Solo para alumnos del programa. Postulá para entrar.</p>
         <Link
           href="/apply"
-          className="inline-flex items-center gap-2 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
+          className="inline-flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
         >
           Postular ahora →
         </Link>

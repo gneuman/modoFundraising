@@ -9,11 +9,11 @@ export const metadata = {
 
 export default function PrivacidadPage() {
   return (
-    <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
+    <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
 
       <section className="max-w-3xl mx-auto px-4 py-20">
-        <p className="text-[#00e5c0] text-sm font-bold uppercase tracking-widest mb-4">Legal</p>
+        <p className="text-[var(--brand-teal)] text-sm font-bold uppercase tracking-widest mb-4">Legal</p>
         <h1 className="text-4xl md:text-5xl font-black mb-2">Política de Privacidad</h1>
         <p className="text-white/40 text-sm mb-12">Última actualización: mayo 2026</p>
 
@@ -22,7 +22,7 @@ export default function PrivacidadPage() {
           <div>
             <h2 className="text-white font-black text-xl mb-3">1. Responsable del tratamiento</h2>
             <p>Impacta VC SpA (en adelante "Impacta VC"), con domicilio en Santiago, Chile, es responsable del tratamiento de los datos personales recopilados a través del sitio modofundraising.com y el programa Modo Fundraising.</p>
-            <p className="mt-3">Contacto: <a href="mailto:hello@impacta.vc" className="text-[#00e5c0] hover:underline">hello@impacta.vc</a></p>
+            <p className="mt-3">Contacto: <a href="mailto:hello@impacta.vc" className="text-[var(--brand-teal)] hover:underline">hello@impacta.vc</a></p>
           </div>
 
           <div>
@@ -108,12 +108,12 @@ export default function PrivacidadPage() {
                 <li key={item} className="text-white/60 text-sm py-1">{item}</li>
               ))}
             </ul>
-            <p className="mt-3">Para ejercer cualquiera de estos derechos, escribí a <a href="mailto:hello@impacta.vc" className="text-[#00e5c0] hover:underline">hello@impacta.vc</a> con el asunto "Derechos ARCO".</p>
+            <p className="mt-3">Para ejercer cualquiera de estos derechos, escribí a <a href="mailto:hello@impacta.vc" className="text-[var(--brand-teal)] hover:underline">hello@impacta.vc</a> con el asunto "Derechos ARCO".</p>
           </div>
 
           <div>
             <h2 className="text-white font-black text-xl mb-3">9. Cookies y tecnologías de seguimiento</h2>
-            <p>Usamos cookies para mejorar la experiencia del sitio. Podés consultar nuestra <Link href="/cookies" className="text-[#00e5c0] hover:underline">Política de Cookies</Link> para más información.</p>
+            <p>Usamos cookies para mejorar la experiencia del sitio. Podés consultar nuestra <Link href="/cookies" className="text-[var(--brand-teal)] hover:underline">Política de Cookies</Link> para más información.</p>
           </div>
 
           <div>
@@ -133,7 +133,7 @@ export default function PrivacidadPage() {
 
           <div>
             <h2 className="text-white font-black text-xl mb-3">13. Contacto</h2>
-            <p><a href="mailto:hello@impacta.vc" className="text-[#00e5c0] hover:underline">hello@impacta.vc</a> · Impacta VC SpA · Santiago, Chile.</p>
+            <p><a href="mailto:hello@impacta.vc" className="text-[var(--brand-teal)] hover:underline">hello@impacta.vc</a> · Impacta VC SpA · Santiago, Chile.</p>
           </div>
 
         </div>

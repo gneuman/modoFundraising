@@ -33,18 +33,18 @@ export default async function AdvisoryPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-    <div className="bg-[#0a0e1a] text-white min-h-screen font-[var(--font-montserrat)]">
+    <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
       <Nav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0e1a] via-[#0d1b3e] to-[#0a0e1a]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-navy)] via-[var(--brand-navy-mid)] to-[var(--brand-navy)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_#00e5c015_0%,_transparent_60%)]" />
         <div className="relative max-w-6xl mx-auto px-4 py-20">
           <div className="max-w-3xl">
-            <p className="text-[#00e5c0] text-sm font-bold uppercase tracking-widest mb-4">El equipo detrás del programa</p>
+            <p className="text-[var(--brand-teal)] text-sm font-bold uppercase tracking-widest mb-4">El equipo detrás del programa</p>
             <h1 className="text-5xl md:text-6xl font-black leading-none mb-4 tracking-tight">
-              Advisory <span className="text-[#00e5c0]">Board</span>
+              Advisory <span className="text-[var(--brand-teal)]">Board</span>
             </h1>
             <p className="text-white/60 text-lg leading-relaxed">
               Founders que levantaron rondas, inversores que las cerraron, y expertos que vivieron el proceso en carne propia.
@@ -63,7 +63,7 @@ export default async function AdvisoryPage() {
             {advisors.map((a) => (
               <div
                 key={a.id ?? a.nombre}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#00e5c0]/30 hover:bg-[#00e5c0]/5 transition-all flex flex-col gap-4"
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[var(--brand-teal)]/30 hover:bg-[var(--brand-teal)]/5 transition-all flex flex-col gap-4"
               >
                 <div className="flex items-center gap-4">
                   {a.foto_url ? (
@@ -75,14 +75,14 @@ export default async function AdvisoryPage() {
                       className="rounded-full object-cover border border-white/10 flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-[#00e5c0]/20 border border-[#00e5c0]/30 flex items-center justify-center text-lg font-black text-[#00e5c0] flex-shrink-0">
+                    <div className="w-14 h-14 rounded-full bg-[var(--brand-teal)]/20 border border-[var(--brand-teal)]/30 flex items-center justify-center text-lg font-black text-[var(--brand-teal)] flex-shrink-0">
                       {initials(a.nombre)}
                     </div>
                   )}
                   <div>
                     <div className="font-black text-white">{a.nombre}</div>
                     <div className="text-white/50 text-xs">{a.cargo}</div>
-                    <div className="text-[#00e5c0] text-xs font-semibold">{a.especialidad}</div>
+                    <div className="text-[var(--brand-teal)] text-xs font-semibold">{a.especialidad}</div>
                   </div>
                 </div>
                 <p className="text-white/60 text-sm leading-relaxed flex-1">{a.track_record}</p>
@@ -90,14 +90,14 @@ export default async function AdvisoryPage() {
                   {a.ideal_para && <p><span className="text-white/30">Ideal para:</span> {a.ideal_para}</p>}
                   {a.formato && <p><span className="text-white/30">Formato:</span> {a.formato}</p>}
                   {a.modalidad && <p><span className="text-white/30">Modalidad:</span> {a.modalidad}</p>}
-                  {a.pricing_display && <p className="text-[#00e5c0] font-semibold">{a.pricing_display}</p>}
+                  {a.pricing_display && <p className="text-[var(--brand-teal)] font-semibold">{a.pricing_display}</p>}
                 </div>
                 {a.calendly_url && (
                   <a
                     href={a.calendly_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-center text-xs font-bold border border-[#00e5c0]/30 text-[#00e5c0] rounded-lg py-2 hover:bg-[#00e5c0]/10 transition-colors"
+                    className="text-center text-xs font-bold border border-[var(--brand-teal)]/30 text-[var(--brand-teal)] rounded-lg py-2 hover:bg-[var(--brand-teal)]/10 transition-colors"
                   >
                     Agendar sesión →
                   </a>
@@ -112,7 +112,7 @@ export default async function AdvisoryPage() {
       <section className="bg-white/5 border-y border-white/10 py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-black mb-6 text-center">
-            Aprende de quienes <span className="text-[#00e5c0]">lo hicieron</span>
+            Aprende de quienes <span className="text-[var(--brand-teal)]">lo hicieron</span>
           </h2>
           <div className="grid md:grid-cols-3 gap-6 mt-12">
             {[
@@ -120,9 +120,9 @@ export default async function AdvisoryPage() {
               { icon: "🌎", titulo: "100% LatAm", desc: "El contexto importa. Todos entienden los mercados donde operás y los fondos que invierten en la región." },
               { icon: "🤝", titulo: "Red viva", desc: "No un directorio. Una red de personas que se conocen, se referencian y mueven deals activamente." },
             ].map(({ icon, titulo, desc }) => (
-              <div key={titulo} className="bg-[#0a0e1a] border border-white/10 rounded-2xl p-6 text-center hover:border-[#00e5c0]/30 transition-all">
+              <div key={titulo} className="bg-[var(--brand-navy)] border border-white/10 rounded-2xl p-6 text-center hover:border-[var(--brand-teal)]/30 transition-all">
                 <div className="text-4xl mb-3">{icon}</div>
-                <h3 className="font-black text-[#00e5c0] mb-2">{titulo}</h3>
+                <h3 className="font-black text-[var(--brand-teal)] mb-2">{titulo}</h3>
                 <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
@@ -136,7 +136,7 @@ export default async function AdvisoryPage() {
         <p className="text-white/50 mb-8">Postulá al programa y conectá directamente con el advisory board.</p>
         <Link
           href="/apply"
-          className="inline-flex items-center gap-2 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
+          className="inline-flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
         >
           Postular ahora →
         </Link>
