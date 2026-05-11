@@ -193,7 +193,7 @@ export default async function HomePage() {
       <div className="bg-[var(--brand-teal)]/10 border-b border-[var(--brand-teal)]/20 py-2 px-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-sm">
           <span className="text-white/80">
-            <strong className="text-white">Modo Fundraising 2026</strong> — Postulaciones abiertas
+            <strong className="text-white">Modo Fundraising 2026</strong> — Postulaciones abiertas <span className="opacity-40 text-xs">v2026</span>
           </span>
           <Countdown targetIso={CLOSE_DATE} />
         </div>
