@@ -535,6 +535,7 @@ export async function createApplication(data: ApplicationFormData): Promise<{
     payment_status: "Pendiente",
     portal_access: false,
     accept_legal_terms: data.accept_legal_terms,
+    form_responses: JSON.stringify(data, null, 2),
     referral_code: data.referral_code ?? "",
     has_referrals: data.has_referrals,
     referral_1_name: data.referral_1_name ?? "",

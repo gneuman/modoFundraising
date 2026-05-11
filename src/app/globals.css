@@ -60,23 +60,32 @@
 :root {
   /* Brand colors: Modo Fundraising 2026 */
   --background: #FFFFFF;
-  --foreground: #1A1F3B;
+  --foreground: #181b2f;
   --card: #FFFFFF;
-  --card-foreground: #1A1F3B;
+  --card-foreground: #181b2f;
   --popover: #FFFFFF;
-  --popover-foreground: #1A1F3B;
-  --primary: #2577BD;
+  --popover-foreground: #181b2f;
+  --primary: #e5007e;
   --primary-foreground: #FFFFFF;
   --secondary: #572583;
   --secondary-foreground: #FFFFFF;
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: #572583;
+  --accent: #991de4;
   --accent-foreground: #FFFFFF;
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: #e64915;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: #2577BD;
+  --ring: #e5007e;
+
+  /* Extended brand palette */
+  --brand-dark: #181b2f;
+  --brand-pink: #e5007e;
+  --brand-magenta: #e217cf;
+  --brand-purple-light: #991de4;
+  --brand-purple: #572583;
+  --brand-orange-red: #e64915;
+  --brand-orange: #ea680f;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
