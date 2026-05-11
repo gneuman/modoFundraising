@@ -249,18 +249,21 @@ export async function sendCouponLink(emailAddr: string, firstName: string, check
   const isFullScholarship = discountPercent === 100;
   await sendEmail(
     emailAddr,
-    isFullScholarship ? "🎓 Tu beca completa para Modo Fundraising 2026" : `🎁 ${discountPercent}% de descuento para Modo Fundraising 2026`,
+    "¡Felicitaciones! Estás admitido/a a Modo Fundraising 2026 🎉",
     email(`
-      ${badge(isFullScholarship ? "🎓 Beca completa" : `🎁 ${discountPercent}% de descuento`, "#7c3aed")}
+      ${badge(isFullScholarship ? "🎓 Beca completa" : "🎉 ¡Excelentes noticias!", "#16a34a")}
       <div style="height:16px;"></div>
-      ${h1(`Hola ${firstName}`)}
+      ${h1(`Hola ${firstName},`)}
       ${isFullScholarship
         ? p("Tienes una <strong>beca completa</strong> reservada para Modo Fundraising 2026. Tu acceso es gratuito — solo necesitas activarla.")
-        : p(`Tienes un <strong>${discountPercent}% de descuento</strong> reservado para Modo Fundraising 2026. Usa el botón para inscribirte con tu beneficio ya aplicado.`)
+        : p("¡Excelentes noticias! Revisamos tu postulación y queremos que seas parte de esta edición 🚀 (con beca parcial incluida 😉)")
       }
-      ${btn(checkoutUrl, isFullScholarship ? "Activar beca →" : "Inscribirme con descuento →", "#7c3aed")}
+      ${isFullScholarship ? "" : p("Estás en el momento indicado para entrar en modo fundraising: construir tu narrativa, afinar tu estrategia y conectar con los inversionistas correctos. Pero más allá de esta ronda, lo que te llevas es el skill para levantar capital ronda tras ronda — porque el fundraising no es un evento, es una competencia que se aprende y se perfecciona.")}
+      ${p("Solo queda un paso para hacer esto oficial: asegura tu cupo completando el pago a través de este link.")}
+      ${btn(checkoutUrl, isFullScholarship ? "Activar beca →" : "Completar inscripción →", "#16a34a")}
+      ${p("Los cupos son limitados y no queremos que te quedes fuera 🙌")}
       ${divider()}
-      ${small("Este enlace es personal e intransferible. ¿Preguntas? Responde este email.<br/>— Equipo Impacta VC")}
+      ${small("Cualquier duda, escríbenos.<br/><br/>¡Nos vemos adentro! 🙌<br/>El equipo de Modo Fundraising — Impacta VC")}
     `)
   );
 }

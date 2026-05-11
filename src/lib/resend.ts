@@ -160,12 +160,10 @@ export async function sendCouponLink(
   discountPercent: number
 ) {
   // Cupones usan el mismo trigger que admisión (admission_approved) pero con checkout_url que ya incluye el cupón.
-  // Si se quiere un template distinto para beca/descuento, crear regla con trigger_condition {"discount": "true"}.
   await sendAutomationEmail("admission_approved", emailAddr, {
     nombre: firstName,
     email: emailAddr,
     checkout_url: checkoutUrl,
   });
-  // Nota: para beca 100% el checkout_url devuelve directo al portal — el template debe adaptarse si se crea una regla específica.
   void discountPercent;
 }
