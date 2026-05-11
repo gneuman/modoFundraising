@@ -8,9 +8,10 @@ type EventParams = Record<string, string | number | boolean | undefined>;
 
 export function trackEvent(eventName: string, params?: EventParams) {
   if (typeof window === "undefined") return;
-  const w = window as Window & { dataLayer?: object[] };
-  w.dataLayer = w.dataLayer ?? [];
-  w.dataLayer.push({ event: eventName, ...params });
+  const w = window as Window & { gtag?: (...args: unknown[]) => void };
+  if (typeof w.gtag === "function") {
+    w.gtag("event", eventName, params ?? {});
+  }
 }
 
 // ─── UTM + ref attribution ────────────────────────────────────────────────────
