@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/gmail";
+import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/resend";
 import { createCheckoutToken } from "@/lib/checkout-token";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
