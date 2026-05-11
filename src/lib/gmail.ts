@@ -155,15 +155,17 @@ export async function sendReferralRequest(
 }
 
 export async function sendAdmissionEmail(emailAddr: string, firstName: string, checkoutUrl: string) {
-  await sendEmail(emailAddr, "¡Tu startup fue admitida a Modo Fundraising 2026!", email(`
-    ${badge("🎉 Admitida", "#16a34a")}
+  await sendEmail(emailAddr, "¡Quedaste seleccionada para Modo Fundraising!", email(`
+    ${badge("🎉 ¡Excelentes noticias!", "#16a34a")}
     <div style="height:16px;"></div>
-    ${h1(`¡Felicitaciones, ${firstName}!`)}
-    ${p("Tu startup fue <strong>seleccionada para Modo Fundraising 2026</strong>. El programa tiene un costo de <strong>US$349/mes por 3 meses</strong>.")}
-    ${p("Completá tu inscripción antes de que tu lugar expire:")}
+    ${h1(`Hola ${firstName},`)}
+    ${p("Revisamos tu postulación y queremos que seas parte de esta edición 🚀")}
+    ${p("Estás en el momento indicado para entrar en modo fundraising: construir tu narrativa, afinar tu estrategia y conectar con los inversionistas correctos. Pero más allá de esta ronda, lo que te llevas es el skill para levantar capital ronda tras ronda — porque el fundraising no es un evento, es una competencia que se aprende y se perfecciona.")}
+    ${p("Solo queda un paso para hacer esto oficial: asegura tu cupo completando el pago.")}
     ${btn(checkoutUrl, "Completar inscripción →", "#16a34a")}
+    ${p("Los cupos son limitados y no queremos que te quedes fuera 🙌")}
     ${divider()}
-    ${small("¿Preguntas? Responde a este email y te contestamos. Tu lugar está reservado por tiempo limitado.")}
+    ${small("Cualquier duda, escríbenos.<br/><br/>¡Nos vemos adentro! 🙌<br/>El equipo de Modo Fundraising — Impacta VC")}
   `));
 }
 

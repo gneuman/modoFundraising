@@ -257,9 +257,9 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
+      <div className="bg-(--brand-navy) text-white min-h-screen font-[var(--font-montserrat)">
         {/* ── 1. Topbar ──────────────────────────────────────────────────────────── */}
-        <div className="bg-[var(--brand-teal)]/10 border-b border-[var(--brand-teal)]/20 py-2 px-4">
+        <div className="bg-(--brand-teal)/10 border-b border-(--brand-teal)/20 py-2 px-4">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-sm">
             <span className="text-white/80">
               <strong className="text-white">Modo Fundraising 2026</strong>.
@@ -273,16 +273,16 @@ export default async function HomePage() {
 
         {/* ── 3. Hero ────────────────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-navy)] via-[var(--brand-navy-mid)] to-[var(--brand-navy)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-(--brand-navy) via-(--brand-navy-mid) to-(--brand-navy)" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)" />
 
           <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-28">
             {/* Powered by Oracle ribbon */}
             <div className="inline-flex items-center gap-3 bg-white rounded-full px-5 py-2 mb-8 shadow-lg">
-              <span className="text-[var(--brand-navy)] text-xs font-bold uppercase tracking-widest">
+              <span className="text-(--brand-navy) text-xs font-bold uppercase tracking-widest">
                 Powered by
               </span>
-              <span className="text-[var(--brand-red-dark)] font-black text-lg tracking-tight">
+              <span className="text-(--brand-red-dark) font-black text-lg tracking-tight">
                 ORACLE
               </span>
             </div>
@@ -292,7 +292,7 @@ export default async function HomePage() {
                 <h1 className="text-5xl md:text-6xl font-black leading-none mb-3 tracking-tight">
                   MODO
                   <br />
-                  <span className="text-[var(--brand-teal)]">FUNDRAISING</span>
+                  <span className="text-(--brand-teal)">FUNDRAISING</span>
                 </h1>
                 <p className="text-xl md:text-2xl font-semibold text-white/90 mb-4 leading-snug">
                   Construye momentum que los inversionistas no puedan ignorar.
@@ -330,7 +330,7 @@ export default async function HomePage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
                     href="/apply"
-                    className="inline-flex items-center justify-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-base px-8 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
+                    className="inline-flex items-center justify-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-base px-8 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
                   >
                     Postular ahora →
                   </Link>
@@ -348,8 +348,8 @@ export default async function HomePage() {
               {/* David (Bicho) placeholder */}
               <div className="flex justify-center md:justify-center mt-8 md:mt-0">
                 <div className="flex flex-col items-center gap-4">
-                  <div className="w-[120px] h-[120px] md:w-[220px] md:h-[220px] rounded-full bg-gradient-to-br from-[var(--brand-teal)]/30 to-[var(--brand-blue)]/20 border-2 border-[var(--brand-teal)]/40 flex items-center justify-center shadow-[0_0_60px_#00e5c020]">
-                    <span className="text-4xl md:text-7xl font-black text-[var(--brand-teal)]">
+                  <div className="w-[120px] h-[120px] md:w-[220px] md:h-[220px] rounded-full bg-gradient-to-br from-(--brand-teal)/30 to-(--brand-blue)/20 border-2 border-(--brand-teal)/40 flex items-center justify-center shadow-[0_0_60px_#00e5c020]">
+                    <span className="text-4xl md:text-7xl font-black text-(--brand-teal)">
                       DA
                     </span>
                   </div>
@@ -398,7 +398,7 @@ export default async function HomePage() {
                 },
               ].map(({ value, label }) => (
                 <div key={label}>
-                  <div className="text-4xl font-black text-[var(--brand-teal)]">
+                  <div className="text-4xl font-black text-(--brand-teal)">
                     {value}
                   </div>
                   <div className="text-white/50 text-sm mt-1">{label}</div>
@@ -414,7 +414,7 @@ export default async function HomePage() {
         {/* ── 5. ¿Qué vas a lograr? ──────────────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-4 py-24">
           <h2 className="text-4xl md:text-5xl font-black mb-4">
-            ¿Qué vas a <span className="text-[var(--brand-teal)]">lograr?</span>
+            ¿Qué vas a <span className="text-(--brand-teal)">lograr?</span>
           </h2>
           <p className="text-white/50 mb-12 text-lg">
             Cuatro outcomes concretos al terminar el programa.
@@ -424,7 +424,7 @@ export default async function HomePage() {
             {OUTCOMES.map(({ icon, title, desc }) => (
               <div
                 key={title}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[var(--brand-teal)]/40 hover:bg-[var(--brand-teal)]/5 transition-all"
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-(--brand-teal)/40 hover:bg-(--brand-teal)/5 transition-all"
               >
                 <div className="text-4xl mb-4">{icon}</div>
                 <h3 className="font-black text-white mb-2">{title}</h3>
@@ -439,7 +439,7 @@ export default async function HomePage() {
           <div className="max-w-6xl mx-auto px-4">
             <h2 className="text-4xl md:text-5xl font-black mb-4 text-center">
               ¿Por qué{" "}
-              <span className="text-[var(--brand-teal)]">
+              <span className="text-(--brand-teal)">
                 Modo Fundraising?
               </span>
             </h2>
@@ -451,10 +451,10 @@ export default async function HomePage() {
               {PILLARS.map(({ icon, title, desc }) => (
                 <div
                   key={title}
-                  className="bg-[var(--brand-navy)] border border-white/10 rounded-2xl p-6 hover:border-[var(--brand-teal)]/30 transition-all"
+                  className="bg-(--brand-navy) border border-white/10 rounded-2xl p-6 hover:border-(--brand-teal)/30 transition-all"
                 >
                   <div className="text-4xl mb-4">{icon}</div>
-                  <h3 className="font-black text-[var(--brand-teal)] mb-2">
+                  <h3 className="font-black text-(--brand-teal) mb-2">
                     {title}
                   </h3>
                   <p className="text-white/60 text-sm leading-relaxed">
@@ -473,7 +473,7 @@ export default async function HomePage() {
           </h2>
           <p className="text-center text-white/50 mb-12">
             Datos de la edición 2025.{" "}
-            <span className="text-[var(--brand-teal)]">
+            <span className="text-(--brand-teal)">
               Actualizamos en vivo a medida que la cohort 2026 avanza.
             </span>
           </p>
@@ -482,7 +482,7 @@ export default async function HomePage() {
         </section>
 
         {/* ── 8. Programa en 3 párrafos ──────────────────────────────────────────── */}
-        <section className="bg-gradient-to-r from-[var(--brand-navy-mid)] to-[var(--brand-navy)] border-y border-white/10 py-20">
+        <section className="bg-gradient-to-r from-(--brand-navy-mid) to-(--brand-navy) border-y border-white/10 py-20">
           <div className="max-w-3xl mx-auto px-4">
             <h2 className="text-4xl md:text-5xl font-black mb-8">
               El programa
@@ -509,7 +509,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/cronograma"
-              className="inline-flex items-center gap-2 mt-10 text-[var(--brand-teal)] font-bold hover:underline text-lg"
+              className="inline-flex items-center gap-2 mt-10 text-(--brand-teal) font-bold hover:underline text-lg"
             >
               Ver cronograma completo →
             </Link>
@@ -529,14 +529,14 @@ export default async function HomePage() {
             {displayTestimonios.slice(0, 3).map((t) => (
               <div
                 key={t.nombre}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4 hover:border-[var(--brand-teal)]/30 transition-all"
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4 hover:border-(--brand-teal)/30 transition-all"
               >
                 <p className="text-white/80 text-sm leading-relaxed flex-1">
-                  <span className="text-[var(--brand-teal)] text-2xl font-black leading-none mr-1">
+                  <span className="text-(--brand-teal) text-2xl font-black leading-none mr-1">
                     &ldquo;
                   </span>
                   {t.quote}
-                  <span className="text-[var(--brand-teal)] text-2xl font-black leading-none ml-1">
+                  <span className="text-(--brand-teal) text-2xl font-black leading-none ml-1">
                     &rdquo;
                   </span>
                 </p>
@@ -550,7 +550,7 @@ export default async function HomePage() {
                       className="rounded-full object-cover border border-white/10"
                     />
                   ) : (
-                    <div className="w-11 h-11 rounded-full bg-[var(--brand-teal)]/20 border border-[var(--brand-teal)]/30 flex items-center justify-center text-sm font-black text-[var(--brand-teal)] flex-shrink-0">
+                    <div className="w-11 h-11 rounded-full bg-(--brand-teal)/20 border border-(--brand-teal)/30 flex items-center justify-center text-sm font-black text-(--brand-teal) flex-shrink-0">
                       {initials(t.nombre)}
                     </div>
                   )}
@@ -582,7 +582,7 @@ export default async function HomePage() {
               {displayCasos.map((c) => (
                 <div
                   key={c.startup_nombre}
-                  className="bg-[var(--brand-navy)] border border-white/10 rounded-2xl p-6 hover:border-[var(--brand-teal)]/30 transition-all flex flex-col gap-3"
+                  className="bg-(--brand-navy) border border-white/10 rounded-2xl p-6 hover:border-(--brand-teal)/30 transition-all flex flex-col gap-3"
                 >
                   <div className="flex items-center gap-3">
                     {c.logo_url ? (
@@ -594,7 +594,7 @@ export default async function HomePage() {
                         className="object-contain rounded-lg"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-teal)]/10 border border-[var(--brand-teal)]/20 flex items-center justify-center text-xs font-black text-[var(--brand-teal)]">
+                      <div className="w-10 h-10 rounded-lg bg-(--brand-teal)/10 border border-(--brand-teal)/20 flex items-center justify-center text-xs font-black text-(--brand-teal)">
                         {initials(c.startup_nombre)}
                       </div>
                     )}
@@ -602,7 +602,7 @@ export default async function HomePage() {
                       {c.startup_nombre}
                     </span>
                   </div>
-                  <div className="text-3xl font-black text-[var(--brand-teal)]">
+                  <div className="text-3xl font-black text-(--brand-teal)">
                     {formatUSD(c.monto_usd)}
                   </div>
                   <div className="text-white/50 text-xs">{c.investors}</div>
@@ -617,11 +617,11 @@ export default async function HomePage() {
 
         {/* ── 11. Money Back Guarantee ───────────────────────────────────────────── */}
         <section className="max-w-4xl mx-auto px-4 py-24">
-          <div className="border border-[var(--brand-teal)]/30 bg-[var(--brand-teal)]/5 rounded-3xl p-10 text-center">
+          <div className="border border-(--brand-teal)/30 bg-(--brand-teal)/5 rounded-3xl p-10 text-center">
             <div className="text-5xl mb-4">🛡️</div>
             <h2 className="text-3xl md:text-4xl font-black mb-4">
               Garantía Money Back{" "}
-              <span className="text-[var(--brand-teal)]">14 días</span>
+              <span className="text-(--brand-teal)">14 días</span>
             </h2>
             <p className="text-white/80 text-lg mb-6 leading-relaxed">
               Desde el primer pago. Sin requisito de asistencia. Si no te
@@ -634,7 +634,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/apply"
-              className="inline-flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
+              className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
             >
               Postular sin riesgo →
             </Link>
@@ -681,10 +681,10 @@ export default async function HomePage() {
                 ))
               ) : (
                 <>
-                  <span className="text-[var(--brand-red-dark)] font-black text-3xl tracking-tight">
+                  <span className="text-(--brand-red-dark) font-black text-3xl tracking-tight">
                     ORACLE
                   </span>
-                  <span className="text-[var(--brand-navy)]/50 text-xs">
+                  <span className="text-(--brand-navy)/50 text-xs">
                     Sponsor principal
                   </span>
                 </>
@@ -705,7 +705,7 @@ export default async function HomePage() {
                     href={p.website_url ?? "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-white/10 border border-white/20 rounded-xl px-8 py-5 hover:border-[var(--brand-teal)]/40 transition-all"
+                    className="bg-white/10 border border-white/20 rounded-xl px-8 py-5 hover:border-(--brand-teal)/40 transition-all"
                   >
                     <Image
                       src={p.logo_url}
@@ -742,7 +742,7 @@ export default async function HomePage() {
                       href={p.website_url ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="bg-white/5 border border-white/10 rounded-lg px-5 py-3 hover:border-[var(--brand-teal)]/30 transition-all"
+                      className="bg-white/5 border border-white/10 rounded-lg px-5 py-3 hover:border-(--brand-teal)/30 transition-all"
                     >
                       <Image
                         src={p.logo_url}
@@ -772,12 +772,12 @@ export default async function HomePage() {
         </section>
 
         {/* ── 14. CTA final ──────────────────────────────────────────────────────── */}
-        <section className="bg-gradient-to-b from-[var(--brand-navy-mid)]/50 to-[var(--brand-navy)] border-y border-white/10 py-24 px-4">
+        <section className="bg-gradient-to-b from-(--brand-navy-mid)/50 to-(--brand-navy) border-y border-white/10 py-24 px-4">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-5xl md:text-6xl font-black mb-4 leading-tight">
               ¿Listo para
               <br />
-              <span className="text-[var(--brand-teal)]">
+              <span className="text-(--brand-teal)">
                 levantar tu ronda?
               </span>
             </h2>
@@ -789,7 +789,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/apply"
-              className="inline-flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-xl px-12 py-5 rounded-xl transition-all shadow-[0_0_60px_#00e5c040] mb-6"
+              className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-xl px-12 py-5 rounded-xl transition-all shadow-[0_0_60px_#00e5c040] mb-6"
             >
               Postular ahora →
             </Link>

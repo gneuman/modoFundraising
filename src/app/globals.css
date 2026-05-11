@@ -16,6 +16,27 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-pink: var(--brand-pink);
+  --color-brand-magenta: var(--brand-magenta);
+  --color-brand-purple-light: var(--brand-purple-light);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-orange-red: var(--brand-orange-red);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-teal-dark: var(--brand-teal-dark);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-mid: var(--brand-navy-mid);
+  --color-brand-navy-deep: var(--brand-navy-deep);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-light: var(--brand-blue-light);
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-violet-light: var(--brand-violet-light);
+  --color-brand-amber: var(--brand-amber);
+  --color-brand-red: var(--brand-red);
+  --color-brand-red-dark: var(--brand-red-dark);
+  --color-brand-green: var(--brand-green);
+  --color-brand-whatsapp: var(--brand-whatsapp);
   --font-sans: var(--font-montserrat);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-bebas-neue);

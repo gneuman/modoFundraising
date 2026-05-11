@@ -16,8 +16,8 @@ function initials(name: string) {
 }
 
 const ESTADO_STYLES: Record<string, string> = {
-  Abierto: "bg-[var(--brand-teal)]/15 text-[var(--brand-teal)] border-[var(--brand-teal)]/30",
-  Exclusivo: "bg-[var(--brand-violet)]/15 text-[var(--brand-violet-light)] border-[var(--brand-violet)]/30",
+  Abierto: "bg-(--brand-teal)/15 text-(--brand-teal) border-(--brand-teal)/30",
+  Exclusivo: "bg-(--brand-violet)/15 text-(--brand-violet-light) border-(--brand-violet)/30",
   Próximo: "bg-white/10 text-white/50 border-white/20",
 };
 
@@ -25,18 +25,18 @@ export default async function LiveInterviewsPage() {
   const interviews = await getLiveInterviews().catch(() => [] as LiveInterview[]);
 
   return (
-    <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
+    <div className="bg-(--brand-navy) text-white min-h-screen font-[var(--font-montserrat)">
       <Nav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-navy)] via-[var(--brand-navy-mid)] to-[var(--brand-navy)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-(--brand-navy) via-(--brand-navy-mid) to-(--brand-navy)" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)" />
         <div className="relative max-w-6xl mx-auto px-4 py-20">
           <div className="max-w-3xl">
-            <p className="text-[var(--brand-teal)] text-sm font-bold uppercase tracking-widest mb-4">Sesiones semanales · 2026</p>
+            <p className="text-(--brand-teal) text-sm font-bold uppercase tracking-widest mb-4">Sesiones semanales · 2026</p>
             <h1 className="text-5xl md:text-6xl font-black leading-none mb-4 tracking-tight">
-              Live <span className="text-[var(--brand-teal)]">Interviews</span>
+              Live <span className="text-(--brand-teal)">Interviews</span>
             </h1>
             <p className="text-white/60 text-lg leading-relaxed mb-6">
               Cada semana, un founder o inversor real en conversación abierta con David Alvo.
@@ -60,7 +60,7 @@ export default async function LiveInterviewsPage() {
             {interviews.map((li, idx) => (
               <div
                 key={li.id ?? li.titulo}
-                className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-[var(--brand-teal)]/30 hover:bg-[var(--brand-teal)]/5 transition-all flex flex-col gap-3"
+                className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-(--brand-teal)/30 hover:bg-(--brand-teal)/5 transition-all flex flex-col gap-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-white/30 text-xs font-mono">LI{String(idx + 1).padStart(2, "0")}</span>
@@ -81,7 +81,7 @@ export default async function LiveInterviewsPage() {
                       className="rounded-full object-cover border border-white/10 flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-[var(--brand-teal)]/20 border border-[var(--brand-teal)]/30 flex items-center justify-center text-xs font-black text-[var(--brand-teal)] flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-(--brand-teal)/20 border border-(--brand-teal)/30 flex items-center justify-center text-xs font-black text-(--brand-teal) flex-shrink-0">
                       {initials(li.entrevistado_nombre ?? "?")}
                     </div>
                   )}
@@ -96,7 +96,7 @@ export default async function LiveInterviewsPage() {
                 )}
 
                 <div className="border-t border-white/10 pt-2">
-                  <p className="text-[var(--brand-teal)] text-xs font-semibold">{li.entrevistado_nombre}</p>
+                  <p className="text-(--brand-teal) text-xs font-semibold">{li.entrevistado_nombre}</p>
                   {li.entrevistado_cargo && (
                     <p className="text-white/40 text-xs">{li.entrevistado_cargo}{li.entrevistado_empresa ? ` · ${li.entrevistado_empresa}` : ""}</p>
                   )}
@@ -111,16 +111,16 @@ export default async function LiveInterviewsPage() {
       {/* Propuesta de valor */}
       <section className="bg-white/5 border-y border-white/10 py-20 px-4">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl font-black mb-10 text-center">Por qué son <span className="text-[var(--brand-teal)]">diferentes</span></h2>
+          <h2 className="text-4xl font-black mb-10 text-center">Por qué son <span className="text-(--brand-teal)">diferentes</span></h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
               { icon: "🎙️", titulo: "Sin filtros", desc: "Las preguntas las hacen los founders del programa. No hay temas prohibidos ni respuestas ensayadas." },
               { icon: "📚", titulo: "Casos reales", desc: "Cada speaker viene con números, emails, decks y procesos reales — no con genéricos ni teoría." },
               { icon: "🎬", titulo: "Acceso permanente", desc: "Todas las sesiones quedan grabadas. Alumni de ediciones anteriores tienen acceso al archivo completo." },
             ].map(({ icon, titulo, desc }) => (
-              <div key={titulo} className="bg-[var(--brand-navy)] border border-white/10 rounded-2xl p-6 text-center hover:border-[var(--brand-teal)]/30 transition-all">
+              <div key={titulo} className="bg-(--brand-navy) border border-white/10 rounded-2xl p-6 text-center hover:border-(--brand-teal)/30 transition-all">
                 <div className="text-4xl mb-3">{icon}</div>
-                <h3 className="font-black text-[var(--brand-teal)] mb-2">{titulo}</h3>
+                <h3 className="font-black text-(--brand-teal) mb-2">{titulo}</h3>
                 <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
               </div>
             ))}
@@ -131,12 +131,12 @@ export default async function LiveInterviewsPage() {
       {/* CTA */}
       <section className="max-w-2xl mx-auto px-4 py-24 text-center">
         <h2 className="text-4xl font-black mb-4">
-          Accedé a todas las <span className="text-[var(--brand-teal)]">sesiones en vivo</span>
+          Accedé a todas las <span className="text-(--brand-teal)">sesiones en vivo</span>
         </h2>
         <p className="text-white/50 mb-8">Solo para alumnos del programa. Postulá para entrar.</p>
         <Link
           href="/apply"
-          className="inline-flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
+          className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
         >
           Postular ahora →
         </Link>

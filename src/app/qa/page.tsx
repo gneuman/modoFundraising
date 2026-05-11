@@ -34,23 +34,23 @@ export default async function QAPage() {
   return (
     <>
       {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
-    <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
+    <div className="bg-(--brand-navy) text-white min-h-screen font-[var(--font-montserrat)">
       <Nav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-navy)] via-[var(--brand-navy-mid)] to-[var(--brand-navy)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_#00e5c015_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-(--brand-navy) via-(--brand-navy-mid) to-(--brand-navy)" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_#00e5c015_0%,_transparent_50%)" />
         <div className="relative max-w-6xl mx-auto px-4 py-20">
           <div className="max-w-3xl">
-            <p className="text-[var(--brand-teal)] text-sm font-bold uppercase tracking-widest mb-4">Preguntas frecuentes</p>
+            <p className="text-(--brand-teal) text-sm font-bold uppercase tracking-widest mb-4">Preguntas frecuentes</p>
             <h1 className="text-5xl md:text-6xl font-black leading-none mb-4 tracking-tight">
-              Q<span className="text-[var(--brand-teal)]">&</span>A
+              Q<span className="text-(--brand-teal)">&</span>A
             </h1>
             <p className="text-white/60 text-lg leading-relaxed">
               Todo lo que necesitás saber antes de postular. Si tu pregunta no está acá,
               escribinos a{" "}
-              <a href="mailto:hello@impacta.vc" className="text-[var(--brand-teal)] hover:underline">hello@impacta.vc</a>.
+              <a href="mailto:hello@impacta.vc" className="text-(--brand-teal) hover:underline">hello@impacta.vc</a>.
             </p>
           </div>
         </div>
@@ -63,7 +63,7 @@ export default async function QAPage() {
         ) : (
           grouped.map((cat) => (
             <div key={cat.categoria}>
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--brand-teal)] mb-6">{cat.categoria}</h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-(--brand-teal) mb-6">{cat.categoria}</h2>
               <div className="space-y-4">
                 {cat.preguntas.map((item) => (
                   <div
@@ -97,7 +97,7 @@ export default async function QAPage() {
               href="https://wa.me/56912345678?text=Hola%2C%20tengo%20una%20pregunta%20sobre%20Modo%20Fundraising%202026"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black px-8 py-4 rounded-xl transition-all"
+              className="inline-flex items-center justify-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black px-8 py-4 rounded-xl transition-all"
             >
               WhatsApp →
             </a>
@@ -108,12 +108,12 @@ export default async function QAPage() {
       {/* CTA */}
       <section className="max-w-2xl mx-auto px-4 py-24 text-center">
         <h2 className="text-4xl font-black mb-4">
-          ¿Listo para <span className="text-[var(--brand-teal)]">postular?</span>
+          ¿Listo para <span className="text-(--brand-teal)">postular?</span>
         </h2>
         <p className="text-white/50 mb-8">Postulaciones abiertas hasta el 22 de junio de 2026.</p>
         <Link
           href="/apply"
-          className="inline-flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
+          className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
         >
           Postular ahora →
         </Link>

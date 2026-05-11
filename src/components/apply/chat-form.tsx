@@ -246,6 +246,18 @@ export function ChatForm({ onSuccess }: Props) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData: data, qIdx: idx }));
   }
 
+  function saveDraftToAirtable(data: FormState) {
+    const email = data.email;
+    if (!email || typeof email !== "string") return;
+    const { _add_ref_2: _r2, _add_ref_3: _r3, ...cleanData } = data;
+    void _r2; void _r3;
+    fetch("/api/apply/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, formData: cleanData }),
+    }).catch(() => {});
+  }
+
   async function handleNext(overrideVal?: unknown) {
     if (qIdx < 0 || qIdx >= QUESTIONS.length) return;
 
@@ -286,14 +298,30 @@ export function ChatForm({ onSuccess }: Props) {
     }
 
     const storedVal = q.type === "file" ? "" : val;
-    const newData: FormState = { ...formData, [q.id]: storedVal };
+    let newData: FormState = { ...formData, [q.id]: storedVal };
+
+    // Auto-split "Nombre Apellido" when typed in the first_name field
+    let skippedLastName = false;
+    if (q.id === "first_name" && typeof storedVal === "string" && storedVal.trim().includes(" ")) {
+      const spaceIdx = storedVal.trim().indexOf(" ");
+      newData = {
+        ...newData,
+        first_name: storedVal.trim().slice(0, spaceIdx),
+        last_name: storedVal.trim().slice(spaceIdx + 1),
+      };
+      skippedLastName = true;
+    }
+
     setFormData(newData);
     saveToStorage(newData, qIdx + 1);
+    saveDraftToAirtable(newData);
 
     const displayText = getDisplayText(q, val, logoFile);
     setMessages((prev) => [...prev, { from: "user", text: displayText }]);
 
-    const nextIdx = findNextQIdx(qIdx + 1, newData);
+    // If last_name was auto-filled, skip that question
+    const skipCount = skippedLastName ? 2 : 1;
+    const nextIdx = findNextQIdx(qIdx + skipCount, newData);
 
     if (nextIdx >= QUESTIONS.length) {
       await submitForm(newData);
@@ -395,7 +423,7 @@ export function ChatForm({ onSuccess }: Props) {
                 setInputVal(`${e.target.value}${phoneNum}`);
                 setError(null);
               }}
-              className="rounded-lg border border-[rgba(229,0,126,0.35)] bg-[var(--brand-dark)] text-white px-2 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/50 focus:border-[var(--brand-pink)] w-44 flex-shrink-0"
+              className="rounded-lg border border-[rgba(229,0,126,0.35) bg-(--brand-dark) text-white px-2 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-(--brand-pink)/50 focus:border-(--brand-pink) w-44 flex-shrink-0"
             >
               {PHONE_CODES.map((c) => (
                 <option key={c.code} value={c.code}>{c.label}</option>
@@ -448,7 +476,7 @@ export function ChatForm({ onSuccess }: Props) {
           <select
             value={inputVal as string}
             onChange={(e) => { setInputVal(e.target.value); setError(null); }}
-            className="w-full rounded-lg border border-[rgba(229,0,126,0.35)] bg-[var(--brand-dark)] text-white px-3 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/50 focus:border-[var(--brand-pink)]"
+            className="w-full rounded-lg border border-[rgba(229,0,126,0.35) bg-(--brand-dark) text-white px-3 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-(--brand-pink)/50 focus:border-(--brand-pink)"
           >
             <option value="">Selecciona una opción</option>
             {q.options?.map((o) => (
@@ -465,7 +493,7 @@ export function ChatForm({ onSuccess }: Props) {
                 key={opt}
                 type="button"
                 onClick={() => handleNext(opt)}
-                className="px-4 py-2 rounded-xl text-sm font-sans font-medium border border-[rgba(229,0,126,0.35)] bg-white/10 text-white transition-all hover:border-[var(--brand-pink)]"
+                className="px-4 py-2 rounded-xl text-sm font-sans font-medium border border-[rgba(229,0,126,0.35) bg-white/10 text-white transition-all hover:border-(--brand-pink)"
                 onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, #e5007e, #e217cf)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "")}
               >

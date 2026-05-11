@@ -87,6 +87,7 @@ export async function PATCH(req: NextRequest) {
   const extra: Record<string, unknown> = {};
   if (rejection_reason) extra.rejection_reason = rejection_reason;
 
+  if (status === "Admitida") extra.admitted_at = new Date().toISOString();
   await updateApplicationStatus(recordId, status as ApplicationStatus, extra);
 
   if (status === "Admitida") {

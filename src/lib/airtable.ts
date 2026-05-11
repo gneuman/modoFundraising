@@ -126,6 +126,9 @@ export interface PostulacionRecord {
   payment_status?: PaymentStatus;
   follow_up_1_sent?: boolean;
   follow_up_2_sent?: boolean;
+  admitted_at?: string;
+  follow_up_1_sent_at?: string;
+  follow_up_2_sent_at?: string;
   coupon_code?: string;
   discount_percent?: number;
   stripe_coupon_id?: string;
@@ -517,6 +520,42 @@ export async function getAllStartups(): Promise<StartupRecord[]> {
 
 // ─── Postulaciones ────────────────────────────────────────────────────────────
 
+// Find a draft (En progreso) postulacion record by email stored in form_responses
+export async function getDraftByEmail(email: string): Promise<{ id: string } | null> {
+  const records = await base(Tables.POSTULACIONES)
+    .select({
+      filterByFormula: `AND({status} = "En progreso", FIND("${email}", {form_responses}))`,
+      maxRecords: 1,
+    })
+    .firstPage();
+  return records.length ? { id: records[0].id } : null;
+}
+
+// Create or update a draft postulacion with partial form data
+export async function upsertDraftApplication(
+  email: string,
+  partialData: Record<string, unknown>
+): Promise<string> {
+  const existing = await getDraftByEmail(email);
+  const baseFields = {
+    status: "En progreso",
+    form_responses: JSON.stringify(partialData, null, 2),
+  };
+
+  if (existing) {
+    await base(Tables.POSTULACIONES).update(existing.id, baseFields as never);
+    return existing.id;
+  }
+
+  const record = await base(Tables.POSTULACIONES).create({
+    ...baseFields,
+    created_at: new Date().toISOString(),
+    payment_status: "Pendiente",
+    portal_access: false,
+  } as never);
+  return record.id;
+}
+
 export async function createApplication(data: ApplicationFormData): Promise<{
   postulacionId: string;
   founderRecordId: string;
@@ -528,10 +567,11 @@ export async function createApplication(data: ApplicationFormData): Promise<{
     createStartupRecord(data),
   ]);
 
-  // Create Postulacion with only operational fields + links
-  const record = await base(Tables.POSTULACIONES).create({
+  // Check if a draft already exists for this email
+  const draft = await getDraftByEmail(data.email);
+
+  const postulacionFields = {
     status: "Nueva postulación",
-    created_at: new Date().toISOString(),
     payment_status: "Pendiente",
     portal_access: false,
     accept_legal_terms: data.accept_legal_terms,
@@ -555,9 +595,21 @@ export async function createApplication(data: ApplicationFormData): Promise<{
     referral_3_relation: data.referral_3_relation ?? "",
     founder_record: [founderRecordId],
     startup_record: [startupRecordId],
-  } as never);
+  };
 
-  return { postulacionId: record.id, founderRecordId, startupRecordId };
+  let postulacionId: string;
+  if (draft) {
+    await base(Tables.POSTULACIONES).update(draft.id, postulacionFields as never);
+    postulacionId = draft.id;
+  } else {
+    const record = await base(Tables.POSTULACIONES).create({
+      ...postulacionFields,
+      created_at: new Date().toISOString(),
+    } as never);
+    postulacionId = record.id;
+  }
+
+  return { postulacionId, founderRecordId, startupRecordId };
 }
 
 // Returns postulaciones enriched with founder+startup data for admin/portal use

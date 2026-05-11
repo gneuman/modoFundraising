@@ -64,25 +64,25 @@ const FASES = [
 ];
 
 const TIPO_COLORS: Record<string, string> = {
-  Teoría: "bg-[var(--brand-teal)]/15 text-[var(--brand-teal)] border-[var(--brand-teal)]/30",
-  Rockstar: "bg-[var(--brand-blue)]/15 text-[var(--brand-blue-light)] border-[var(--brand-blue)]/30",
-  Graduation: "bg-[var(--brand-amber)]/15 text-[var(--brand-amber)] border-[var(--brand-amber)]/30",
+  Teoría: "bg-(--brand-teal)/15 text-(--brand-teal) border-(--brand-teal)/30",
+  Rockstar: "bg-(--brand-blue)/15 text-(--brand-blue-light) border-(--brand-blue)/30",
+  Graduation: "bg-(--brand-amber)/15 text-(--brand-amber) border-(--brand-amber)/30",
 };
 
 export default function CronogramaPage() {
   return (
-    <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
+    <div className="bg-(--brand-navy) text-white min-h-screen font-[var(--font-montserrat)">
       <Nav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-navy)] via-[var(--brand-navy-mid)] to-[var(--brand-navy)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-(--brand-navy) via-(--brand-navy-mid) to-(--brand-navy)" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)" />
         <div className="relative max-w-6xl mx-auto px-4 py-20">
           <div className="max-w-3xl">
-            <p className="text-[var(--brand-teal)] text-sm font-bold uppercase tracking-widest mb-4">Programa 2026</p>
+            <p className="text-(--brand-teal) text-sm font-bold uppercase tracking-widest mb-4">Programa 2026</p>
             <h1 className="text-5xl md:text-6xl font-black leading-none mb-4 tracking-tight">
-              Cronograma <span className="text-[var(--brand-teal)]">completo</span>
+              Cronograma <span className="text-(--brand-teal)">completo</span>
             </h1>
             <p className="text-white/60 text-lg leading-relaxed mb-8">
               14 semanas · 26 clases · 12 misiones · 100% online.<br />
@@ -90,9 +90,9 @@ export default function CronogramaPage() {
             </p>
             <div className="flex flex-wrap gap-3">
               {[
-                { label: "Teoría", color: "bg-[var(--brand-teal)]/15 text-[var(--brand-teal)] border border-[var(--brand-teal)]/30" },
-                { label: "Rockstar (sesión práctica)", color: "bg-[var(--brand-blue)]/15 text-[var(--brand-blue-light)] border border-[var(--brand-blue)]/30" },
-                { label: "Graduation", color: "bg-[var(--brand-amber)]/15 text-[var(--brand-amber)] border border-[var(--brand-amber)]/30" },
+                { label: "Teoría", color: "bg-(--brand-teal)/15 text-(--brand-teal) border border-(--brand-teal)/30" },
+                { label: "Rockstar (sesión práctica)", color: "bg-(--brand-blue)/15 text-(--brand-blue-light) border border-(--brand-blue)/30" },
+                { label: "Graduation", color: "bg-(--brand-amber)/15 text-(--brand-amber) border border-(--brand-amber)/30" },
               ].map(({ label, color }) => (
                 <span key={label} className={`text-xs font-semibold px-3 py-1 rounded-full ${color}`}>{label}</span>
               ))}
@@ -149,12 +149,12 @@ export default function CronogramaPage() {
       <section className="bg-white/5 border-y border-white/10 py-20 px-4">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-black mb-4">
-            ¿Listo para <span className="text-[var(--brand-teal)]">empezar?</span>
+            ¿Listo para <span className="text-(--brand-teal)">empezar?</span>
           </h2>
           <p className="text-white/50 mb-8 text-lg">Postulaciones abiertas hasta el 22 de junio de 2026.</p>
           <Link
             href="/apply"
-            className="inline-flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
+            className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
           >
             Postular ahora →
           </Link>

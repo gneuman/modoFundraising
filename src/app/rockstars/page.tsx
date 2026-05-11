@@ -35,18 +35,18 @@ export default async function RockstarsPage() {
   ];
 
   return (
-    <div className="bg-[var(--brand-navy)] text-white min-h-screen font-[var(--font-montserrat)]">
+    <div className="bg-(--brand-navy) text-white min-h-screen font-[var(--font-montserrat)">
       <Nav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-navy)] via-[var(--brand-navy-mid)] to-[var(--brand-navy)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-(--brand-navy) via-(--brand-navy-mid) to-(--brand-navy)" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#00e5c020_0%,_transparent_60%)" />
         <div className="relative max-w-6xl mx-auto px-4 py-20">
           <div className="max-w-3xl">
-            <p className="text-[var(--brand-teal)] text-sm font-bold uppercase tracking-widest mb-4">Alumni · Historias reales</p>
+            <p className="text-(--brand-teal) text-sm font-bold uppercase tracking-widest mb-4">Alumni · Historias reales</p>
             <h1 className="text-5xl md:text-6xl font-black leading-none mb-4 tracking-tight">
-              Los <span className="text-[var(--brand-teal)]">Rockstars</span>
+              Los <span className="text-(--brand-teal)">Rockstars</span>
             </h1>
             <p className="text-white/60 text-lg leading-relaxed">
               Founders de LatAm que pasaron por el programa y cerraron sus rondas.
@@ -62,7 +62,7 @@ export default async function RockstarsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {stats.map(({ value, label }) => (
               <div key={label}>
-                <div className="text-4xl font-black text-[var(--brand-teal)]">{value}</div>
+                <div className="text-4xl font-black text-(--brand-teal)">{value}</div>
                 <div className="text-white/50 text-sm mt-1">{label}</div>
               </div>
             ))}
@@ -73,7 +73,7 @@ export default async function RockstarsPage() {
 
       {/* Grid rockstars */}
       <section className="max-w-6xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-black mb-2">Casos de <span className="text-[var(--brand-teal)]">éxito</span></h2>
+        <h2 className="text-3xl font-black mb-2">Casos de <span className="text-(--brand-teal)">éxito</span></h2>
         <p className="text-white/50 mb-10">Una muestra de los founders que levantaron con el programa.</p>
 
         {rockstars.length === 0 ? (
@@ -83,7 +83,7 @@ export default async function RockstarsPage() {
             {rockstars.map((r) => (
               <div
                 key={r.id ?? r.nombre}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[var(--brand-teal)]/30 transition-all flex flex-col gap-4"
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-(--brand-teal)/30 transition-all flex flex-col gap-4"
               >
                 <div className="flex items-center gap-3">
                   {r.foto_url ? (
@@ -95,14 +95,14 @@ export default async function RockstarsPage() {
                       className="rounded-full object-cover border border-white/10 flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-[var(--brand-teal)]/20 border border-[var(--brand-teal)]/30 flex items-center justify-center text-sm font-black text-[var(--brand-teal)] flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-(--brand-teal)/20 border border-(--brand-teal)/30 flex items-center justify-center text-sm font-black text-(--brand-teal) flex-shrink-0">
                       {initials(r.nombre)}
                     </div>
                   )}
                   <div>
                     <div className="font-bold text-white">{r.nombre}</div>
                     <div className="text-white/50 text-xs">{r.empresa}</div>
-                    {r.tipo && <div className="text-[var(--brand-teal)] text-xs font-semibold">{r.tipo}</div>}
+                    {r.tipo && <div className="text-(--brand-teal) text-xs font-semibold">{r.tipo}</div>}
                   </div>
                 </div>
 
@@ -123,7 +123,7 @@ export default async function RockstarsPage() {
                     href={r.linkedin_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-center text-xs font-bold border border-white/10 text-white/50 rounded-lg py-2 hover:border-[var(--brand-teal)]/30 hover:text-[var(--brand-teal)] transition-colors"
+                    className="text-center text-xs font-bold border border-white/10 text-white/50 rounded-lg py-2 hover:border-(--brand-teal)/30 hover:text-(--brand-teal) transition-colors"
                   >
                     LinkedIn →
                   </a>
@@ -139,7 +139,7 @@ export default async function RockstarsPage() {
         <div className="max-w-3xl mx-auto text-center">
           <div className="text-5xl mb-4">🏆</div>
           <h2 className="text-4xl font-black mb-4">
-            Tu historia podría estar <span className="text-[var(--brand-teal)]">aquí</span>
+            Tu historia podría estar <span className="text-(--brand-teal)">aquí</span>
           </h2>
           <p className="text-white/60 text-lg leading-relaxed">
             Cada edición suma nuevos rockstars al listado. Founders que llegaron sin saber cómo hablarle a un VC
@@ -151,12 +151,12 @@ export default async function RockstarsPage() {
       {/* CTA */}
       <section className="max-w-2xl mx-auto px-4 py-24 text-center">
         <h2 className="text-4xl font-black mb-4">
-          ¿Listo para ser el <span className="text-[var(--brand-teal)]">próximo?</span>
+          ¿Listo para ser el <span className="text-(--brand-teal)">próximo?</span>
         </h2>
         <p className="text-white/50 mb-8">Postulaciones abiertas hasta el 22 de junio de 2026.</p>
         <Link
           href="/apply"
-          className="inline-flex items-center gap-2 bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
+          className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
         >
           Postular ahora →
         </Link>

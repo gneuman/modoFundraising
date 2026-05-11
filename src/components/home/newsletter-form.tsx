@@ -14,11 +14,11 @@ export function NewsletterForm({ compact = false }: NewsletterFormProps) {
         <input
           type="email"
           placeholder="tu@email.com"
-          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-[var(--brand-teal)]/50 text-xs"
+          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-(--brand-teal)/50 text-xs"
         />
         <button
           type="submit"
-          className="bg-[var(--brand-teal)] hover:bg-[var(--brand-teal-dark)] text-[var(--brand-navy)] font-bold px-3 py-2 rounded-lg transition-colors text-xs"
+          className="bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-bold px-3 py-2 rounded-lg transition-colors text-xs"
         >
           OK
         </button>
@@ -34,7 +34,7 @@ export function NewsletterForm({ compact = false }: NewsletterFormProps) {
       <input
         type="email"
         placeholder="tu@email.com"
-        className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[var(--brand-teal)]/50 text-sm"
+        className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-(--brand-teal)/50 text-sm"
       />
       <button
         type="submit"
