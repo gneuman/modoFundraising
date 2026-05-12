@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionFollowUp } from "@/lib/resend";
+import { sendAdmissionFollowUp } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
 
 // POST /api/admin/applications/followup

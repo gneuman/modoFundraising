@@ -10,7 +10,7 @@ import {
   sendOnboardingEmail,
   sendPaymentConfirmation,
   sendChurnEmail,
-} from "@/lib/resend";
+} from "@/lib/gmail";
 
 function isAuthorized(req: NextRequest): boolean {
   const auth = req.headers.get("authorization") ?? "";

@@ -1,9 +1,39 @@
-import { Resend } from "resend";
+import { google } from "googleapis";
 import { getAutomationRules, type TriggerEvent } from "@/lib/airtable";
 
-const resend = new Resend(process.env.RESEND_API_KEY ?? "re_placeholder");
-const FROM = process.env.EMAIL_FROM ?? "Modo Fundraising <noreply@impacta.vc>";
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://modofundraising.vercel.app").replace(/\/$/, "");
+const FROM = process.env.GMAIL_FROM ?? "Modo Fundraising <admin@impacta.vc>";
+
+function getGmailClient() {
+  const auth = new google.auth.OAuth2(
+    process.env.GMAIL_CLIENT_ID!,
+    process.env.GMAIL_CLIENT_SECRET!
+  );
+  auth.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN! });
+  return google.gmail({ version: "v1", auth });
+}
+
+function encodeSubject(subject: string): string {
+  if (/[^\x00-\x7F]/.test(subject)) {
+    return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+  }
+  return subject;
+}
+
+async function sendViaGmail(to: string, subject: string, html: string) {
+  const gmail = getGmailClient();
+  const message = [
+    `From: ${FROM}`,
+    `To: ${to}`,
+    `Subject: ${encodeSubject(subject)}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/html; charset="UTF-8"',
+    "",
+    html,
+  ].join("\r\n");
+  const raw = Buffer.from(message).toString("base64url");
+  await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+}
 
 // Variables disponibles en los templates
 export interface TemplateContext {
@@ -97,7 +127,7 @@ export async function sendAutomationEmail(
     const html = wrapInBaseLayout(bodyHtml);
 
     const sendFn = async () => {
-      await resend.emails.send({ from: FROM, to: toEmail, subject, html });
+      await sendViaGmail(toEmail, subject, html);
     };
 
     if (rule.delay_hours > 0) {

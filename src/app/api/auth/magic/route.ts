@@ -12,13 +12,6 @@ export async function POST(req: NextRequest) {
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin).replace(/\/$/, "");
   const enlace = `${base}/api/auth/verify?token=${token}&role=${rol}`;
 
-  // Sin proveedor de email: devolver el enlace directo para acceso inmediato
-  if (!process.env.RESEND_API_KEY) {
-    console.log(`[auth] Enlace de acceso para ${email}: ${enlace}`);
-    return NextResponse.json({ success: true, enlace });
-  }
-
-  // Con Resend configurado: mandar email y no exponer el enlace
   const { sendMagicLink } = await import("@/lib/gmail");
   await sendMagicLink(email, token, rol);
   return NextResponse.json({ success: true });

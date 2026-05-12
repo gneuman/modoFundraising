@@ -16,7 +16,7 @@ import {
   sendPaymentFailedEmail,
   sendChurnEmail,
   sendPortalDeactivatedEmail,
-} from "@/lib/resend";
+} from "@/lib/gmail";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
 // Activates portal for the main founder + any team members linked to the startup
@@ -211,6 +211,10 @@ export async function POST(req: NextRequest) {
       const currentInstallment = app.payment_status === "Cuota 1 pagada" ? 2 : 3;
       await updateApplicationStatus(app.id!, app.status!, {
         payment_status: `Cuota ${currentInstallment} pagada` as const,
+        // Si venía de un fallo previo, marcar como resuelto
+        ...(app.payment_failed_at && !app.payment_resolved_at
+          ? { payment_resolved_at: new Date().toISOString() }
+          : {}),
       });
 
       const startupRecordId = (app.startup_record as string[] | undefined)?.[0];
@@ -245,6 +249,14 @@ export async function POST(req: NextRequest) {
       if (!app) break;
 
       const attempt = invoice.attempt_count ?? 1;
+
+      // Marcar payment_failed_at la primera vez para que el cron de cobranza lo detecte
+      if (attempt === 1 && !app.payment_failed_at) {
+        await updateApplicationStatus(app.id!, app.status!, {
+          payment_failed_at: new Date().toISOString(),
+        });
+      }
+
       if (attempt >= 4) {
         const startupRecordId = (app.startup_record as string[] | undefined)?.[0];
         await deactivatePortalForStartup(app.id!, app.email, app.first_name, startupRecordId);

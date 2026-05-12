@@ -234,7 +234,7 @@ export async function sendPaymentFailedEmail(emailAddr: string, firstName: strin
   `));
 }
 
-export async function sendChurnEmail(emailAddr: string, firstName: string) {
+export async function sendChurnEmail(emailAddr: string, firstName: string, _postulacionId?: string) {
   await sendEmail(emailAddr, "Tu suscripción a Modo Fundraising 2026 fue cancelada", email(`
     ${h1(`Hola ${firstName}`)}
     ${p("Tu suscripción a <strong>Modo Fundraising 2026</strong> fue cancelada y tu acceso al portal fue revocado.")}
@@ -266,4 +266,17 @@ export async function sendCouponLink(emailAddr: string, firstName: string, check
       ${small("Cualquier duda, escríbenos.<br/><br/>¡Nos vemos adentro! 🙌<br/>El equipo de Modo Fundraising — Impacta VC")}
     `)
   );
+}
+
+export async function sendPortalDeactivatedEmail(emailAddr: string, firstName: string) {
+  await sendEmail(emailAddr, "Tu acceso al portal de Modo Fundraising fue suspendido", email(`
+    ${badge("⚠️ Acceso suspendido", "#dc2626")}
+    <div style="height:16px;"></div>
+    ${h1(`Hola ${firstName}`)}
+    ${p("Tu acceso al portal de <strong>Modo Fundraising 2026</strong> fue suspendido debido a un problema con tu método de pago que no pudimos resolver.")}
+    ${p("Si crees que esto es un error o querés regularizar tu situación, respondé este email y lo resolvemos juntos.")}
+    <a href="mailto:hello@impacta.vc?subject=Reactivar%20acceso%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
+    ${divider()}
+    ${small("— Equipo Impacta VC")}
+  `));
 }

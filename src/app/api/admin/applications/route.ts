@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/resend";
+import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
@@ -75,6 +75,26 @@ export async function PATCH(req: NextRequest) {
     try {
       const { assignCouponToApplication } = await import("@/lib/airtable");
       await assignCouponToApplication(recordId, coupon_code, discount_percent ?? 0, stripe_coupon_id ?? "");
+
+      // Si ya está admitida, regenerar y reenviar checkout con el nuevo cupón
+      const apps = await getAllApplications();
+      const app = apps.find((a) => a.id === recordId);
+      if (app && app.status === "Admitida") {
+        const appWithCoupon = {
+          ...app,
+          stripe_coupon_id: stripe_coupon_id ?? "",
+          discount_percent: discount_percent ?? 0,
+        };
+        const checkoutUrl = await buildCheckoutUrl(recordId, appWithCoupon);
+        const discountPct = Number(discount_percent ?? 0);
+        if (discountPct > 0) {
+          await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct);
+        } else {
+          await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
+        }
+        return NextResponse.json({ success: true, resent: true, url: checkoutUrl });
+      }
+
       return NextResponse.json({ success: true });
     } catch (err) {
       return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });

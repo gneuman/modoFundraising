@@ -190,6 +190,12 @@ export interface PostulacionRecord {
   deck_url?: string;
   program_source?: string;
   ias_interested?: string;
+  // Cobranza / pagos fallidos
+  payment_failed_at?: string;
+  payment_resolved_at?: string;
+  payment_reminder_1_at?: string;
+  payment_reminder_2_at?: string;
+  payment_reminder_3_at?: string;
 }
 
 export type ApplicationRecord = PostulacionRecord;

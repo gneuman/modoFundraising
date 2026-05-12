@@ -284,7 +284,7 @@ export function ChatForm({ onSuccess }: Props) {
             { from: "user", text: val as string },
             {
               from: "bot",
-              text: `Ya tenemos una postulación registrada con ese email. Si creés que es un error o querés consultarnos algo, escribinos a maca@impacta.vc`,
+              text: `Ya tenemos una postulación registrada con ese email. Si crees que es un error o quieres consultarnos algo, escríbenos a maca@impacta.vc`,
             },
           ]);
           setQIdx(QUESTIONS.length); // halt the form

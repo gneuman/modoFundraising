@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionFollowUp } from "@/lib/resend";
+import { sendAdmissionFollowUp } from "@/lib/gmail";
 import { createCheckoutToken } from "@/lib/checkout-token";
 
 const CRON_SECRET = process.env.CRON_SECRET ?? "";
