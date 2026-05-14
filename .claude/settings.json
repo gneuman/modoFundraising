@@ -34,12 +34,20 @@
       "Bash(xargs sed -i -e 's/\\\\[#00e5c0\\\\]/[var\\(--brand-teal\\)]/g' -e 's/\\\\[#00c9aa\\\\]/[var\\(--brand-teal-dark\\)]/g' -e 's/\\\\[#0a0e1a\\\\]/[var\\(--brand-navy\\)]/g' -e 's/\\\\[#0d1b3e\\\\]/[var\\(--brand-navy-mid\\)]/g' -e 's/\\\\[#0d1220\\\\]/[var\\(--brand-navy-deep\\)]/g' -e 's/\\\\[#181b2f\\\\]/[var\\(--brand-dark\\)]/g' -e 's/\\\\[#e5007e\\\\]/[var\\(--brand-pink\\)]/g' -e 's/\\\\[#0d6efd\\\\]/[var\\(--brand-blue\\)]/g' -e 's/\\\\[#60a5fa\\\\]/[var\\(--brand-blue-light\\)]/g' -e 's/\\\\[#a855f7\\\\]/[var\\(--brand-violet\\)]/g' -e 's/\\\\[#c084fc\\\\]/[var\\(--brand-violet-light\\)]/g' -e 's/\\\\[#f59e0b\\\\]/[var\\(--brand-amber\\)]/g' -e 's/\\\\[#f87171\\\\]/[var\\(--brand-red\\)]/g' -e 's/\\\\[#c74634\\\\]/[var\\(--brand-red-dark\\)]/g' -e 's/\\\\[#1ebe5d\\\\]/[var\\(--brand-green\\)]/g' -e 's/\\\\[#25D366\\\\]/[var\\(--brand-whatsapp\\)]/g')",
       "Bash(xargs sed -i 's/\\\\[var\\(--brand-/\\\\\\(--brand-/g; s/\\)\\\\]/\\)/g')",
       "Skill(gstack)",
-      "Skill(gstack:*)"
+      "Skill(gstack:*)",
+      "Bash(mkdir -p \"C:/Users/Usuario/.claude/skills/internal-review\")",
+      "Edit(~/.claude/skills/internal-review/**)",
+      "mcp__claude_ai_Linear__get_issue",
+      "mcp__claude_ai_Linear__save_comment",
+      "Bash(cat .env.production)",
+      "Bash(cat .env)",
+      "Bash(/c/Users/Usuario/.claude/skills/gstack/browse/dist/browse goto *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\modoFundraising\\src\\app\\portal\\clases\\[id]",
       "c:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\modoFundraising\\src\\app\\portal\\clases\\[id]",
-      "\\tmp"
+      "\\tmp",
+      "C:\\Users\\Usuario\\.claude\\skills"
     ]
   }
 }
