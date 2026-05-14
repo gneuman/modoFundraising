@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
     const draft = await getDraftByEmail(email);
     let { founderRecordId, startupRecordId } = draft ?? { founderRecordId: null, startupRecordId: null };
 
+    console.log("[draft] email:", email, "| founderRecordId:", founderRecordId, "| startupRecordId:", startupRecordId);
+
     // Create Founder record as soon as we have the email (guard against duplicates)
     if (!founderRecordId) {
       const existing = await getFounderByEmail(email);
@@ -32,22 +34,27 @@ export async function POST(req: NextRequest) {
       } else {
         founderRecordId = await createFounderRecord(formData as never);
       }
+      console.log("[draft] founder resolved:", founderRecordId);
     } else {
       await updateFounder(founderRecordId, formData as never);
     }
 
     // Create Startup record as soon as we have the startup_name (guard against duplicates)
-    if (formData.startup_name && !startupRecordId) {
-      const existingStartup = await getStartupByFounderId(founderRecordId);
-      if (existingStartup) {
-        startupRecordId = existingStartup;
-        await updateStartup(startupRecordId, formData as never);
-      } else {
-        startupRecordId = await createStartupRecord(formData as never, founderRecordId);
+    if (formData.startup_name) {
+      if (!startupRecordId) {
+        const existingStartup = await getStartupByFounderId(founderRecordId);
+        if (existingStartup) {
+          startupRecordId = existingStartup;
+          console.log("[draft] startup found by founder:", startupRecordId);
+        } else {
+          startupRecordId = await createStartupRecord(formData as never, founderRecordId);
+          console.log("[draft] startup created:", startupRecordId);
+        }
       }
-    } else if (startupRecordId) {
       await updateStartup(startupRecordId, formData as never);
     }
+
+    console.log("[draft] saving postulacion links — founder:", founderRecordId, "| startup:", startupRecordId);
 
     await upsertDraftApplication(
       email,
@@ -56,7 +63,7 @@ export async function POST(req: NextRequest) {
         founderRecordId: founderRecordId ?? undefined,
         startupRecordId: startupRecordId ?? undefined,
       },
-      draft  // pass already-fetched draft to avoid double lookup
+      draft
     );
 
     return NextResponse.json({ ok: true });

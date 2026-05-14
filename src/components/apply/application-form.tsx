@@ -53,6 +53,7 @@ export function ApplicationForm({ onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [showBasesLegales, setShowBasesLegales] = useState(false);
 
   const {
     register,
@@ -174,6 +175,7 @@ export function ApplicationForm({ onSuccess }: Props) {
   const errorClass = "border-red-400/60 focus:ring-red-400";
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto">
       <FormProgress currentStep={step} totalSteps={TOTAL_STEPS} stepLabels={STEP_LABELS} />
 
@@ -577,13 +579,13 @@ export function ApplicationForm({ onSuccess }: Props) {
                   />
                   <label htmlFor="legal" className="text-sm text-white/60 cursor-pointer">
                     He leído y acepto las{" "}
-                    <a
-                      href="/bases-legales"
-                      target="_blank"
+                    <button
+                      type="button"
+                      onClick={() => setShowBasesLegales(true)}
                       className="text-(--brand-teal) underline"
                     >
                       Bases Legales de Modo Fundraising 2026
-                    </a>
+                    </button>
                     <span className="text-red-500 ml-1">*</span>
                   </label>
                 </div>
@@ -616,5 +618,58 @@ export function ApplicationForm({ onSuccess }: Props) {
         )}
       </div>
     </form>
+
+      {/* Modal Bases Legales */}
+      {showBasesLegales && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+          <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/10 overflow-hidden" style={{ background: "#181b2f" }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+              <h2 className="text-white font-semibold text-lg">Bases Legales — Modo Fundraising 2026</h2>
+              <button onClick={() => setShowBasesLegales(false)} className="text-white/40 hover:text-white/80 transition-colors text-2xl leading-none">&times;</button>
+            </div>
+            <div className="overflow-y-auto px-6 py-5 text-white/70 text-sm leading-relaxed space-y-4">
+              <p>Este documento describe los términos y condiciones (en adelante los <strong className="text-white">"Bases Legales"</strong>) aplicables a la inscripción y participación en <strong className="text-white">Modo Fundraising 2026</strong>, programa operado por <strong className="text-white">Modo SpA</strong> (en adelante "Modo").</p>
+              <h3 className="text-white font-semibold mt-4">I. Objeto del programa</h3>
+              <p>Modo Fundraising 2026 es un programa de preparación para el levantamiento de capital dirigido a fundadores y equipos de startups en etapa temprana. La inscripción implica la aceptación expresa de estas Bases Legales.</p>
+              <h3 className="text-white font-semibold mt-4">II. Proceso de postulación y selección</h3>
+              <p>La postulación se realiza a través del formulario oficial en este sitio. Modo se reserva el derecho de aceptar o rechazar cualquier postulación a su entera discreción. La recepción del formulario no garantiza la admisión al programa. Los postulantes serán notificados por correo electrónico sobre el resultado de su postulación.</p>
+              <h3 className="text-white font-semibold mt-4">III. Condiciones de participación</h3>
+              <p>Al inscribirse, el participante declara que:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>La información proporcionada en el formulario es veraz y completa.</li>
+                <li>Es mayor de edad y tiene capacidad legal para contratar.</li>
+                <li>Cuenta con la representación legal necesaria de la startup que postula.</li>
+                <li>Se compromete a participar activamente en las actividades del programa.</li>
+              </ul>
+              <h3 className="text-white font-semibold mt-4">IV. Confidencialidad</h3>
+              <p>Modo se compromete a tratar con confidencialidad la información sensible y no pública que los postulantes compartan durante el proceso de aplicación y el programa, salvo que medie autorización expresa del participante o sea requerido por la ley.</p>
+              <h3 className="text-white font-semibold mt-4">V. Propiedad intelectual</h3>
+              <p>La participación en el programa no transfiere a Modo ningún derecho de propiedad intelectual sobre los productos, servicios o tecnología de los participantes. Todos los materiales del programa (metodologías, contenidos, materiales didácticos) son propiedad de Modo y no pueden ser reproducidos sin autorización escrita.</p>
+              <h3 className="text-white font-semibold mt-4">VI. Protección de datos personales</h3>
+              <p>Los datos personales recopilados serán utilizados exclusivamente para la gestión del programa y comunicaciones relacionadas. Modo no venderá ni cederá estos datos a terceros sin consentimiento del titular. El participante podrá solicitar en cualquier momento el acceso, rectificación o eliminación de sus datos escribiendo a <strong className="text-white">hola@modofundraising.com</strong>.</p>
+              <h3 className="text-white font-semibold mt-4">VII. Responsabilidad</h3>
+              <p>Modo no garantiza resultados específicos de levantamiento de capital como consecuencia de la participación en el programa. El contenido del programa tiene carácter educativo y de preparación. Las decisiones de inversión son responsabilidad exclusiva de los inversores y los participantes.</p>
+              <h3 className="text-white font-semibold mt-4">VIII. Modificaciones</h3>
+              <p>Modo se reserva el derecho de modificar estas Bases Legales con aviso previo de al menos 7 días calendario a los participantes inscritos.</p>
+              <h3 className="text-white font-semibold mt-4">IX. Legislación aplicable</h3>
+              <p>Estas Bases Legales se rigen por la legislación de la República de Chile. Cualquier disputa será sometida a los tribunales ordinarios de justicia de la ciudad de Santiago de Chile.</p>
+              <h3 className="text-white font-semibold mt-4">X. Contacto</h3>
+              <p>Consultas y reclamos: <strong className="text-white">hola@modofundraising.com</strong></p>
+              <p className="text-white/40 text-xs mt-6">Vigente desde enero de 2026.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowBasesLegales(false)}
+                className="w-full py-2.5 rounded-lg font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: "#e5007e" }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
