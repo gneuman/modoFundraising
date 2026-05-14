@@ -39,11 +39,12 @@ export async function POST(req: NextRequest) {
 
     let checkoutSession;
 
-    // Look up the coupon record to get the correct Stripe IDs
+    // Resolve coupon IDs by coupon_code (most reliable, immune to stale IDs)
+    const couponCode = app.coupon_code as string | undefined;
     const storedId = app.stripe_coupon_id as string | undefined;
-    const couponRecord = coupons.find(
-      (c) => c.stripe_coupon_id === storedId || c.stripe_promotion_code_id === storedId
-    );
+    const couponRecord = couponCode
+      ? coupons.find((c) => c.code === couponCode)
+      : coupons.find((c) => c.stripe_coupon_id === storedId || c.stripe_promotion_code_id === storedId);
     const couponId = couponRecord?.stripe_coupon_id;
     const promotionCodeId = couponRecord?.stripe_promotion_code_id;
 

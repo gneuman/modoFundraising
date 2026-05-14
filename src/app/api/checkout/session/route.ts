@@ -27,16 +27,19 @@ export async function POST(req: NextRequest) {
     const app = apps.find((a) => a.id === airtableId);
     let customerId = app?.stripe_customer_id as string | undefined;
 
-    // Resolve the correct Stripe IDs by looking up the coupon record
-    // The stored ID may be either a coupon ID or a promotion code ID
-    const storedId = rawPromoId || rawCouponId || (app?.stripe_coupon_id as string | undefined);
-    const couponRecord = coupons.find(
-      (c) => c.stripe_coupon_id === storedId || c.stripe_promotion_code_id === storedId
-    );
+    // Always resolve coupon IDs fresh from Airtable using the coupon_code stored in the app
+    // This ensures we always use current production IDs even if the JWT token has stale IDs
+    const couponCode = app?.coupon_code as string | undefined;
+    const couponRecord = couponCode
+      ? coupons.find((c) => c.code === couponCode)
+      : coupons.find((c) =>
+          c.stripe_coupon_id === (rawPromoId || rawCouponId) ||
+          c.stripe_promotion_code_id === (rawPromoId || rawCouponId)
+        );
     const stripeCouponId = couponRecord?.stripe_coupon_id;
     const stripePromotionCodeId = couponRecord?.stripe_promotion_code_id;
 
-    console.log("[checkout] mode:", mode, "| storedId:", storedId ?? "none", "| resolved couponId:", stripeCouponId ?? "none", "| promoId:", stripePromotionCodeId ?? "none", "| discount:", discountPercent ?? 0);
+    console.log("[checkout] couponCode:", couponCode ?? "none", "| resolved couponId:", stripeCouponId ?? "none", "| promoId:", stripePromotionCodeId ?? "none", "| discount:", discountPercent ?? 0);
 
     if (!customerId) {
       const customer = await createStripeCustomer(email, `${firstName} — ${startupName}`);
