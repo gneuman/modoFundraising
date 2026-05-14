@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { redirect } from "next/navigation";
 import { formatFecha, formatFechaCorta } from "@/lib/timezone";
 import { EnterMeetButton } from "@/components/portal/enter-meet-button";
 
