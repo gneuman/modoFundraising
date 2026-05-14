@@ -274,19 +274,20 @@ export interface CouponRecord {
 
 // ─── Founders ─────────────────────────────────────────────────────────────────
 
-export async function createFounderRecord(data: ApplicationFormData): Promise<string> {
-  const record = await base(Tables.FOUNDERS).create({
+export async function createFounderRecord(data: Pick<ApplicationFormData, 'email'> & Partial<ApplicationFormData>): Promise<string> {
+  const fields: Record<string, unknown> = {
     email: data.email,
-    first_name: data.first_name,
-    last_name: data.last_name,
-    whatsapp: data.whatsapp,
-    linkedin_founder: data.linkedin_founder,
-    founder_role: data.founder_role,
-    country_residence: data.country_residence,
-    founder_team_women: data.founder_team_women,
     portal_access: false,
     joined_at: new Date().toISOString(),
-  } as never);
+  };
+  if (data.first_name) fields.first_name = data.first_name;
+  if (data.last_name) fields.last_name = data.last_name;
+  if (data.whatsapp) fields.whatsapp = data.whatsapp;
+  if (data.linkedin_founder) fields.linkedin_founder = data.linkedin_founder;
+  if (data.founder_role) fields.founder_role = data.founder_role;
+  if (data.country_residence) fields.country_residence = data.country_residence;
+  if (data.founder_team_women) fields.founder_team_women = data.founder_team_women;
+  const record = await base(Tables.FOUNDERS).create(fields as never);
   return record.id;
 }
 
@@ -365,6 +366,7 @@ export interface FounderProfile {
   postulacion_id?: string;
   status?: ApplicationStatus;
   payment_status?: PaymentStatus;
+  coupon_code?: string;
   stripe_coupon_id?: string;
   stripe_promotion_code_id?: string;
   stripe_subscription_id?: string;
@@ -406,6 +408,7 @@ export async function getFounderProfile(email: string): Promise<FounderProfile |
     profile.postulacion_id = postulacion.id;
     profile.status = pf.status as ApplicationStatus | undefined;
     profile.payment_status = pf.payment_status as PaymentStatus | undefined;
+    profile.coupon_code = pf.coupon_code as string | undefined;
     profile.stripe_coupon_id = pf.stripe_coupon_id as string | undefined;
     profile.stripe_promotion_code_id = pf.stripe_promotion_code_id as string | undefined;
     profile.stripe_subscription_id = pf.stripe_subscription_id as string | undefined;
@@ -477,12 +480,14 @@ export async function getFounderProfile(email: string): Promise<FounderProfile |
   return profile;
 }
 
-export async function updateFounder(id: string, data: Partial<FounderRecord>) {
-  const allowed = ['first_name', 'last_name', 'whatsapp', 'linkedin_founder', 'founder_role', 'country_residence', 'founder_team_women'];
+export async function updateFounder(id: string, data: Partial<FounderRecord> | Partial<ApplicationFormData>) {
+  const FOUNDER_FIELDS = ['first_name', 'last_name', 'whatsapp', 'linkedin_founder', 'founder_role', 'country_residence', 'founder_team_women'];
   const fields: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (data[key as keyof FounderRecord] !== undefined) fields[key] = data[key as keyof FounderRecord];
+  for (const key of FOUNDER_FIELDS) {
+    const val = (data as Record<string, unknown>)[key];
+    if (val !== undefined) fields[key] = val;
   }
+  if (Object.keys(fields).length === 0) return;
   await base(Tables.FOUNDERS).update(id, fields as never);
 }
 
@@ -524,37 +529,39 @@ export async function activateAllFoundersForApplication(
 
 // ─── Startups ─────────────────────────────────────────────────────────────────
 
-export async function createStartupRecord(data: ApplicationFormData): Promise<string> {
-  const record = await base(Tables.STARTUPS).create({
+export async function createStartupRecord(data: Pick<ApplicationFormData, 'startup_name'> & Partial<ApplicationFormData>, founderRecordId: string): Promise<string> {
+  const fields: Record<string, unknown> = {
     startup_name: data.startup_name,
-    startup_website: data.startup_website,
-    startup_linkedin: data.startup_linkedin,
-    startup_logo_url: data.startup_logo_url ?? "",
-    startup_country_ops: data.startup_country_ops,
-    startup_countries_expansion: data.startup_countries_expansion.join(", "),
-    startup_description: data.startup_description,
-    startup_industries: data.startup_industries.join(", "),
-    startup_industry_other: data.startup_industry_other ?? "",
-    business_model: data.business_model,
-    business_model_other: data.business_model_other ?? "",
-    startup_stage: data.startup_stage,
-    startup_usa_intl: data.startup_usa_intl,
-    startup_team_size: data.startup_team_size,
-    startup_mrr: data.startup_mrr,
-    startup_sales_12m: data.startup_sales_12m,
-    prior_fundraising: data.prior_fundraising,
-    prior_fundraising_amount: data.prior_fundraising_amount ?? 0,
-    round_open: data.round_open,
-    round_series: data.round_series,
-    round_size: data.round_size,
-    round_tickets: data.round_tickets.join(", "),
-    runway: data.runway,
-    deck_url: data.deck_url,
-    program_source: data.program_source,
-    ias_interested: data.ias_interested,
     status: "Postulada",
     created_at: new Date().toISOString(),
-  } as never);
+    Founders: [founderRecordId],
+  };
+  if (data.startup_website) fields.startup_website = data.startup_website;
+  if (data.startup_linkedin) fields.startup_linkedin = data.startup_linkedin;
+  if (data.startup_logo_url) fields.startup_logo_url = data.startup_logo_url;
+  if (data.startup_country_ops) fields.startup_country_ops = data.startup_country_ops;
+  if (data.startup_countries_expansion) fields.startup_countries_expansion = Array.isArray(data.startup_countries_expansion) ? data.startup_countries_expansion.join(", ") : data.startup_countries_expansion;
+  if (data.startup_description) fields.startup_description = data.startup_description;
+  if (data.startup_industries) fields.startup_industries = Array.isArray(data.startup_industries) ? data.startup_industries.join(", ") : data.startup_industries;
+  if (data.startup_industry_other) fields.startup_industry_other = data.startup_industry_other;
+  if (data.business_model) fields.business_model = data.business_model;
+  if (data.business_model_other) fields.business_model_other = data.business_model_other;
+  if (data.startup_stage) fields.startup_stage = data.startup_stage;
+  if (data.startup_usa_intl) fields.startup_usa_intl = data.startup_usa_intl;
+  if (data.startup_team_size) fields.startup_team_size = data.startup_team_size;
+  if (data.startup_mrr !== undefined) fields.startup_mrr = data.startup_mrr;
+  if (data.startup_sales_12m !== undefined) fields.startup_sales_12m = data.startup_sales_12m;
+  if (data.prior_fundraising) fields.prior_fundraising = data.prior_fundraising;
+  if (data.prior_fundraising_amount !== undefined) fields.prior_fundraising_amount = data.prior_fundraising_amount;
+  if (data.round_open) fields.round_open = data.round_open;
+  if (data.round_series) fields.round_series = data.round_series;
+  if (data.round_size !== undefined) fields.round_size = data.round_size;
+  if (data.round_tickets) fields.round_tickets = Array.isArray(data.round_tickets) ? data.round_tickets.join(", ") : data.round_tickets;
+  if (data.runway !== undefined) fields.runway = data.runway;
+  if (data.deck_url) fields.deck_url = data.deck_url;
+  if (data.program_source) fields.program_source = data.program_source;
+  if (data.ias_interested) fields.ias_interested = data.ias_interested;
+  const record = await base(Tables.STARTUPS).create(fields as never);
   return record.id;
 }
 
@@ -567,11 +574,22 @@ export async function getStartupById(id: string): Promise<StartupRecord | null> 
   }
 }
 
-export async function updateStartup(id: string, data: Partial<StartupRecord>) {
-  const fields: Record<string, unknown> = { ...data };
-  delete fields.id;
-  delete fields.status;
-  delete fields.created_at;
+export async function updateStartup(id: string, data: Partial<StartupRecord> | Partial<ApplicationFormData>) {
+  const STARTUP_FIELDS: (keyof StartupRecord)[] = [
+    'startup_name', 'startup_website', 'startup_linkedin', 'startup_logo_url',
+    'startup_country_ops', 'startup_countries_expansion', 'startup_description',
+    'startup_industries', 'startup_industry_other', 'business_model', 'business_model_other',
+    'startup_stage', 'startup_usa_intl', 'startup_team_size', 'startup_mrr',
+    'startup_sales_12m', 'prior_fundraising', 'prior_fundraising_amount',
+    'round_open', 'round_series', 'round_size', 'round_tickets', 'runway',
+    'deck_url', 'program_source', 'ias_interested',
+  ];
+  const fields: Record<string, unknown> = {};
+  for (const key of STARTUP_FIELDS) {
+    const val = (data as Record<string, unknown>)[key];
+    if (val !== undefined) fields[key] = val;
+  }
+  if (Object.keys(fields).length === 0) return;
   await base(Tables.STARTUPS).update(id, fields as never);
 }
 
@@ -589,26 +607,42 @@ export async function getAllStartups(): Promise<StartupRecord[]> {
 // ─── Postulaciones ────────────────────────────────────────────────────────────
 
 // Find a draft (En progreso) postulacion record by email stored in form_responses
-export async function getDraftByEmail(email: string): Promise<{ id: string } | null> {
+export async function getDraftByEmail(email: string): Promise<{
+  id: string;
+  founderRecordId: string | null;
+  startupRecordId: string | null;
+} | null> {
   const records = await base(Tables.POSTULACIONES)
     .select({
       filterByFormula: `AND({status} = "En progreso", FIND("${email}", {form_responses}))`,
+      fields: ["founder_record", "startup_record"],
       maxRecords: 1,
     })
     .firstPage();
-  return records.length ? { id: records[0].id } : null;
+  if (!records.length) return null;
+  const f = records[0].fields as Record<string, unknown>;
+  const founderIds = f.founder_record as string[] | undefined;
+  const startupIds = f.startup_record as string[] | undefined;
+  return {
+    id: records[0].id,
+    founderRecordId: founderIds?.[0] ?? null,
+    startupRecordId: startupIds?.[0] ?? null,
+  };
 }
 
 // Create or update a draft postulacion with partial form data
 export async function upsertDraftApplication(
   email: string,
-  partialData: Record<string, unknown>
+  partialData: Record<string, unknown>,
+  links?: { founderRecordId?: string; startupRecordId?: string }
 ): Promise<string> {
   const existing = await getDraftByEmail(email);
-  const baseFields = {
+  const baseFields: Record<string, unknown> = {
     status: "En progreso",
     form_responses: JSON.stringify(partialData, null, 2),
   };
+  if (links?.founderRecordId) baseFields.founder_record = [links.founderRecordId];
+  if (links?.startupRecordId) baseFields.startup_record = [links.startupRecordId];
 
   if (existing) {
     await base(Tables.POSTULACIONES).update(existing.id, baseFields as never);
@@ -629,14 +663,16 @@ export async function createApplication(data: ApplicationFormData): Promise<{
   founderRecordId: string;
   startupRecordId: string;
 }> {
-  // Create Founder and Startup records in parallel
-  const [founderRecordId, startupRecordId] = await Promise.all([
-    createFounderRecord(data),
-    createStartupRecord(data),
-  ]);
-
-  // Check if a draft already exists for this email
+  // Reuse records created during draft, or create fresh if no draft existed
   const draft = await getDraftByEmail(data.email);
+  const founderRecordId = draft?.founderRecordId ?? await createFounderRecord(data);
+  const startupRecordId = draft?.startupRecordId ?? await createStartupRecord(data, founderRecordId);
+
+  // Update records with final complete data
+  await Promise.all([
+    updateFounder(founderRecordId, data),
+    updateStartup(startupRecordId, data),
+  ]);
 
   const postulacionFields = {
     status: "Nueva postulación",
@@ -769,9 +805,8 @@ export async function assignCouponToApplication(
     coupon_code: couponCode,
     discount_percent: discountPercent,
   };
-  // Prefer promotion code ID — portal-checkout uses it as promotion_code in Stripe
-  const idToStore = stripePromotionCodeId || stripeCouponId;
-  if (idToStore) fields.stripe_coupon_id = idToStore;
+  if (stripeCouponId) fields.stripe_coupon_id = stripeCouponId;
+  if (stripePromotionCodeId) fields.stripe_promotion_code_id = stripePromotionCodeId;
   await base(Tables.POSTULACIONES).update(recordId, fields as never, { typecast: true });
 }
 

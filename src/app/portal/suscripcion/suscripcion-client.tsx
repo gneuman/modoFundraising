@@ -17,16 +17,23 @@ interface Props {
   paymentStatus: PaymentStatus;
   portalAccess?: boolean;
   stripeSubscriptionId?: string;
+  discountPercent?: number;
 }
 
 export function SuscripcionClient({
   paymentStatus,
   portalAccess,
   stripeSubscriptionId,
+  discountPercent,
 }: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+
+  const PRICE_MONTHLY = 349;
+  const PRICE_ONETIME = 1047;
+  const discountedMonthly = discountPercent ? Math.round(PRICE_MONTHLY * (1 - discountPercent / 100)) : null;
+  const discountedOnetime = discountPercent ? Math.round(PRICE_ONETIME * (1 - discountPercent / 100)) : null;
 
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
   const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
@@ -97,11 +104,19 @@ export function SuscripcionClient({
                 Modo Fundraising 2026
               </h3>
               <p className="text-sm text-zinc-500 mt-0.5">
-                US$349 / mes · 3 cuotas
+                {discountedMonthly
+                  ? <>US${discountedMonthly} / mes · 3 cuotas <span className="line-through text-zinc-400">US$349</span> · {discountPercent}% OFF</>
+                  : "US$349 / mes · 3 cuotas"
+                }
               </p>
             </div>
 
             <div className="border-t border-zinc-100 pt-4 space-y-3">
+              {discountPercent && (
+                <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700 font-medium">
+                  🎉 Tenés un descuento del {discountPercent}% aplicado a tu cuenta
+                </div>
+              )}
               <p className="text-sm font-medium text-zinc-700">
                 Elige tu modalidad de pago:
               </p>
@@ -116,10 +131,17 @@ export function SuscripcionClient({
                     3 cuotas mensuales
                   </span>
                   <span className="text-2xl font-bold text-blue-800 mt-1">
-                    US$349<span className="text-base font-medium">/mes</span>
+                    {discountedMonthly ? (
+                      <>US${discountedMonthly}<span className="text-base font-medium">/mes</span></>
+                    ) : (
+                      <>US$349<span className="text-base font-medium">/mes</span></>
+                    )}
                   </span>
                   <span className="text-xs text-blue-600 mt-1">
-                    Cobro automático · Total US$1,047
+                    {discountedOnetime
+                      ? <>Cobro automático · Total US${discountedOnetime} <span className="line-through">US$1,047</span></>
+                      : "Cobro automático · Total US$1,047"
+                    }
                   </span>
                 </button>
 
@@ -132,10 +154,13 @@ export function SuscripcionClient({
                     Pago único
                   </span>
                   <span className="text-2xl font-bold text-zinc-800 mt-1">
-                    US$1,047
+                    {discountedOnetime ? <>US${discountedOnetime}</> : "US$1,047"}
                   </span>
                   <span className="text-xs text-zinc-500 mt-1">
-                    Un solo cobro · Acceso completo
+                    {discountedOnetime
+                      ? <><span className="line-through">US$1,047</span> · Un solo cobro</>
+                      : "Un solo cobro · Acceso completo"
+                    }
                   </span>
                 </button>
               </div>

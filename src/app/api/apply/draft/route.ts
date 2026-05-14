@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { upsertDraftApplication } from "@/lib/airtable";
+import {
+  getDraftByEmail,
+  upsertDraftApplication,
+  createFounderRecord,
+  createStartupRecord,
+  updateFounder,
+  updateStartup,
+} from "@/lib/airtable";
+import type { ApplicationFormData } from "@/lib/form-schema";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +18,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email requerido" }, { status: 400 });
     }
 
-    await upsertDraftApplication(email, formData);
+    const draft = await getDraftByEmail(email);
+    let { founderRecordId, startupRecordId } = draft ?? { founderRecordId: null, startupRecordId: null };
+
+    // Create Founder record as soon as we have the email
+    if (!founderRecordId) {
+      founderRecordId = await createFounderRecord(formData as never);
+    } else {
+      // Update Founder with any new fields that arrived
+      await updateFounder(founderRecordId, formData as never);
+    }
+
+    // Create Startup record as soon as we have the startup_name
+    if (formData.startup_name && !startupRecordId) {
+      startupRecordId = await createStartupRecord(formData as never, founderRecordId);
+    } else if (startupRecordId) {
+      await updateStartup(startupRecordId, formData as never);
+    }
+
+    await upsertDraftApplication(email, formData, {
+      founderRecordId: founderRecordId ?? undefined,
+      startupRecordId: startupRecordId ?? undefined,
+    });
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Draft error:", err);

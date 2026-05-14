@@ -2,14 +2,17 @@
 
 import { redirect } from "next/navigation";
 import { obtenerSesion } from "@/lib/auth";
-import { getFounderProfile, updateApplicationStatus } from "@/lib/airtable";
+import { getFounderProfile, getAllCoupons, updateApplicationStatus } from "@/lib/airtable";
 import { createStripeCustomer, createSubscriptionCheckout, createOneTimeCheckout, STRIPE_PRICE_ID_MONTHLY } from "@/lib/stripe";
 
 export async function iniciarPago(mode: "subscription" | "payment") {
   const session = await obtenerSesion();
   if (!session) redirect("/auth/login");
 
-  const profile = await getFounderProfile(session.email);
+  const [profile, coupons] = await Promise.all([
+    getFounderProfile(session.email),
+    getAllCoupons(),
+  ]);
   if (!profile?.postulacion_id) throw new Error("Postulación no encontrada");
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!.replace(/\/$/, "");
@@ -22,11 +25,17 @@ export async function iniciarPago(mode: "subscription" | "payment") {
     await updateApplicationStatus(profile.postulacion_id, profile.status ?? "Admitida", { stripe_customer_id: customerId });
   }
 
+  // Resolve coupon IDs fresh from Airtable by coupon_code (same logic as /api/checkout/session)
+  const couponCode = profile.coupon_code as string | undefined;
+  const couponRecord = couponCode
+    ? coupons.find((c) => c.code === couponCode)
+    : undefined;
+  const couponId = couponRecord?.stripe_coupon_id;
+  const promotionCodeId = couponRecord?.stripe_promotion_code_id;
+
   const successUrl = `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${appUrl}/portal/suscripcion`;
   const metadata = { airtableId: profile.postulacion_id, email: session.email, mode };
-  const couponId = profile.stripe_coupon_id;
-  const promotionCodeId = profile.stripe_promotion_code_id;
 
   let checkoutSession;
   if (mode === "subscription") {

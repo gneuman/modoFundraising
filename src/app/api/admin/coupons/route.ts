@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { createStripeCoupon, createStripePromoCode, STRIPE_PRICE_ID_MONTHLY, createSubscriptionCheckout, createStripeCustomer } from "@/lib/stripe";
-import { createCouponRecord, getAllCoupons, getAllApplications } from "@/lib/airtable";
+import { createCouponRecord, getAllCoupons, getAllApplications, assignCouponToApplication } from "@/lib/airtable";
 import { sendCouponLink } from "@/lib/email-engine";
 
 export async function GET(req: NextRequest) {
@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Faltan campos: email, firstName, couponId" }, { status: 400 });
   }
 
-  const apps = await getAllApplications();
+  const [apps, coupons] = await Promise.all([getAllApplications(), getAllCoupons()]);
   const app = apps.find((a) => a.email === email);
   let customerId = app?.stripe_customer_id;
 
@@ -52,17 +52,29 @@ export async function PUT(req: NextRequest) {
     customerId = customer.id;
   }
 
+  // Lookup full coupon record to get promotion code ID and discount %
+  const couponRecord = coupons.find((c) => c.stripe_coupon_id === couponId);
+  const promotionCodeId = couponRecord?.stripe_promotion_code_id;
+  const discountPct = percentOff ?? couponRecord?.discount_percent ?? 0;
+  const couponCode = couponRecord?.code ?? "";
+
   const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
   const checkoutSession = await createSubscriptionCheckout({
     customerId,
     priceId: STRIPE_PRICE_ID_MONTHLY,
     couponId,
+    promotionCodeId,
     successUrl: `${APP_URL}/portal?payment=success`,
     cancelUrl: `${APP_URL}/apply/success`,
     metadata: { email, airtableId: app?.id ?? "" },
   });
 
-  await sendCouponLink(email, firstName, checkoutSession.url!, percentOff ?? 0);
+  // Persist coupon on the founder's application so /portal/suscripcion shows the discount
+  if (app?.id && couponCode) {
+    await assignCouponToApplication(app.id, couponCode, discountPct, couponId, promotionCodeId);
+  }
+
+  await sendCouponLink(email, firstName, checkoutSession.url!, discountPct);
 
   return NextResponse.json({ success: true, url: checkoutSession.url });
 }
