@@ -10,13 +10,17 @@ export const dynamic = "force-dynamic";
 
 export default async function SinAccesoPage() {
   const session = await obtenerSesion();
-  const profile = session?.email ? await getFounderProfile(session.email) : null;
+  const profile = session?.email
+    ? await getFounderProfile(session.email)
+    : null;
   const status = profile?.status;
 
   if (status === "Admitida" || status === "Inscrita") {
     // Generate checkout token to show direct payment buttons
     const apps = await getAllApplications();
-    const app = apps.find((a) => a.email === session?.email && a.status === "Admitida");
+    const app = apps.find(
+      (a) => a.email === session?.email && a.status === "Admitida",
+    );
     let checkoutToken: string | null = null;
     if (app?.id) {
       checkoutToken = await createCheckoutToken({
@@ -25,11 +29,15 @@ export default async function SinAccesoPage() {
         firstName: app.first_name!,
         startupName: app.startup_name!,
         stripeCouponId: app.stripe_coupon_id as string | undefined,
-        discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
+        stripePromotionCodeId: app.stripe_promotion_code_id as string | undefined,
+        discountPercent: app.discount_percent
+          ? Number(app.discount_percent)
+          : undefined,
       });
     }
 
-    const hasDiscount = app?.discount_percent && Number(app.discount_percent) > 0;
+    const hasDiscount =
+      app?.discount_percent && Number(app.discount_percent) > 0;
     const discountPct = hasDiscount ? Number(app!.discount_percent) : 0;
     const precioMensual = Math.round(349 * (1 - discountPct / 100));
     const precioUnico = Math.round(349 * 3 * (1 - discountPct / 100));
@@ -37,16 +45,19 @@ export default async function SinAccesoPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50">
         <div className="max-w-lg w-full space-y-6">
-
           {/* Header */}
           <div className="text-center space-y-3">
             <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto">
               <CheckCircle className="h-7 w-7 text-green-600" />
             </div>
-            <h1 className="text-2xl font-bold text-zinc-900">¡Felicitaciones, {profile.first_name}!</h1>
+            <h1 className="text-2xl font-bold text-zinc-900">
+              ¡Felicitaciones, {profile.first_name}!
+            </h1>
             <p className="text-zinc-500 text-sm leading-relaxed">
-              Tu startup <strong className="text-zinc-800">{profile.startup_name}</strong> fue admitida a Modo Fundraising 2026.
-              Completá el pago para activar tu acceso al portal.
+              Tu startup{" "}
+              <strong className="text-zinc-800">{profile.startup_name}</strong>{" "}
+              fue admitida a Modo Fundraising 2026. Completá el pago para
+              activar tu acceso al portal.
             </p>
           </div>
 
@@ -69,13 +80,23 @@ export default async function SinAccesoPage() {
           ) : (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-center">
               <p className="font-semibold mb-1">Link de pago en camino</p>
-              <p>Revisa tu email o escríbenos a <a href="mailto:hello@impacta.vc" className="underline font-medium">hello@impacta.vc</a></p>
+              <p>
+                Revisa tu email o escríbenos a{" "}
+                <a
+                  href="mailto:amdin@impacta.vc"
+                  className="underline font-medium"
+                >
+                  amdin@impacta.vc
+                </a>
+              </p>
             </div>
           )}
 
           <p className="text-center text-xs text-zinc-400">
             Pagos procesados de forma segura por Stripe.{" "}
-            <a href="mailto:hello@impacta.vc" className="underline">¿Preguntas? hello@impacta.vc</a>
+            <a href="mailto:amdin@impacta.vc" className="underline">
+              ¿Preguntas? amdin@impacta.vc
+            </a>
           </p>
         </div>
       </div>
@@ -90,9 +111,12 @@ export default async function SinAccesoPage() {
             <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto">
               <XCircle className="h-7 w-7 text-zinc-400" />
             </div>
-            <h1 className="text-xl font-bold text-zinc-800">Cancelaste tu suscripción</h1>
+            <h1 className="text-xl font-bold text-zinc-800">
+              Cancelaste tu suscripción
+            </h1>
             <p className="text-sm text-zinc-500 leading-relaxed">
-              Tu acceso a Modo Fundraising 2026 fue desactivado. Lamentamos que hayas decidido salir del programa.
+              Tu acceso a Modo Fundraising 2026 fue desactivado. Lamentamos que
+              hayas decidido salir del programa.
             </p>
           </div>
 
@@ -100,7 +124,9 @@ export default async function SinAccesoPage() {
 
           <p className="text-center text-xs text-zinc-400">
             ¿Fue un error?{" "}
-            <a href="mailto:hello@impacta.vc" className="underline">hello@impacta.vc</a>
+            <a href="mailto:amdin@impacta.vc" className="underline">
+              amdin@impacta.vc
+            </a>
           </p>
         </div>
       </div>
@@ -115,21 +141,30 @@ export default async function SinAccesoPage() {
             <XCircle className="h-7 w-7 text-red-400" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-zinc-800">Suscripción cancelada</h1>
+            <h1 className="text-xl font-bold text-zinc-800">
+              Suscripción cancelada
+            </h1>
             <p className="text-sm text-zinc-500 leading-relaxed">
-              Tu suscripción a Modo Fundraising fue cancelada y ya no tienes acceso al portal.
-              Si crees que es un error, escríbenos.
+              Tu suscripción a Modo Fundraising fue cancelada y ya no tienes
+              acceso al portal. Si crees que es un error, escríbenos.
             </p>
           </div>
-          <a href="mailto:hello@impacta.vc" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline">
-            hello@impacta.vc
+          <a
+            href="mailto:amdin@impacta.vc"
+            className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline"
+          >
+            amdin@impacta.vc
           </a>
         </div>
       </div>
     );
   }
 
-  if (status === "Rechazada" || status === "Rechazada por founder" || status === "Sin Respuesta") {
+  if (
+    status === "Rechazada" ||
+    status === "Rechazada por founder" ||
+    status === "Sin Respuesta"
+  ) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50">
         <div className="max-w-md w-full text-center space-y-6">
@@ -137,13 +172,19 @@ export default async function SinAccesoPage() {
             <XCircle className="h-7 w-7 text-zinc-400" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-zinc-800">Tu postulación no avanzó</h1>
+            <h1 className="text-xl font-bold text-zinc-800">
+              Tu postulación no avanzó
+            </h1>
             <p className="text-sm text-zinc-500 leading-relaxed">
-              En esta edición no pudimos continuar con tu candidatura. Te animamos a seguir construyendo y a postular en la próxima edición.
+              En esta edición no pudimos continuar con tu candidatura. Te
+              animamos a seguir construyendo y a postular en la próxima edición.
             </p>
           </div>
-          <a href="mailto:hello@impacta.vc" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline">
-            ¿Preguntas? hello@impacta.vc
+          <a
+            href="mailto:amdin@impacta.vc"
+            className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline"
+          >
+            ¿Preguntas? amdin@impacta.vc
           </a>
         </div>
       </div>
@@ -159,9 +200,14 @@ export default async function SinAccesoPage() {
             <CheckCircle className="h-7 w-7 text-blue-400" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-zinc-800">Postulación en revisión</h1>
+            <h1 className="text-xl font-bold text-zinc-800">
+              Postulación en revisión
+            </h1>
             <p className="text-sm text-zinc-500 leading-relaxed">
-              Hola <strong>{profile.first_name}</strong>, recibimos tu postulación de <strong>{profile.startup_name}</strong>. Nuestro equipo la está evaluando y te notificaremos por email en los próximos días.
+              Hola <strong>{profile.first_name}</strong>, recibimos tu
+              postulación de <strong>{profile.startup_name}</strong>. Nuestro
+              equipo la está evaluando y te notificaremos por email en los
+              próximos días.
             </p>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800 text-left">
@@ -180,18 +226,25 @@ export default async function SinAccesoPage() {
           <Lock className="h-7 w-7 text-zinc-400" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-xl font-bold text-zinc-800">Esta sección requiere acceso</h1>
+          <h1 className="text-xl font-bold text-zinc-800">
+            Esta sección requiere acceso
+          </h1>
           <p className="text-sm text-zinc-500 leading-relaxed">
-            El contenido del portal es exclusivo para participantes de <strong>Modo Fundraising 2026</strong>.
+            El contenido del portal es exclusivo para participantes de{" "}
+            <strong>Modo Fundraising 2026</strong>.
           </p>
         </div>
-        <Link href="/apply"
-          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors">
+        <Link
+          href="/apply"
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
+        >
           Postular al programa <ArrowRight className="h-4 w-4" />
         </Link>
         <p className="text-xs text-zinc-400">
           ¿Ya postulaste?{" "}
-          <a href="mailto:hello@impacta.vc" className="underline">hello@impacta.vc</a>
+          <a href="mailto:amdin@impacta.vc" className="underline">
+            amdin@impacta.vc
+          </a>
         </p>
       </div>
     </div>

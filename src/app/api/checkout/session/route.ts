@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Link inválido o expirado" }, { status: 400 });
   }
 
-  const { airtableId, email, firstName, startupName, stripeCouponId, discountPercent } = payload;
+  const { airtableId, email, firstName, startupName, stripeCouponId, stripePromotionCodeId, discountPercent } = payload;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!.replace(/\/$/, "");
 
   console.log("[checkout] mode:", mode, "| couponId:", stripeCouponId ?? "none", "| discount:", discountPercent ?? 0);
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
         customerId,
         priceId: STRIPE_PRICE_ID_MONTHLY,
         couponId: stripeCouponId,
+        promotionCodeId: stripePromotionCodeId,
         successUrl,
         cancelUrl,
         metadata,
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
       session = await createOneTimeCheckout({
         customerId,
         couponId: stripeCouponId,
+        promotionCodeId: stripePromotionCodeId,
         successUrl,
         cancelUrl,
         metadata,

@@ -40,12 +40,14 @@ export async function POST(req: NextRequest) {
     let checkoutSession;
 
     const couponId = app.stripe_coupon_id as string | undefined;
+    const promotionCodeId = app.stripe_promotion_code_id as string | undefined;
 
     if (mode === "subscription") {
       checkoutSession = await createSubscriptionCheckout({
         customerId,
         priceId: STRIPE_PRICE_ID_MONTHLY,
         couponId,
+        promotionCodeId,
         successUrl,
         cancelUrl,
         metadata,
@@ -54,6 +56,7 @@ export async function POST(req: NextRequest) {
       checkoutSession = await createOneTimeCheckout({
         customerId,
         couponId,
+        promotionCodeId,
         successUrl,
         cancelUrl,
         metadata,

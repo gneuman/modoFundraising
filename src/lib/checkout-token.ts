@@ -8,6 +8,7 @@ export interface CheckoutPayload {
   firstName: string;
   startupName: string;
   stripeCouponId?: string;
+  stripePromotionCodeId?: string;
   discountPercent?: number;
 }
 

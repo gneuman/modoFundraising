@@ -154,6 +154,7 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
           coupon_code: coupon?.code ?? "",
           discount_percent: coupon?.discount_percent ?? 0,
           stripe_coupon_id: coupon?.stripe_coupon_id ?? "",
+          stripe_promotion_code_id: coupon?.stripe_promotion_code_id ?? "",
         }),
       });
       if (!res.ok) throw new Error();

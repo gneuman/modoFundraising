@@ -132,6 +132,7 @@ export interface PostulacionRecord {
   coupon_code?: string;
   discount_percent?: number;
   stripe_coupon_id?: string;
+  stripe_promotion_code_id?: string;
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
   rejection_reason?: string;
@@ -356,6 +357,7 @@ export interface FounderProfile {
   status?: ApplicationStatus;
   payment_status?: PaymentStatus;
   stripe_coupon_id?: string;
+  stripe_promotion_code_id?: string;
   stripe_subscription_id?: string;
   discount_percent?: number;
   // from startup
@@ -391,6 +393,7 @@ export async function getFounderProfile(email: string): Promise<FounderProfile |
   profile.status = pf.status as ApplicationStatus | undefined;
   profile.payment_status = pf.payment_status as PaymentStatus | undefined;
   profile.stripe_coupon_id = pf.stripe_coupon_id as string | undefined;
+  profile.stripe_promotion_code_id = pf.stripe_promotion_code_id as string | undefined;
   profile.stripe_subscription_id = pf.stripe_subscription_id as string | undefined;
   profile.discount_percent = pf.discount_percent as number | undefined;
 
@@ -700,13 +703,15 @@ export async function assignCouponToApplication(
   recordId: string,
   couponCode: string,
   discountPercent: number,
-  stripeCouponId: string
+  stripeCouponId: string,
+  stripePromotionCodeId?: string
 ) {
   const fields: Record<string, unknown> = {
     coupon_code: couponCode,
     discount_percent: discountPercent,
   };
   if (stripeCouponId) fields.stripe_coupon_id = stripeCouponId;
+  if (stripePromotionCodeId) fields.stripe_promotion_code_id = stripePromotionCodeId;
   await base(Tables.POSTULACIONES).update(recordId, fields as never, { typecast: true });
 }
 

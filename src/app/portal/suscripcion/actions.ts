@@ -26,12 +26,13 @@ export async function iniciarPago(mode: "subscription" | "payment") {
   const cancelUrl = `${appUrl}/portal/suscripcion`;
   const metadata = { airtableId: profile.postulacion_id, email: session.email, mode };
   const couponId = profile.stripe_coupon_id;
+  const promotionCodeId = profile.stripe_promotion_code_id;
 
   let checkoutSession;
   if (mode === "subscription") {
-    checkoutSession = await createSubscriptionCheckout({ customerId, priceId: STRIPE_PRICE_ID_MONTHLY, couponId, successUrl, cancelUrl, metadata });
+    checkoutSession = await createSubscriptionCheckout({ customerId, priceId: STRIPE_PRICE_ID_MONTHLY, couponId, promotionCodeId, successUrl, cancelUrl, metadata });
   } else {
-    checkoutSession = await createOneTimeCheckout({ customerId, couponId, successUrl, cancelUrl, metadata });
+    checkoutSession = await createOneTimeCheckout({ customerId, couponId, promotionCodeId, successUrl, cancelUrl, metadata });
   }
 
   redirect(checkoutSession.url!);

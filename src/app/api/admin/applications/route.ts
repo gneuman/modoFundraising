@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/gmail";
+import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/email-engine";
 import { createCheckoutToken } from "@/lib/checkout-token";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
@@ -24,7 +24,7 @@ async function inviteStartupToCalendar(startupId: string) {
 
 async function buildCheckoutUrl(recordId: string, app: {
   email?: string; first_name?: string; startup_name?: string;
-  stripe_coupon_id?: unknown; discount_percent?: unknown;
+  stripe_coupon_id?: unknown; stripe_promotion_code_id?: unknown; discount_percent?: unknown;
 }) {
   const token = await createCheckoutToken({
     airtableId: recordId,
@@ -32,6 +32,7 @@ async function buildCheckoutUrl(recordId: string, app: {
     firstName: app.first_name!,
     startupName: app.startup_name!,
     stripeCouponId: app.stripe_coupon_id as string | undefined,
+    stripePromotionCodeId: app.stripe_promotion_code_id as string | undefined,
     discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
   });
   return `${APP_URL}/checkout/${token}`;
@@ -48,7 +49,7 @@ export async function PATCH(req: NextRequest) {
   const denied = await verificarAdmin(req);
   if (denied) return denied;
   const body = await req.json();
-  const { recordId, status, rejection_reason, coupon_code, discount_percent, stripe_coupon_id } = body;
+  const { recordId, status, rejection_reason, coupon_code, discount_percent, stripe_coupon_id, stripe_promotion_code_id } = body;
   if (!recordId) return NextResponse.json({ error: "Falta recordId" }, { status: 400 });
 
   // ── Reenviar checkout ────────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ export async function PATCH(req: NextRequest) {
   if (!status && coupon_code !== undefined) {
     try {
       const { assignCouponToApplication } = await import("@/lib/airtable");
-      await assignCouponToApplication(recordId, coupon_code, discount_percent ?? 0, stripe_coupon_id ?? "");
+      await assignCouponToApplication(recordId, coupon_code, discount_percent ?? 0, stripe_coupon_id ?? "", stripe_promotion_code_id ?? "");
 
       // Si ya está admitida, regenerar y reenviar checkout con el nuevo cupón
       const apps = await getAllApplications();
@@ -83,6 +84,7 @@ export async function PATCH(req: NextRequest) {
         const appWithCoupon = {
           ...app,
           stripe_coupon_id: stripe_coupon_id ?? "",
+          stripe_promotion_code_id: stripe_promotion_code_id ?? "",
           discount_percent: discount_percent ?? 0,
         };
         const checkoutUrl = await buildCheckoutUrl(recordId, appWithCoupon);

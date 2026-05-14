@@ -607,7 +607,7 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
       const res = await fetch("/api/admin/applications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recordId: app.id, coupon_code: coupon.code, discount_percent: coupon.discount_percent, stripe_coupon_id: coupon.stripe_coupon_id }),
+        body: JSON.stringify({ recordId: app.id, coupon_code: coupon.code, discount_percent: coupon.discount_percent, stripe_coupon_id: coupon.stripe_coupon_id, stripe_promotion_code_id: coupon.stripe_promotion_code_id }),
       });
       if (!res.ok) throw new Error();
       setData((prev) => prev.map((a) => a.id === app.id ? { ...a, coupon_code: coupon.code, discount_percent: coupon.discount_percent } : a));

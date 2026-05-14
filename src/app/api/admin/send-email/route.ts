@@ -10,7 +10,7 @@ import {
   sendOnboardingEmail,
   sendPaymentConfirmation,
   sendChurnEmail,
-} from "@/lib/gmail";
+} from "@/lib/email-engine";
 
 function isAuthorized(req: NextRequest): boolean {
   const auth = req.headers.get("authorization") ?? "";
@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       firstName,
       startupName: app!.startup_name!,
       stripeCouponId: app!.stripe_coupon_id as string | undefined,
+      stripePromotionCodeId: app!.stripe_promotion_code_id as string | undefined,
       discountPercent: discountPct || undefined,
     });
     return `${APP_URL}/checkout/${token}`;

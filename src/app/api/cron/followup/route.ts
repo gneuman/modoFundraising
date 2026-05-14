@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionFollowUp } from "@/lib/gmail";
+import { sendAdmissionFollowUp } from "@/lib/email-engine";
 import { createCheckoutToken } from "@/lib/checkout-token";
 
 const CRON_SECRET = process.env.CRON_SECRET ?? "";
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
             firstName: app.first_name!,
             startupName: app.startup_name!,
             stripeCouponId: app.stripe_coupon_id as string | undefined,
+            stripePromotionCodeId: app.stripe_promotion_code_id as string | undefined,
             discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
           });
           const checkoutUrl = `${APP_URL}/checkout/${token}`;
@@ -90,6 +91,7 @@ export async function POST(req: NextRequest) {
             firstName: app.first_name!,
             startupName: app.startup_name!,
             stripeCouponId: app.stripe_coupon_id as string | undefined,
+            stripePromotionCodeId: app.stripe_promotion_code_id as string | undefined,
             discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
           });
           const checkoutUrl = `${APP_URL}/checkout/${token}`;

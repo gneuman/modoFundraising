@@ -21,7 +21,7 @@ export const STRIPE_WEBHOOK_SECRET = isProduction
   : process.env.STRIPE_WEBHOOK_SECRET_TEST!;
 
 export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: "2025-03-31.basil",
+  apiVersion: "2026-03-25.dahlia",
 });
 
 export const PROGRAM_PRICE_USD = 349;
@@ -38,6 +38,7 @@ export async function createSubscriptionCheckout({
   customerId,
   priceId,
   couponId,
+  promotionCodeId,
   successUrl,
   cancelUrl,
   metadata,
@@ -45,6 +46,7 @@ export async function createSubscriptionCheckout({
   customerId: string;
   priceId: string;
   couponId?: string;
+  promotionCodeId?: string;
   successUrl: string;
   cancelUrl: string;
   metadata?: Record<string, string>;
@@ -62,7 +64,9 @@ export async function createSubscriptionCheckout({
     payment_method_types: ["card"],
   };
 
-  if (couponId) {
+  if (promotionCodeId) {
+    params.discounts = [{ promotion_code: promotionCodeId }];
+  } else if (couponId) {
     params.discounts = [{ coupon: couponId }];
   } else {
     params.allow_promotion_codes = true;
@@ -95,7 +99,7 @@ export async function createStripeCoupon({
 // Create a promotion code for a coupon (readable code like "ALUMNIMF50")
 export async function createStripePromoCode(couponId: string, code: string) {
   return stripe.promotionCodes.create({
-    coupon: couponId,
+    promotion: { type: "coupon", coupon: couponId },
     code: code.toUpperCase(),
   });
 }
@@ -104,12 +108,14 @@ export async function createStripePromoCode(couponId: string, code: string) {
 export async function createOneTimeCheckout({
   customerId,
   couponId,
+  promotionCodeId,
   successUrl,
   cancelUrl,
   metadata,
 }: {
   customerId: string;
   couponId?: string;
+  promotionCodeId?: string;
   successUrl: string;
   cancelUrl: string;
   metadata?: Record<string, string>;
@@ -123,7 +129,9 @@ export async function createOneTimeCheckout({
     metadata,
     payment_method_types: ["card"],
   };
-  if (couponId) {
+  if (promotionCodeId) {
+    params.discounts = [{ promotion_code: promotionCodeId }];
+  } else if (couponId) {
     params.discounts = [{ coupon: couponId }];
   } else {
     params.allow_promotion_codes = true;

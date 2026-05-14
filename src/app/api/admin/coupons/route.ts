@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { createStripeCoupon, createStripePromoCode, STRIPE_PRICE_ID_MONTHLY, createSubscriptionCheckout, createStripeCustomer } from "@/lib/stripe";
 import { createCouponRecord, getAllCoupons, getAllApplications } from "@/lib/airtable";
-import { sendCouponLink } from "@/lib/gmail";
+import { sendCouponLink } from "@/lib/email-engine";
 
 export async function GET(req: NextRequest) {
   const denied = await verificarAdmin(req);
