@@ -565,6 +565,18 @@ export async function createStartupRecord(data: Pick<ApplicationFormData, 'start
   return record.id;
 }
 
+// Returns the Airtable record ID of the startup linked to a given founder, or null
+export async function getStartupByFounderId(founderRecordId: string): Promise<string | null> {
+  const records = await base(Tables.STARTUPS)
+    .select({
+      filterByFormula: `FIND("${founderRecordId}", ARRAYJOIN({Founders}))`,
+      fields: [],
+      maxRecords: 1,
+    })
+    .firstPage();
+  return records.length ? records[0].id : null;
+}
+
 export async function getStartupById(id: string): Promise<StartupRecord | null> {
   try {
     const record = await base(Tables.STARTUPS).find(id);
@@ -631,12 +643,14 @@ export async function getDraftByEmail(email: string): Promise<{
 }
 
 // Create or update a draft postulacion with partial form data
+// Pass existingDraft to skip the extra lookup when the caller already has it
 export async function upsertDraftApplication(
   email: string,
   partialData: Record<string, unknown>,
-  links?: { founderRecordId?: string; startupRecordId?: string }
+  links?: { founderRecordId?: string; startupRecordId?: string },
+  existingDraft?: { id: string } | null
 ): Promise<string> {
-  const existing = await getDraftByEmail(email);
+  const draft = existingDraft !== undefined ? existingDraft : await getDraftByEmail(email);
   const baseFields: Record<string, unknown> = {
     status: "En progreso",
     form_responses: JSON.stringify(partialData, null, 2),
@@ -644,9 +658,9 @@ export async function upsertDraftApplication(
   if (links?.founderRecordId) baseFields.founder_record = [links.founderRecordId];
   if (links?.startupRecordId) baseFields.startup_record = [links.startupRecordId];
 
-  if (existing) {
-    await base(Tables.POSTULACIONES).update(existing.id, baseFields as never);
-    return existing.id;
+  if (draft) {
+    await base(Tables.POSTULACIONES).update(draft.id, baseFields as never);
+    return draft.id;
   }
 
   const record = await base(Tables.POSTULACIONES).create({

@@ -6,6 +6,8 @@ import {
   createStartupRecord,
   updateFounder,
   updateStartup,
+  getFounderByEmail,
+  getStartupByFounderId,
 } from "@/lib/airtable";
 import type { ApplicationFormData } from "@/lib/form-schema";
 
@@ -21,25 +23,41 @@ export async function POST(req: NextRequest) {
     const draft = await getDraftByEmail(email);
     let { founderRecordId, startupRecordId } = draft ?? { founderRecordId: null, startupRecordId: null };
 
-    // Create Founder record as soon as we have the email
+    // Create Founder record as soon as we have the email (guard against duplicates)
     if (!founderRecordId) {
-      founderRecordId = await createFounderRecord(formData as never);
+      const existing = await getFounderByEmail(email);
+      if (existing?.id) {
+        founderRecordId = existing.id;
+        await updateFounder(founderRecordId, formData as never);
+      } else {
+        founderRecordId = await createFounderRecord(formData as never);
+      }
     } else {
-      // Update Founder with any new fields that arrived
       await updateFounder(founderRecordId, formData as never);
     }
 
-    // Create Startup record as soon as we have the startup_name
+    // Create Startup record as soon as we have the startup_name (guard against duplicates)
     if (formData.startup_name && !startupRecordId) {
-      startupRecordId = await createStartupRecord(formData as never, founderRecordId);
+      const existingStartup = await getStartupByFounderId(founderRecordId);
+      if (existingStartup) {
+        startupRecordId = existingStartup;
+        await updateStartup(startupRecordId, formData as never);
+      } else {
+        startupRecordId = await createStartupRecord(formData as never, founderRecordId);
+      }
     } else if (startupRecordId) {
       await updateStartup(startupRecordId, formData as never);
     }
 
-    await upsertDraftApplication(email, formData, {
-      founderRecordId: founderRecordId ?? undefined,
-      startupRecordId: startupRecordId ?? undefined,
-    });
+    await upsertDraftApplication(
+      email,
+      formData,
+      {
+        founderRecordId: founderRecordId ?? undefined,
+        startupRecordId: startupRecordId ?? undefined,
+      },
+      draft  // pass already-fetched draft to avoid double lookup
+    );
 
     return NextResponse.json({ ok: true });
   } catch (err) {
