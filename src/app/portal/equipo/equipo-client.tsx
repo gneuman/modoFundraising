@@ -2,19 +2,12 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Users, Loader2, UserCheck, Send, CheckCircle2 } from "lucide-react";
+import { Users, Loader2, UserCheck, Send, CheckCircle2, Pencil, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ALL_COUNTRIES } from "@/lib/countries";
-
-interface TeamMember {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  founder_role?: string;
-  portal_access: boolean;
-}
+import { actualizarMiembro } from "@/app/portal/startup/actions";
+import type { TeamMember } from "@/lib/airtable";
 
 interface Props {
   founderEmail: string;
@@ -27,6 +20,9 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [newMembers, setNewMembers] = useState<TeamMember[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<TeamMember>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -44,6 +40,38 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
   }
 
   const formValido = form.nombre && form.apellido && form.email && form.rol;
+
+  function startEdit(m: TeamMember) {
+    setEditingId(m.id);
+    setEditForm({
+      first_name: m.first_name,
+      last_name: m.last_name,
+      founder_role: m.founder_role ?? "",
+      whatsapp: m.whatsapp ?? "",
+      linkedin_founder: m.linkedin_founder ?? "",
+      country_residence: m.country_residence ?? "",
+    });
+  }
+
+  async function handleSaveEdit(memberId: string) {
+    setSavingEdit(true);
+    try {
+      await actualizarMiembro(memberId, {
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        founder_role: editForm.founder_role,
+        whatsapp: editForm.whatsapp,
+        linkedin_founder: editForm.linkedin_founder,
+        country_residence: editForm.country_residence,
+      });
+      toast.success("Contacto actualizado");
+      setEditingId(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al guardar");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   async function handleInvitar(e: React.FormEvent) {
     e.preventDefault();
@@ -79,6 +107,8 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
     }
   }
 
+  const allMembers = [...team, ...newMembers];
+
   return (
     <div className="space-y-6">
       <div>
@@ -89,39 +119,106 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-4">
           <p className="text-sm text-zinc-500">Miembros en el equipo</p>
-          <p className="text-2xl font-bold text-zinc-800 mt-1">{team.length + newMembers.length}</p>
+          <p className="text-2xl font-bold text-zinc-800 mt-1">{allMembers.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-4">
           <p className="text-sm text-zinc-500">Con acceso al portal</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{[...team, ...newMembers].filter((m) => m.portal_access).length}</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">{allMembers.filter((m) => m.portal_access).length}</p>
         </div>
       </div>
 
       {/* Miembros */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-5 py-3 bg-zinc-50 border-b border-zinc-200">
-          <h3 className="text-sm font-semibold text-zinc-700">Miembros ({team.length + newMembers.length})</h3>
+          <h3 className="text-sm font-semibold text-zinc-700">Miembros ({allMembers.length})</h3>
         </div>
         <div className="divide-y divide-zinc-100">
           {team.map((m) => (
-            <div key={m.id} className="flex items-center gap-4 px-5 py-4">
-              <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${m.email === founderEmail ? "bg-blue-100" : "bg-zinc-100"}`}>
-                {m.email === founderEmail
-                  ? <UserCheck className="h-4 w-4 text-blue-600" />
-                  : <Users className="h-4 w-4 text-zinc-500" />}
+            <div key={m.id}>
+              <div className="flex items-center gap-4 px-5 py-4">
+                <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${m.email === founderEmail ? "bg-blue-100" : "bg-zinc-100"}`}>
+                  {m.email === founderEmail
+                    ? <UserCheck className="h-4 w-4 text-blue-600" />
+                    : <Users className="h-4 w-4 text-zinc-500" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-zinc-800">{m.first_name} {m.last_name}</p>
+                  <p className="text-sm text-zinc-500 truncate">{m.email}</p>
+                  {(m.whatsapp || m.linkedin_founder) && (
+                    <div className="flex gap-3 mt-0.5">
+                      {m.whatsapp && <span className="text-xs text-zinc-400">{m.whatsapp}</span>}
+                      {m.linkedin_founder && (
+                        <a href={m.linkedin_founder} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline truncate max-w-[160px]">
+                          LinkedIn
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {m.founder_role && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
+                      {m.founder_role}
+                    </span>
+                  )}
+                  <span className={`w-2 h-2 rounded-full ${m.portal_access ? "bg-green-500" : "bg-zinc-300"}`} title={m.portal_access ? "Con acceso al portal" : "Sin acceso aún"} />
+                  <button
+                    onClick={() => editingId === m.id ? setEditingId(null) : startEdit(m)}
+                    className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"
+                    title="Editar contacto"
+                  >
+                    {editingId === m.id ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-zinc-800">{m.first_name} {m.last_name}</p>
-                <p className="text-sm text-zinc-500 truncate">{m.email}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {m.founder_role && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
-                    {m.founder_role}
-                  </span>
-                )}
-                <span className={`w-2 h-2 rounded-full ${m.portal_access ? "bg-green-500" : "bg-zinc-300"}`} title={m.portal_access ? "Con acceso al portal" : "Sin acceso aún"} />
-              </div>
+
+              {editingId === m.id && (
+                <div className="px-5 pb-4 bg-zinc-50 border-t border-zinc-100">
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">Nombre</label>
+                      <Input value={editForm.first_name ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, first_name: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">Apellido</label>
+                      <Input value={editForm.last_name ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, last_name: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">WhatsApp</label>
+                      <Input value={editForm.whatsapp ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, whatsapp: e.target.value }))} placeholder="+521234567890" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">LinkedIn</label>
+                      <Input value={editForm.linkedin_founder ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, linkedin_founder: e.target.value }))} placeholder="https://linkedin.com/in/..." />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">Rol</label>
+                      <Input value={editForm.founder_role ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, founder_role: e.target.value }))} placeholder="CTO, COO..." />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 mb-1">País de residencia</label>
+                      <select
+                        value={editForm.country_residence ?? ""}
+                        onChange={(e) => setEditForm((p) => ({ ...p, country_residence: e.target.value }))}
+                        className="w-full h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Selecciona...</option>
+                        {ALL_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-3">
+                    <Button
+                      size="sm"
+                      disabled={savingEdit}
+                      onClick={() => handleSaveEdit(m.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {savingEdit ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Guardando...</> : <><Save className="h-3.5 w-3.5 mr-1.5" />Guardar</>}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 
@@ -140,7 +237,7 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
             </div>
           ))}
 
-          {team.length === 0 && newMembers.length === 0 && (
+          {allMembers.length === 0 && (
             <div className="px-5 py-8 text-center text-sm text-zinc-400">
               No hay miembros registrados aún.
             </div>
@@ -148,7 +245,7 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
         </div>
       </div>
 
-      {/* Formulario */}
+      {/* Formulario agregar */}
       <div className="bg-white rounded-xl border border-zinc-200 p-6">
         <h3 className="text-sm font-semibold text-zinc-800 mb-5">Agregar miembro al equipo</h3>
         <form onSubmit={handleInvitar} className="space-y-4">

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
-import { sendPaymentFailedEmail, sendPortalDeactivatedEmail } from "@/lib/gmail";
+import { sendPaymentFailedEmail, sendPortalDeactivatedEmail } from "@/lib/email-engine";
 import { deactivateAllFoundersForApplication } from "@/lib/airtable";
 import { getSubscription } from "@/lib/stripe";
 

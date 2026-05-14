@@ -670,13 +670,15 @@ export default async function HomePage() {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <Image
-                      src={p.logo_url}
-                      alt={p.alt}
-                      width={140}
-                      height={60}
-                      className="object-contain"
-                    />
+                    {p.logo_url && (
+                      <Image
+                        src={p.logo_url}
+                        alt={p.alt}
+                        width={140}
+                        height={60}
+                        className="object-contain"
+                      />
+                    )}
                   </a>
                 ))
               ) : (
@@ -707,13 +709,15 @@ export default async function HomePage() {
                     rel="noopener noreferrer"
                     className="bg-white/10 border border-white/20 rounded-xl px-8 py-5 hover:border-(--brand-teal)/40 transition-all"
                   >
-                    <Image
-                      src={p.logo_url}
-                      alt={p.alt}
-                      width={120}
-                      height={50}
-                      className="object-contain"
-                    />
+                    {p.logo_url && (
+                      <Image
+                        src={p.logo_url}
+                        alt={p.alt}
+                        width={120}
+                        height={50}
+                        className="object-contain"
+                      />
+                    )}
                   </a>
                 ))
               ) : (
@@ -744,13 +748,15 @@ export default async function HomePage() {
                       rel="noopener noreferrer"
                       className="bg-white/5 border border-white/10 rounded-lg px-5 py-3 hover:border-(--brand-teal)/30 transition-all"
                     >
-                      <Image
-                        src={p.logo_url}
-                        alt={p.alt}
-                        width={80}
-                        height={35}
-                        className="object-contain opacity-70"
-                      />
+                      {p.logo_url && (
+                        <Image
+                          src={p.logo_url}
+                          alt={p.alt}
+                          width={80}
+                          height={35}
+                          className="object-contain opacity-70"
+                        />
+                      )}
                     </a>
                   ))
                 : [

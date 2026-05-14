@@ -157,11 +157,14 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
           stripe_promotion_code_id: coupon?.stripe_promotion_code_id ?? "",
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
       onCouponAssign(app.id!, coupon ?? { id: "", code: "", discount_percent: 0, stripe_coupon_id: "", active: true });
       toast.success(removing ? "Cupón eliminado" : `Cupón ${coupon!.code} (${coupon!.discount_percent}% off) asignado`);
-    } catch {
-      toast.error(removing ? "Error al eliminar cupón" : "Error al asignar cupón");
+    } catch (err) {
+      toast.error(`${removing ? "Error al eliminar cupón" : "Error al asignar cupón"}: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setAssigningCoupon(false);
     }

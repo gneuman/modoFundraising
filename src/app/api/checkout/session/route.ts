@@ -6,7 +6,7 @@ import {
   createOneTimeCheckout,
   STRIPE_PRICE_ID_MONTHLY,
 } from "@/lib/stripe";
-import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
+import { getAllApplications, getAllCoupons, updateApplicationStatus } from "@/lib/airtable";
 
 // POST /api/checkout/session
 // Body: { token, mode: "subscription" | "payment" }
@@ -18,16 +18,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Link inválido o expirado" }, { status: 400 });
   }
 
-  const { airtableId, email, firstName, startupName, stripeCouponId, stripePromotionCodeId, discountPercent } = payload;
+  const { airtableId, email, firstName, startupName, stripeCouponId: rawCouponId, stripePromotionCodeId: rawPromoId, discountPercent } = payload;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!.replace(/\/$/, "");
-
-  console.log("[checkout] mode:", mode, "| couponId:", stripeCouponId ?? "none", "| discount:", discountPercent ?? 0);
 
   try {
     // Reuse existing Stripe customer if already created
-    const apps = await getAllApplications();
+    const [apps, coupons] = await Promise.all([getAllApplications(), getAllCoupons()]);
     const app = apps.find((a) => a.id === airtableId);
     let customerId = app?.stripe_customer_id as string | undefined;
+
+    // Resolve the correct Stripe IDs by looking up the coupon record
+    // The stored ID may be either a coupon ID or a promotion code ID
+    const storedId = rawPromoId || rawCouponId || (app?.stripe_coupon_id as string | undefined);
+    const couponRecord = coupons.find(
+      (c) => c.stripe_coupon_id === storedId || c.stripe_promotion_code_id === storedId
+    );
+    const stripeCouponId = couponRecord?.stripe_coupon_id;
+    const stripePromotionCodeId = couponRecord?.stripe_promotion_code_id;
+
+    console.log("[checkout] mode:", mode, "| storedId:", storedId ?? "none", "| resolved couponId:", stripeCouponId ?? "none", "| promoId:", stripePromotionCodeId ?? "none", "| discount:", discountPercent ?? 0);
 
     if (!customerId) {
       const customer = await createStripeCustomer(email, `${firstName} — ${startupName}`);

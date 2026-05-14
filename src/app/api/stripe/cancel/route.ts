@@ -7,7 +7,7 @@ import {
   updateStartupStatus,
   deactivateAllFoundersForApplication,
 } from "@/lib/airtable";
-import { sendChurnEmail } from "@/lib/gmail";
+import { sendChurnEmail } from "@/lib/email-engine";
 
 export async function POST() {
   const session = await obtenerSesion();

@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import type { PaymentStatus } from "@/lib/airtable";
 import { iniciarPago } from "./actions";
 
-const PAGADO_STATUSES: PaymentStatus[] = ["Cuota 1 pagada", "Cuota 2 pagada", "Cuota 3 pagada"];
+const PAGADO_STATUSES: PaymentStatus[] = [
+  "Cuota 1 pagada",
+  "Cuota 2 pagada",
+  "Cuota 3 pagada",
+];
 
 interface Props {
   paymentStatus: PaymentStatus;
@@ -15,7 +19,11 @@ interface Props {
   stripeSubscriptionId?: string;
 }
 
-export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscriptionId }: Props) {
+export function SuscripcionClient({
+  paymentStatus,
+  portalAccess,
+  stripeSubscriptionId,
+}: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -23,18 +31,23 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
   const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
   // Solo puede cancelar si tiene suscripción mensual activa y no completó las 3 cuotas
-  const puedeCancel = haPagado && !!stripeSubscriptionId && paymentStatus !== "Cuota 3 pagada";
+  const puedeCancel =
+    haPagado && !!stripeSubscriptionId && paymentStatus !== "Cuota 3 pagada";
 
   async function handleCancel() {
     setCancelling(true);
     try {
       const res = await fetch("/api/stripe/cancel", { method: "POST" });
       if (!res.ok) throw new Error();
-      toast.success("Suscripción cancelada. Tu acceso permanecerá activo hasta el fin del período.");
+      toast.success(
+        "Suscripción cancelada. Tu acceso permanecerá activo hasta el fin del período.",
+      );
       setShowConfirm(false);
       window.location.href = "/portal";
     } catch {
-      toast.error("Error al cancelar la suscripción. Contacta a hello@impacta.vc");
+      toast.error(
+        "Error al cancelar la suscripción. Contacta a amdin@impacta.vc",
+      );
     } finally {
       setCancelling(false);
     }
@@ -45,7 +58,8 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
     try {
       await iniciarPago(mode);
     } catch (err) {
-      if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) throw err;
+      if (err instanceof Error && err.message.includes("NEXT_REDIRECT"))
+        throw err;
       toast.error(err instanceof Error ? err.message : "Error al iniciar pago");
       setRedirecting(false);
     }
@@ -55,7 +69,9 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-800">Suscripción</h1>
-        <p className="text-sm text-zinc-500 mt-1">Gestiona tu plan en Modo Fundraising 2026</p>
+        <p className="text-sm text-zinc-500 mt-1">
+          Gestiona tu plan en Modo Fundraising 2026
+        </p>
       </div>
 
       {!haPagado ? (
@@ -67,8 +83,9 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
               <div>
                 <h3 className="font-semibold text-amber-800">Pago pendiente</h3>
                 <p className="text-sm text-amber-700 mt-1">
-                  Tu acceso al programa Modo Fundraising 2026 está confirmado, pero tu pago está pendiente.
-                  Completa el pago para activar tu acceso completo al portal.
+                  Tu acceso al programa Modo Fundraising 2026 está confirmado,
+                  pero tu pago está pendiente. Completa el pago para activar tu
+                  acceso completo al portal.
                 </p>
               </div>
             </div>
@@ -76,12 +93,18 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
 
           <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-5">
             <div>
-              <h3 className="font-semibold text-zinc-800">Modo Fundraising 2026</h3>
-              <p className="text-sm text-zinc-500 mt-0.5">US$349 / mes · 3 cuotas</p>
+              <h3 className="font-semibold text-zinc-800">
+                Modo Fundraising 2026
+              </h3>
+              <p className="text-sm text-zinc-500 mt-0.5">
+                US$349 / mes · 3 cuotas
+              </p>
             </div>
 
             <div className="border-t border-zinc-100 pt-4 space-y-3">
-              <p className="text-sm font-medium text-zinc-700">Elige tu modalidad de pago:</p>
+              <p className="text-sm font-medium text-zinc-700">
+                Elige tu modalidad de pago:
+              </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
@@ -89,9 +112,15 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
                   disabled={redirecting}
                   className="flex flex-col items-start p-4 rounded-xl border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 transition-colors text-left disabled:opacity-50"
                 >
-                  <span className="text-sm font-semibold text-blue-700">3 cuotas mensuales</span>
-                  <span className="text-2xl font-bold text-blue-800 mt-1">US$349<span className="text-base font-medium">/mes</span></span>
-                  <span className="text-xs text-blue-600 mt-1">Cobro automático · Total US$1,047</span>
+                  <span className="text-sm font-semibold text-blue-700">
+                    3 cuotas mensuales
+                  </span>
+                  <span className="text-2xl font-bold text-blue-800 mt-1">
+                    US$349<span className="text-base font-medium">/mes</span>
+                  </span>
+                  <span className="text-xs text-blue-600 mt-1">
+                    Cobro automático · Total US$1,047
+                  </span>
                 </button>
 
                 <button
@@ -99,9 +128,15 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
                   disabled={redirecting}
                   className="flex flex-col items-start p-4 rounded-xl border-2 border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 transition-colors text-left disabled:opacity-50"
                 >
-                  <span className="text-sm font-semibold text-zinc-700">Pago único</span>
-                  <span className="text-2xl font-bold text-zinc-800 mt-1">US$1,047</span>
-                  <span className="text-xs text-zinc-500 mt-1">Un solo cobro · Acceso completo</span>
+                  <span className="text-sm font-semibold text-zinc-700">
+                    Pago único
+                  </span>
+                  <span className="text-2xl font-bold text-zinc-800 mt-1">
+                    US$1,047
+                  </span>
+                  <span className="text-xs text-zinc-500 mt-1">
+                    Un solo cobro · Acceso completo
+                  </span>
                 </button>
               </div>
 
@@ -111,9 +146,15 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-2"
               >
                 {redirecting ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" />Redirigiendo al pago...</>
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Redirigiendo al pago...
+                  </>
                 ) : (
-                  <><ExternalLink className="h-4 w-4 mr-2" />Completar pago</>
+                  <>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Completar pago
+                  </>
                 )}
               </Button>
             </div>
@@ -124,8 +165,12 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
         <div className="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="font-semibold text-zinc-800">Modo Fundraising 2026</h3>
-              <p className="text-sm text-zinc-500 mt-0.5">US$349 / mes · 3 cuotas</p>
+              <h3 className="font-semibold text-zinc-800">
+                Modo Fundraising 2026
+              </h3>
+              <p className="text-sm text-zinc-500 mt-0.5">
+                US$349 / mes · 3 cuotas
+              </p>
             </div>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
               {paymentStatus}
@@ -136,7 +181,8 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
             {puedeCancel && (
               <>
                 <p className="text-sm text-zinc-500 mb-4">
-                  Si cancelás tu suscripción, tu acceso al portal permanecerá activo hasta el final del período de facturación actual.
+                  Si cancelás tu suscripción, tu acceso al portal permanecerá
+                  activo hasta el final del período de facturación actual.
                 </p>
                 {!showConfirm ? (
                   <Button
@@ -151,8 +197,13 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-semibold text-red-700">¿Confirmás la cancelación?</p>
-                        <p className="text-xs text-red-600 mt-1">Perderás acceso al portal y a todas las clases y misiones.</p>
+                        <p className="text-sm font-semibold text-red-700">
+                          ¿Confirmás la cancelación?
+                        </p>
+                        <p className="text-xs text-red-600 mt-1">
+                          Perderás acceso al portal y a todas las clases y
+                          misiones.
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-3">
@@ -161,9 +212,20 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
                         disabled={cancelling}
                         className="bg-red-600 hover:bg-red-700 text-white text-sm"
                       >
-                        {cancelling ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Cancelando...</> : "Sí, cancelar"}
+                        {cancelling ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Cancelando...
+                          </>
+                        ) : (
+                          "Sí, cancelar"
+                        )}
                       </Button>
-                      <Button variant="outline" onClick={() => setShowConfirm(false)} className="text-sm">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowConfirm(false)}
+                        className="text-sm"
+                      >
                         No, mantener
                       </Button>
                     </div>
@@ -185,7 +247,9 @@ export function SuscripcionClient({ paymentStatus, portalAccess, stripeSubscript
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-5">
         <p className="text-sm text-zinc-600">
           ¿Tienes preguntas sobre tu suscripción?{" "}
-          <a href="mailto:hello@impacta.vc" className="text-blue-600 underline">hello@impacta.vc</a>
+          <a href="mailto:amdin@impacta.vc" className="text-blue-600 underline">
+            amdin@impacta.vc
+          </a>
         </p>
       </div>
     </div>

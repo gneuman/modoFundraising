@@ -252,6 +252,7 @@ export interface StartupRecord {
   round_series?: string;
   round_size?: number;
   round_tickets?: string;
+  startup_valuation?: number;
   runway?: number;
   deck_url?: string;
   program_source?: string;
@@ -342,6 +343,9 @@ export interface TeamMember {
   first_name: string;
   last_name: string;
   founder_role?: string;
+  whatsapp?: string;
+  linkedin_founder?: string;
+  country_residence?: string;
   portal_access: boolean;
 }
 
@@ -350,6 +354,11 @@ export interface FounderProfile {
   email: string;
   first_name: string;
   last_name: string;
+  whatsapp?: string;
+  linkedin_founder?: string;
+  founder_role?: string;
+  country_residence?: string;
+  founder_team_women?: string;
   portal_access: boolean;
   stripe_customer_id?: string;
   // from postulacion
@@ -380,51 +389,101 @@ export async function getFounderProfile(email: string): Promise<FounderProfile |
     email: f.email as string ?? email,
     first_name: f.first_name as string ?? "",
     last_name: f.last_name as string ?? "",
+    whatsapp: f.whatsapp as string | undefined,
+    linkedin_founder: f.linkedin_founder as string | undefined,
+    founder_role: f.founder_role as string | undefined,
+    country_residence: f.country_residence as string | undefined,
+    founder_team_women: f.founder_team_women as string | undefined,
     portal_access: f.portal_access as boolean ?? false,
     stripe_customer_id: f.stripe_customer_id as string | undefined,
   };
 
   const postulacionIds = f["Postulaciones MF26"] as string[] | undefined;
-  if (!postulacionIds?.length) return profile;
 
-  const postulacion = await base(Tables.POSTULACIONES).find(postulacionIds[0]);
-  const pf = postulacion.fields as Record<string, unknown>;
-  profile.postulacion_id = postulacion.id;
-  profile.status = pf.status as ApplicationStatus | undefined;
-  profile.payment_status = pf.payment_status as PaymentStatus | undefined;
-  profile.stripe_coupon_id = pf.stripe_coupon_id as string | undefined;
-  profile.stripe_promotion_code_id = pf.stripe_promotion_code_id as string | undefined;
-  profile.stripe_subscription_id = pf.stripe_subscription_id as string | undefined;
-  profile.discount_percent = pf.discount_percent as number | undefined;
+  if (postulacionIds?.length) {
+    const postulacion = await base(Tables.POSTULACIONES).find(postulacionIds[0]);
+    const pf = postulacion.fields as Record<string, unknown>;
+    profile.postulacion_id = postulacion.id;
+    profile.status = pf.status as ApplicationStatus | undefined;
+    profile.payment_status = pf.payment_status as PaymentStatus | undefined;
+    profile.stripe_coupon_id = pf.stripe_coupon_id as string | undefined;
+    profile.stripe_promotion_code_id = pf.stripe_promotion_code_id as string | undefined;
+    profile.stripe_subscription_id = pf.stripe_subscription_id as string | undefined;
+    profile.discount_percent = pf.discount_percent as number | undefined;
 
-  const startupIds = pf.startup_record as string[] | undefined;
-  if (startupIds?.length) {
-    const startup = await base(Tables.STARTUPS).find(startupIds[0]);
-    const sf = startup.fields as Record<string, unknown>;
-    profile.startup_record_id = startup.id;
-    profile.startup_name = sf.startup_name as string | undefined;
-    profile.startup_country_ops = sf.startup_country_ops as string | undefined;
-    profile.startup = { id: startup.id, ...sf } as StartupRecord;
+    const startupIds = pf.startup_record as string[] | undefined;
+    if (startupIds?.length) {
+      const startup = await base(Tables.STARTUPS).find(startupIds[0]);
+      const sf = startup.fields as Record<string, unknown>;
+      profile.startup_record_id = startup.id;
+      profile.startup_name = sf.startup_name as string | undefined;
+      profile.startup_country_ops = sf.startup_country_ops as string | undefined;
+      profile.startup = { id: startup.id, ...sf } as StartupRecord;
 
-    // Fetch all founders linked to this startup
-    const founderIds = sf["Founders"] as string[] | undefined;
-    if (founderIds?.length) {
-      const founderRecords = await Promise.all(founderIds.map((id) => base(Tables.FOUNDERS).find(id)));
-      profile.team = founderRecords.map((r) => {
-        const ff = r.fields as Record<string, unknown>;
-        return {
-          id: r.id,
-          email: ff.email as string ?? "",
-          first_name: ff.first_name as string ?? "",
-          last_name: ff.last_name as string ?? "",
-          founder_role: ff.founder_role as string | undefined,
-          portal_access: ff.portal_access as boolean ?? false,
-        };
-      });
+      // Fetch all founders linked to this startup
+      const founderIds = sf["Founders"] as string[] | undefined;
+      if (founderIds?.length) {
+        const founderRecords = await Promise.all(founderIds.map((id) => base(Tables.FOUNDERS).find(id)));
+        profile.team = founderRecords.map((r) => {
+          const ff = r.fields as Record<string, unknown>;
+          return {
+            id: r.id,
+            email: ff.email as string ?? "",
+            first_name: ff.first_name as string ?? "",
+            last_name: ff.last_name as string ?? "",
+            founder_role: ff.founder_role as string | undefined,
+            whatsapp: ff.whatsapp as string | undefined,
+            linkedin_founder: ff.linkedin_founder as string | undefined,
+            country_residence: ff.country_residence as string | undefined,
+            portal_access: ff.portal_access as boolean ?? false,
+          };
+        });
+      }
+    }
+  }
+
+  // Fallback: if no startup found via postulación, check Startups MF26 linked directly
+  if (!profile.startup) {
+    const directStartupIds = f["Startups MF26"] as string[] | undefined;
+    if (directStartupIds?.length) {
+      const startup = await base(Tables.STARTUPS).find(directStartupIds[0]);
+      const sf = startup.fields as Record<string, unknown>;
+      profile.startup_record_id = startup.id;
+      profile.startup_name = sf.startup_name as string | undefined;
+      profile.startup_country_ops = sf.startup_country_ops as string | undefined;
+      profile.startup = { id: startup.id, ...sf } as StartupRecord;
+
+      const founderIds = sf["Founders"] as string[] | undefined;
+      if (founderIds?.length) {
+        const founderRecords = await Promise.all(founderIds.map((id) => base(Tables.FOUNDERS).find(id)));
+        profile.team = founderRecords.map((r) => {
+          const ff = r.fields as Record<string, unknown>;
+          return {
+            id: r.id,
+            email: ff.email as string ?? "",
+            first_name: ff.first_name as string ?? "",
+            last_name: ff.last_name as string ?? "",
+            founder_role: ff.founder_role as string | undefined,
+            whatsapp: ff.whatsapp as string | undefined,
+            linkedin_founder: ff.linkedin_founder as string | undefined,
+            country_residence: ff.country_residence as string | undefined,
+            portal_access: ff.portal_access as boolean ?? false,
+          };
+        });
+      }
     }
   }
 
   return profile;
+}
+
+export async function updateFounder(id: string, data: Partial<FounderRecord>) {
+  const allowed = ['first_name', 'last_name', 'whatsapp', 'linkedin_founder', 'founder_role', 'country_residence', 'founder_team_women'];
+  const fields: Record<string, unknown> = {};
+  for (const key of allowed) {
+    if (data[key as keyof FounderRecord] !== undefined) fields[key] = data[key as keyof FounderRecord];
+  }
+  await base(Tables.FOUNDERS).update(id, fields as never);
 }
 
 export async function updateFounderAccess(
@@ -710,8 +769,9 @@ export async function assignCouponToApplication(
     coupon_code: couponCode,
     discount_percent: discountPercent,
   };
-  if (stripeCouponId) fields.stripe_coupon_id = stripeCouponId;
-  if (stripePromotionCodeId) fields.stripe_promotion_code_id = stripePromotionCodeId;
+  // Prefer promotion code ID — portal-checkout uses it as promotion_code in Stripe
+  const idToStore = stripePromotionCodeId || stripeCouponId;
+  if (idToStore) fields.stripe_coupon_id = idToStore;
   await base(Tables.POSTULACIONES).update(recordId, fields as never, { typecast: true });
 }
 

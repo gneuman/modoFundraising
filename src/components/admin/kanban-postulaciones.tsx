@@ -609,12 +609,15 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recordId: app.id, coupon_code: coupon.code, discount_percent: coupon.discount_percent, stripe_coupon_id: coupon.stripe_coupon_id, stripe_promotion_code_id: coupon.stripe_promotion_code_id }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
       setData((prev) => prev.map((a) => a.id === app.id ? { ...a, coupon_code: coupon.code, discount_percent: coupon.discount_percent } : a));
       setActionsModal((m) => m ? { ...m, app: { ...m.app, coupon_code: coupon.code, discount_percent: coupon.discount_percent } } : m);
       toast.success(`Cupón ${coupon.code} (${coupon.discount_percent}% off) asignado`);
-    } catch {
-      toast.error("Error al asignar cupón");
+    } catch (err) {
+      toast.error(`Error al asignar cupón: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setUpdating(null);
     }

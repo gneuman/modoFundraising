@@ -4,7 +4,9 @@ const CLIENT_ID = process.env.GMAIL_CLIENT_ID!;
 const CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET!;
 const REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN!;
 const FROM = process.env.GMAIL_FROM ?? "Modo Fundraising <hola@impacta.vc>";
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://modofundraising.vercel.app").replace(/\/$/, "");
+const APP_URL = (
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://modofundraising.vercel.app"
+).replace(/\/$/, "");
 
 function getOAuth2Client() {
   const auth = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET);
@@ -70,7 +72,7 @@ function email(content: string) {
         <tr><td style="padding:24px 0;text-align:center;">
           <p style="margin:0;font-size:12px;color:#a1a1aa;">
             Modo Fundraising 2026 · Impacta VC<br/>
-            <a href="mailto:hello@impacta.vc" style="color:#a1a1aa;">hello@impacta.vc</a>
+            <a href="mailto:amdin@impacta.vc" style="color:#a1a1aa;">amdin@impacta.vc</a>
           </p>
         </td></tr>
 
@@ -111,19 +113,33 @@ function badge(text: string, color = "#2563eb") {
 
 // ─── Emails ───────────────────────────────────────────────────────────────────
 
-export async function sendMagicLink(emailAddr: string, token: string, role: "admin" | "founder") {
+export async function sendMagicLink(
+  emailAddr: string,
+  token: string,
+  role: "admin" | "founder",
+) {
   const url = `${APP_URL}/api/auth/verify?token=${token}&role=${role}`;
-  await sendEmail(emailAddr, "Tu enlace de acceso a Modo Fundraising 2026", email(`
+  await sendEmail(
+    emailAddr,
+    "Tu enlace de acceso a Modo Fundraising 2026",
+    email(`
     ${h1("Ingresá a tu portal")}
     ${p("Haz clic en el botón para acceder. Este enlace es válido por <strong>15 minutos</strong> y solo puede usarse una vez.")}
     ${btn(url, "Ingresar al portal →")}
     ${divider()}
-    ${small("Si no solicitaste este acceso, ignorá este mensaje. Tu cuenta está segura.<br/>¿Problemas? Escribinos a <a href='mailto:hello@impacta.vc' style='color:#a1a1aa;'>hello@impacta.vc</a>")}
-  `));
+    ${small("Si no solicitaste este acceso, ignorá este mensaje. Tu cuenta está segura.<br/>¿Problemas? Escribinos a <a href='mailto:amdin@impacta.vc' style='color:#a1a1aa;'>amdin@impacta.vc</a>")}
+  `),
+  );
 }
 
-export async function sendApplicationConfirmation(emailAddr: string, firstName: string) {
-  await sendEmail(emailAddr, "Recibimos tu postulación a Modo Fundraising 2026", email(`
+export async function sendApplicationConfirmation(
+  emailAddr: string,
+  firstName: string,
+) {
+  await sendEmail(
+    emailAddr,
+    "Recibimos tu postulación a Modo Fundraising 2026",
+    email(`
     ${badge("Postulación recibida", "#16a34a")}
     <div style="height:16px;"></div>
     ${h1(`¡Gracias, ${firstName}!`)}
@@ -135,27 +151,39 @@ export async function sendApplicationConfirmation(emailAddr: string, firstName: 
       <td><a href="https://www.instagram.com/impacta.vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Instagram →</a></td>
     </tr></table>
     ${small("— Equipo Impacta VC")}
-  `));
+  `),
+  );
 }
 
 export async function sendReferralRequest(
   referralEmail: string,
   referralName: string,
   founderName: string,
-  startupName: string
+  startupName: string,
 ) {
-  await sendEmail(referralEmail, `${founderName} te pidió una recomendación en Modo Fundraising 2026`, email(`
+  await sendEmail(
+    referralEmail,
+    `${founderName} te pidió una recomendación en Modo Fundraising 2026`,
+    email(`
     ${h1(`Hola ${referralName}`)}
     ${p(`<strong>${founderName}</strong> de <strong>${startupName}</strong> te agregó como recomendador en su postulación a Modo Fundraising 2026.`)}
     ${p("Tu recomendación suma puntos a su perfil. Si los conoces y puedes respaldarlos, responde a este email o escríbenos.")}
     ${divider()}
-    <a href="mailto:hello@impacta.vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
+    <a href="mailto:amdin@impacta.vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
     ${small("— Equipo Impacta VC")}
-  `));
+  `),
+  );
 }
 
-export async function sendAdmissionEmail(emailAddr: string, firstName: string, checkoutUrl: string) {
-  await sendEmail(emailAddr, "¡Quedaste seleccionada para Modo Fundraising!", email(`
+export async function sendAdmissionEmail(
+  emailAddr: string,
+  firstName: string,
+  checkoutUrl: string,
+) {
+  await sendEmail(
+    emailAddr,
+    "¡Quedaste seleccionada para Modo Fundraising!",
+    email(`
     ${badge("🎉 ¡Excelentes noticias!", "#16a34a")}
     <div style="height:16px;"></div>
     ${h1(`Hola ${firstName},`)}
@@ -166,21 +194,34 @@ export async function sendAdmissionEmail(emailAddr: string, firstName: string, c
     ${p("Los cupos son limitados y no queremos que te quedes fuera 🙌")}
     ${divider()}
     ${small("Cualquier duda, escríbenos.<br/><br/>¡Nos vemos adentro! 🙌<br/>El equipo de Modo Fundraising — Impacta VC")}
-  `));
+  `),
+  );
 }
 
 export async function sendRejectionEmail(emailAddr: string, firstName: string) {
-  await sendEmail(emailAddr, "Actualización sobre tu postulación a Modo Fundraising 2026", email(`
+  await sendEmail(
+    emailAddr,
+    "Actualización sobre tu postulación a Modo Fundraising 2026",
+    email(`
     ${h1(`Hola ${firstName}`)}
     ${p("Gracias por tu interés en <strong>Modo Fundraising 2026</strong>. Tras revisar tu postulación, en esta ocasión no podemos continuar con tu candidatura.")}
     ${p("Esto no es un reflejo de tu potencial. Te animamos a seguir construyendo y esperamos verte en futuras ediciones del programa.")}
     ${divider()}
     ${small("Si tienes preguntas, responde a este email.<br/>— Equipo Impacta VC")}
-  `));
+  `),
+  );
 }
 
-export async function sendAdmissionFollowUp(emailAddr: string, firstName: string, checkoutUrl: string, followUpNumber: number) {
-  await sendEmail(emailAddr, `Tu lugar en Modo Fundraising 2026 está por vencer (${followUpNumber}/2)`, email(`
+export async function sendAdmissionFollowUp(
+  emailAddr: string,
+  firstName: string,
+  checkoutUrl: string,
+  followUpNumber: number,
+) {
+  await sendEmail(
+    emailAddr,
+    `Tu lugar en Modo Fundraising 2026 está por vencer (${followUpNumber}/2)`,
+    email(`
     ${badge("Recordatorio", "#d97706")}
     <div style="height:16px;"></div>
     ${h1(`${firstName}, tu lugar sigue reservado`)}
@@ -188,11 +229,19 @@ export async function sendAdmissionFollowUp(emailAddr: string, firstName: string
     ${btn(checkoutUrl, "Completar inscripción →", "#d97706")}
     ${divider()}
     ${small("¿Tienes dudas o necesitas hablar con alguien antes de decidir? Responde este email.<br/>— Equipo Impacta VC")}
-  `));
+  `),
+  );
 }
 
-export async function sendOnboardingEmail(emailAddr: string, firstName: string, portalUrl: string) {
-  await sendEmail(emailAddr, "¡Bienvenido/a a Modo Fundraising 2026! Tu portal está listo", email(`
+export async function sendOnboardingEmail(
+  emailAddr: string,
+  firstName: string,
+  portalUrl: string,
+) {
+  await sendEmail(
+    emailAddr,
+    "¡Bienvenido/a a Modo Fundraising 2026! Tu portal está listo",
+    email(`
     ${badge("✅ Inscripción confirmada", "#2563eb")}
     <div style="height:16px;"></div>
     ${h1(`¡Bienvenido/a, ${firstName}!`)}
@@ -207,11 +256,19 @@ export async function sendOnboardingEmail(emailAddr: string, firstName: string, 
       <li>Invitar a otros founders de tu equipo</li>
     </ul>
     ${small("— Equipo Impacta VC")}
-  `));
+  `),
+  );
 }
 
-export async function sendPaymentConfirmation(emailAddr: string, firstName: string, installment: number) {
-  await sendEmail(emailAddr, `Pago confirmado — Cuota ${installment}/3 Modo Fundraising 2026`, email(`
+export async function sendPaymentConfirmation(
+  emailAddr: string,
+  firstName: string,
+  installment: number,
+) {
+  await sendEmail(
+    emailAddr,
+    `Pago confirmado — Cuota ${installment}/3 Modo Fundraising 2026`,
+    email(`
     ${badge(`✓ Cuota ${installment}/3 recibida`, "#16a34a")}
     <div style="height:16px;"></div>
     ${h1(`¡Gracias, ${firstName}!`)}
@@ -219,11 +276,20 @@ export async function sendPaymentConfirmation(emailAddr: string, firstName: stri
     ${installment < 3 ? p("Tu próxima cuota se procesará automáticamente en 30 días.") : p("Completaste el programa al 100%. ¡Gracias por tu confianza!")}
     ${divider()}
     ${small("¿Dudas sobre tu facturación? Responde este email.<br/>— Equipo Impacta VC")}
-  `));
+  `),
+  );
 }
 
-export async function sendPaymentFailedEmail(emailAddr: string, firstName: string, attempt: number, portalUrl: string) {
-  await sendEmail(emailAddr, `Acción requerida: problema con tu pago (aviso ${attempt}/3)`, email(`
+export async function sendPaymentFailedEmail(
+  emailAddr: string,
+  firstName: string,
+  attempt: number,
+  portalUrl: string,
+) {
+  await sendEmail(
+    emailAddr,
+    `Acción requerida: problema con tu pago (aviso ${attempt}/3)`,
+    email(`
     ${badge("⚠️ Pago fallido", "#dc2626")}
     <div style="height:16px;"></div>
     ${h1(`Hola ${firstName}, hay un problema con tu pago`)}
@@ -231,21 +297,35 @@ export async function sendPaymentFailedEmail(emailAddr: string, firstName: strin
     ${btn(`${portalUrl}/suscripcion`, "Actualizar método de pago →", "#dc2626")}
     ${divider()}
     ${small(`Este es el aviso ${attempt} de 3. Si no se resuelve, tu acceso será suspendido.<br/>¿Necesitas ayuda? Responde este email.<br/>— Equipo Impacta VC`)}
-  `));
+  `),
+  );
 }
 
-export async function sendChurnEmail(emailAddr: string, firstName: string, _postulacionId?: string) {
-  await sendEmail(emailAddr, "Tu suscripción a Modo Fundraising 2026 fue cancelada", email(`
+export async function sendChurnEmail(
+  emailAddr: string,
+  firstName: string,
+  _postulacionId?: string,
+) {
+  await sendEmail(
+    emailAddr,
+    "Tu suscripción a Modo Fundraising 2026 fue cancelada",
+    email(`
     ${h1(`Hola ${firstName}`)}
     ${p("Tu suscripción a <strong>Modo Fundraising 2026</strong> fue cancelada y tu acceso al portal fue revocado.")}
     ${p("Lamentamos verte partir. ¿Puedes contarnos por qué decidiste salir? Tu feedback nos ayuda a mejorar.")}
-    <a href="mailto:hello@impacta.vc?subject=Feedback%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Enviar feedback →</a>
+    <a href="mailto:amdin@impacta.vc?subject=Feedback%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Enviar feedback →</a>
     ${divider()}
     ${small("— Equipo Impacta VC")}
-  `));
+  `),
+  );
 }
 
-export async function sendCouponLink(emailAddr: string, firstName: string, checkoutUrl: string, discountPercent: number) {
+export async function sendCouponLink(
+  emailAddr: string,
+  firstName: string,
+  checkoutUrl: string,
+  discountPercent: number,
+) {
   const isFullScholarship = discountPercent === 100;
   await sendEmail(
     emailAddr,
@@ -254,9 +334,14 @@ export async function sendCouponLink(emailAddr: string, firstName: string, check
       ${badge(isFullScholarship ? "🎓 Beca completa" : "🎉 ¡Excelentes noticias!", "#16a34a")}
       <div style="height:16px;"></div>
       ${h1(`Hola ${firstName},`)}
-      ${isFullScholarship
-        ? p("Tienes una <strong>beca completa</strong> reservada para Modo Fundraising 2026. Tu acceso es gratuito — solo necesitas activarla.")
-        : p("¡Excelentes noticias! Revisamos tu postulación y queremos que seas parte de esta edición 🚀 (con beca parcial incluida 😉)")
+      ${
+        isFullScholarship
+          ? p(
+              "Tienes una <strong>beca completa</strong> reservada para Modo Fundraising 2026. Tu acceso es gratuito — solo necesitas activarla.",
+            )
+          : p(
+              "¡Excelentes noticias! Revisamos tu postulación y queremos que seas parte de esta edición 🚀 (con beca parcial incluida 😉)",
+            )
       }
       ${isFullScholarship ? "" : p("Estás en el momento indicado para entrar en modo fundraising: construir tu narrativa, afinar tu estrategia y conectar con los inversionistas correctos. Pero más allá de esta ronda, lo que te llevas es el skill para levantar capital ronda tras ronda — porque el fundraising no es un evento, es una competencia que se aprende y se perfecciona.")}
       ${p("Solo queda un paso para hacer esto oficial: asegura tu cupo completando el pago a través de este link.")}
@@ -264,19 +349,26 @@ export async function sendCouponLink(emailAddr: string, firstName: string, check
       ${p("Los cupos son limitados y no queremos que te quedes fuera 🙌")}
       ${divider()}
       ${small("Cualquier duda, escríbenos.<br/><br/>¡Nos vemos adentro! 🙌<br/>El equipo de Modo Fundraising — Impacta VC")}
-    `)
+    `),
   );
 }
 
-export async function sendPortalDeactivatedEmail(emailAddr: string, firstName: string) {
-  await sendEmail(emailAddr, "Tu acceso al portal de Modo Fundraising fue suspendido", email(`
+export async function sendPortalDeactivatedEmail(
+  emailAddr: string,
+  firstName: string,
+) {
+  await sendEmail(
+    emailAddr,
+    "Tu acceso al portal de Modo Fundraising fue suspendido",
+    email(`
     ${badge("⚠️ Acceso suspendido", "#dc2626")}
     <div style="height:16px;"></div>
     ${h1(`Hola ${firstName}`)}
     ${p("Tu acceso al portal de <strong>Modo Fundraising 2026</strong> fue suspendido debido a un problema con tu método de pago que no pudimos resolver.")}
     ${p("Si crees que esto es un error o querés regularizar tu situación, respondé este email y lo resolvemos juntos.")}
-    <a href="mailto:hello@impacta.vc?subject=Reactivar%20acceso%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
+    <a href="mailto:amdin@impacta.vc?subject=Reactivar%20acceso%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
     ${divider()}
     ${small("— Equipo Impacta VC")}
-  `));
+  `),
+  );
 }

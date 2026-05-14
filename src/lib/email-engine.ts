@@ -1,13 +1,15 @@
 import { google } from "googleapis";
 import { getAutomationRules, type TriggerEvent } from "@/lib/airtable";
 
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://modofundraising.vercel.app").replace(/\/$/, "");
+const APP_URL = (
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://modofundraising.vercel.app"
+).replace(/\/$/, "");
 const FROM = process.env.GMAIL_FROM ?? "Modo Fundraising <admin@impacta.vc>";
 
 function getGmailClient() {
   const auth = new google.auth.OAuth2(
     process.env.GMAIL_CLIENT_ID!,
-    process.env.GMAIL_CLIENT_SECRET!
+    process.env.GMAIL_CLIENT_SECRET!,
   );
   auth.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN! });
   return google.gmail({ version: "v1", auth });
@@ -78,7 +80,7 @@ function wrapInBaseLayout(content: string): string {
         <tr><td style="padding:24px 0;text-align:center;">
           <p style="margin:0;font-size:12px;color:#a1a1aa;">
             Modo Fundraising 2026 · Impacta VC<br/>
-            <a href="mailto:hello@impacta.vc" style="color:#a1a1aa;">hello@impacta.vc</a>
+            <a href="mailto:amdin@impacta.vc" style="color:#a1a1aa;">amdin@impacta.vc</a>
           </p>
         </td></tr>
 
@@ -87,6 +89,51 @@ function wrapInBaseLayout(content: string): string {
   </table>
 </body>
 </html>`;
+}
+
+// ─── Funciones compatibles con gmail.ts ──────────────────────────────────────
+
+export async function sendApplicationConfirmation(emailAddr: string, firstName: string) {
+  await sendAutomationEmail("application_received", emailAddr, { nombre: firstName, email: emailAddr });
+}
+
+export async function sendAdmissionEmail(emailAddr: string, firstName: string, checkoutUrl: string) {
+  await sendAutomationEmail("admission_approved", emailAddr, { nombre: firstName, email: emailAddr, checkout_url: checkoutUrl });
+}
+
+export async function sendCouponLink(emailAddr: string, firstName: string, checkoutUrl: string, _discountPercent: number) {
+  await sendAutomationEmail("admission_approved", emailAddr, { nombre: firstName, email: emailAddr, checkout_url: checkoutUrl });
+}
+
+export async function sendRejectionEmail(emailAddr: string, firstName: string) {
+  await sendAutomationEmail("admission_rejected", emailAddr, { nombre: firstName, email: emailAddr });
+}
+
+export async function sendAdmissionFollowUp(emailAddr: string, firstName: string, checkoutUrl: string, followUpNumber: number) {
+  const trigger = followUpNumber === 1 ? "follow_up_1" : "follow_up_2";
+  await sendAutomationEmail(trigger, emailAddr, { nombre: firstName, email: emailAddr, checkout_url: checkoutUrl });
+}
+
+export async function sendOnboardingEmail(emailAddr: string, firstName: string, portalUrl: string) {
+  await sendAutomationEmail("onboarding", emailAddr, { nombre: firstName, email: emailAddr, portal_url: portalUrl });
+}
+
+export async function sendPaymentConfirmation(emailAddr: string, firstName: string, installment: number) {
+  const trigger = installment === 2 ? "invoice_paid_cuota2" : installment === 3 ? "invoice_paid_cuota3" : "checkout_completed";
+  await sendAutomationEmail(trigger, emailAddr, { nombre: firstName, email: emailAddr, cuota_num: String(installment) });
+}
+
+export async function sendPaymentFailedEmail(emailAddr: string, firstName: string, attempt: number, portalUrl: string) {
+  const trigger = attempt === 1 ? "payment_failed_1" : attempt === 2 ? "payment_failed_2" : "payment_failed_3";
+  await sendAutomationEmail(trigger, emailAddr, { nombre: firstName, email: emailAddr, portal_url: portalUrl });
+}
+
+export async function sendChurnEmail(emailAddr: string, firstName: string, _postulacionId?: string) {
+  await sendAutomationEmail("subscription_cancelled", emailAddr, { nombre: firstName, email: emailAddr });
+}
+
+export async function sendPortalDeactivatedEmail(emailAddr: string, firstName: string) {
+  await sendAutomationEmail("portal_deactivated", emailAddr, { nombre: firstName, email: emailAddr });
 }
 
 /**
@@ -100,7 +147,7 @@ export async function sendAutomationEmail(
   trigger: TriggerEvent,
   toEmail: string,
   ctx: TemplateContext,
-  triggerCondition?: Record<string, string | number>
+  triggerCondition?: Record<string, string | number>,
 ): Promise<void> {
   const rules = await getAutomationRules(trigger);
   if (!rules.length) return;
@@ -112,9 +159,12 @@ export async function sendAutomationEmail(
     // Evaluate trigger_condition if present
     if (rule.trigger_condition) {
       try {
-        const condition = JSON.parse(rule.trigger_condition) as Record<string, string | number>;
+        const condition = JSON.parse(rule.trigger_condition) as Record<
+          string,
+          string | number
+        >;
         const match = Object.entries(condition).every(
-          ([k, v]) => triggerCondition?.[k]?.toString() === v?.toString()
+          ([k, v]) => triggerCondition?.[k]?.toString() === v?.toString(),
         );
         if (!match) continue;
       } catch {
@@ -132,7 +182,9 @@ export async function sendAutomationEmail(
 
     if (rule.delay_hours > 0) {
       const ms = rule.delay_hours * 60 * 60 * 1000;
-      setTimeout(() => { sendFn().catch(console.error); }, ms);
+      setTimeout(() => {
+        sendFn().catch(console.error);
+      }, ms);
     } else {
       await sendFn();
     }

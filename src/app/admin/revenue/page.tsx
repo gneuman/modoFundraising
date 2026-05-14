@@ -124,9 +124,9 @@ export default async function RevenuePage() {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      p.status === "Pagado" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+                      p.status === "Pagado" || p.status === "paid" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
                     }`}>
-                      {p.status || "—"}
+                      {p.status === "paid" ? "Pagado" : p.status || "—"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-zinc-400">

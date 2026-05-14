@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { obtenerSesion } from "@/lib/auth";
 import { getClaseById, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
 import Link from "next/link";
@@ -120,6 +120,7 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
 }
 
 export default async function ClaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  if (process.env.NEXT_PUBLIC_SHOW_CLASES_MISIONES !== "true") redirect("/portal");
   const { id } = await params;
   const session = await obtenerSesion();
 

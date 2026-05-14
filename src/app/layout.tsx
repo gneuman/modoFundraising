@@ -62,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GTMNoScript />
         <AttributionCapture />
         {children}
-        <WhatsAppButton />
+        {process.env.SHOW_WHATSAPP_WIDGET === "true" && <WhatsAppButton />}
         <Toaster richColors position="top-right" />
       </body>
     </html>

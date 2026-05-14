@@ -6,13 +6,15 @@ import { LayoutDashboard, BookOpen, Target, Users, CreditCard, LogOut, Rocket, L
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
+const showClasesMisiones = process.env.NEXT_PUBLIC_SHOW_CLASES_MISIONES === "true";
+
 const NAV = [
-  { href: "/portal", label: "Mi portal", icon: LayoutDashboard, exact: true, locked: false },
-  { href: "/portal/startup", label: "Mi Startup", icon: Rocket, locked: false },
-  { href: "/portal/clases", label: "Clases", icon: BookOpen, locked: true },
-  { href: "/portal/misiones", label: "Misiones", icon: Target, locked: true },
-  { href: "/portal/equipo", label: "Equipo", icon: Users, locked: false },
-  { href: "/portal/suscripcion", label: "Suscripción", icon: CreditCard, locked: false },
+  { href: "/portal", label: "Mi portal", icon: LayoutDashboard, exact: true, locked: false, hidden: false },
+  { href: "/portal/startup", label: "Mi Startup", icon: Rocket, locked: false, hidden: false },
+  { href: "/portal/clases", label: "Clases", icon: BookOpen, locked: true, hidden: !showClasesMisiones },
+  { href: "/portal/misiones", label: "Misiones", icon: Target, locked: true, hidden: !showClasesMisiones },
+  { href: "/portal/equipo", label: "Equipo", icon: Users, locked: false, hidden: false },
+  { href: "/portal/suscripcion", label: "Suscripción", icon: CreditCard, locked: false, hidden: false },
 ];
 
 export function PortalSidebar({
@@ -43,7 +45,7 @@ export function PortalSidebar({
       </div>
 
       <nav className="flex-1 p-3 space-y-1">
-        {NAV.map(({ href, label, icon: Icon, exact, locked }) => {
+        {NAV.filter(({ hidden }) => !hidden).map(({ href, label, icon: Icon, exact, locked }) => {
           const isBlocked = needsPayment && locked;
           const active = !isBlocked && (exact ? pathname === href : pathname.startsWith(href));
 

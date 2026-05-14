@@ -26,13 +26,16 @@ async function buildCheckoutUrl(recordId: string, app: {
   email?: string; first_name?: string; startup_name?: string;
   stripe_coupon_id?: unknown; stripe_promotion_code_id?: unknown; discount_percent?: unknown;
 }) {
+  const rawId = (app.stripe_promotion_code_id || app.stripe_coupon_id) as string | undefined;
+  // Stripe coupon IDs start with "coup_"; everything else is treated as a promotion code ID
+  const isCoupon = rawId?.startsWith("coup_");
   const token = await createCheckoutToken({
     airtableId: recordId,
     email: app.email!,
     firstName: app.first_name!,
     startupName: app.startup_name!,
-    stripeCouponId: app.stripe_coupon_id as string | undefined,
-    stripePromotionCodeId: app.stripe_promotion_code_id as string | undefined,
+    stripeCouponId: isCoupon ? rawId : undefined,
+    stripePromotionCodeId: isCoupon ? undefined : rawId,
     discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
   });
   return `${APP_URL}/checkout/${token}`;
@@ -77,7 +80,7 @@ export async function PATCH(req: NextRequest) {
       const { assignCouponToApplication } = await import("@/lib/airtable");
       await assignCouponToApplication(recordId, coupon_code, discount_percent ?? 0, stripe_coupon_id ?? "", stripe_promotion_code_id ?? "");
 
-      // Si ya está admitida, regenerar y reenviar checkout con el nuevo cupón
+      // Si ya está admitida, regenerar y reenviar checkout con el nuevo cupón (non-blocking)
       const apps = await getAllApplications();
       const app = apps.find((a) => a.id === recordId);
       if (app && app.status === "Admitida") {
@@ -87,14 +90,13 @@ export async function PATCH(req: NextRequest) {
           stripe_promotion_code_id: stripe_promotion_code_id ?? "",
           discount_percent: discount_percent ?? 0,
         };
-        const checkoutUrl = await buildCheckoutUrl(recordId, appWithCoupon);
-        const discountPct = Number(discount_percent ?? 0);
-        if (discountPct > 0) {
-          await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct);
-        } else {
-          await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
-        }
-        return NextResponse.json({ success: true, resent: true, url: checkoutUrl });
+        buildCheckoutUrl(recordId, appWithCoupon).then((checkoutUrl) => {
+          const discountPct = Number(discount_percent ?? 0);
+          const sendFn = discountPct > 0
+            ? sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct)
+            : sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
+          sendFn.catch((err) => console.error("Coupon email resend error:", err));
+        }).catch((err) => console.error("Checkout URL rebuild error:", err));
       }
 
       return NextResponse.json({ success: true });

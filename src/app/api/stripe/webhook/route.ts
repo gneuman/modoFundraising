@@ -16,7 +16,7 @@ import {
   sendPaymentFailedEmail,
   sendChurnEmail,
   sendPortalDeactivatedEmail,
-} from "@/lib/gmail";
+} from "@/lib/email-engine";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
 // Activates portal for the main founder + any team members linked to the startup

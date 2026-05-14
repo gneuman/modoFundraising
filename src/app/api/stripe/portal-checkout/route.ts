@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
-import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
+import { getAllApplications, getAllCoupons, updateApplicationStatus } from "@/lib/airtable";
 import { createStripeCustomer, createSubscriptionCheckout, createOneTimeCheckout, PROGRAM_PRICE_USD, STRIPE_PRICE_ID_MONTHLY } from "@/lib/stripe";
 
 // POST /api/stripe/portal-checkout
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const { mode = "subscription" } = await req.json().catch(() => ({}));
 
-  const apps = await getAllApplications();
+  const [apps, coupons] = await Promise.all([getAllApplications(), getAllCoupons()]);
   const app = apps.find((a) => a.email === session.email);
 
   if (!app?.id) {
@@ -39,8 +39,13 @@ export async function POST(req: NextRequest) {
 
     let checkoutSession;
 
-    const couponId = app.stripe_coupon_id as string | undefined;
-    const promotionCodeId = app.stripe_promotion_code_id as string | undefined;
+    // Look up the coupon record to get the correct Stripe IDs
+    const storedId = app.stripe_coupon_id as string | undefined;
+    const couponRecord = coupons.find(
+      (c) => c.stripe_coupon_id === storedId || c.stripe_promotion_code_id === storedId
+    );
+    const couponId = couponRecord?.stripe_coupon_id;
+    const promotionCodeId = couponRecord?.stripe_promotion_code_id;
 
     if (mode === "subscription") {
       checkoutSession = await createSubscriptionCheckout({

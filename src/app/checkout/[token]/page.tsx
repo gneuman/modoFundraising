@@ -46,8 +46,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
             <h3 className="font-semibold text-zinc-700 text-sm uppercase tracking-wide">Incluye</h3>
             <ul className="space-y-2 text-sm text-zinc-600">
               {[
-                "12 semanas de clases en vivo con mentores top de LATAM",
-                "Acceso a red de 200+ inversores activos",
+                "13 semanas de clases en vivo con mentores top de LATAM",
+                "Acceso a red de 400+ VC firms activos",
                 "Misiones semanales con feedback personalizado",
                 "Portal exclusivo para founders y equipo",
                 "Comunidad privada de founders en programa",

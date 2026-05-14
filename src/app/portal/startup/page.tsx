@@ -18,6 +18,22 @@ export default async function StartupPage() {
     );
   }
 
+  const isIncomplete = !startup.startup_description || !startup.startup_country_ops;
+
+  const founder = {
+    first_name: profile?.first_name,
+    last_name: profile?.last_name,
+    whatsapp: profile?.whatsapp,
+    linkedin_founder: profile?.linkedin_founder,
+    founder_role: profile?.founder_role,
+    country_residence: profile?.country_residence,
+    founder_team_women: profile?.founder_team_women,
+  };
+
+  if (isIncomplete) {
+    return <StartupEditForm startup={startup} founder={founder} inline />;
+  }
+
   const fields: { label: string; value?: string | number | null; icon?: React.ReactNode; href?: string }[] = [
     { label: "País de operación", value: startup.startup_country_ops, icon: <MapPin className="h-4 w-4" /> },
     { label: "Etapa", value: startup.startup_stage },
@@ -42,7 +58,7 @@ export default async function StartupPage() {
           )}
         </div>
         <div className="flex gap-2 shrink-0 flex-wrap">
-          <StartupEditForm startup={startup} />
+          <StartupEditForm startup={startup} founder={founder} />
           {startup.startup_website && (
             <a href={startup.startup_website} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-700 border border-zinc-200 rounded-lg px-3 py-1.5 bg-white transition-colors">
