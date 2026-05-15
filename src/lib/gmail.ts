@@ -35,12 +35,20 @@ function buildRawEmail(to: string, subject: string, html: string): string {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  const auth = getOAuth2Client();
-  const gmail = google.gmail({ version: "v1", auth });
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: { raw: buildRawEmail(to, subject, html) },
-  });
+  const start = Date.now();
+  console.log(`[email] sending to=${to} subject="${subject}"`);
+  try {
+    const auth = getOAuth2Client();
+    const gmail = google.gmail({ version: "v1", auth });
+    const res = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw: buildRawEmail(to, subject, html) },
+    });
+    console.log(`[email] sent ok to=${to} messageId=${res.data.id} ms=${Date.now() - start}`);
+  } catch (err) {
+    console.error(`[email] FAILED to=${to} subject="${subject}" ms=${Date.now() - start}`, err);
+    throw err;
+  }
 }
 
 // ─── Base template ────────────────────────────────────────────────────────────
