@@ -51,8 +51,6 @@ const STATUS_COLORS: Record<string, string> = {
 export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatusChange, onCouponAssign }: Props) {
   const [admitting, setAdmitting] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
-  const [showRejectReason, setShowRejectReason] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(app.coupon_code as string ?? "");
   const [assigningCoupon, setAssigningCoupon] = useState(false);
@@ -95,7 +93,6 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
         body: JSON.stringify({
           recordId: app.id,
           status: "Rechazada",
-          rejection_reason: rejectReason || undefined,
           appData: { email: app.email, firstName: app.first_name, startupName: app.startup_name },
         }),
       });
@@ -246,15 +243,15 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
                 {admitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
                 Admitir y enviar link
               </Button>
-              {!showRejectReason && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowRejectReason(true)}
-                  className="gap-1.5 h-9 text-sm text-red-600 border-red-200 hover:bg-red-50"
-                >
-                  <XCircle className="h-4 w-4" /> Rechazar
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={handleReject}
+                disabled={rejecting}
+                className="gap-1.5 h-9 text-sm text-red-600 border-red-200 hover:bg-red-50"
+              >
+                {rejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                Rechazar
+              </Button>
             </>
           )}
           {canSendLink && (
@@ -279,29 +276,6 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
           )}
         </div>
 
-        {/* Reject reason input */}
-        {showRejectReason && (
-          <div className="px-6 py-3 bg-red-50 border-b border-red-100 space-y-2">
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Razón de rechazo (opcional)..."
-              rows={2}
-              className="w-full rounded-lg border border-red-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none bg-white"
-            />
-            <div className="flex gap-2">
-              <Button
-                onClick={handleReject}
-                disabled={rejecting}
-                className="bg-red-600 hover:bg-red-700 text-white h-8 text-sm gap-1.5"
-              >
-                {rejecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
-                Confirmar rechazo
-              </Button>
-              <Button variant="outline" onClick={() => setShowRejectReason(false)} className="h-8 text-sm">Cancelar</Button>
-            </div>
-          </div>
-        )}
 
         {/* Body */}
         <div className="px-6 py-5 space-y-6 flex-1">

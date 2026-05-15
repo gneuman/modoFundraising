@@ -96,6 +96,7 @@ export function ApplicationForm({ onSuccess }: Props) {
   }, [watch]);
 
   const hasReferrals = watch("has_referrals");
+  const roundOpen = watch("round_open");
   const priorFundraising = watch("prior_fundraising");
   const businessModel = watch("business_model");
   const industries = watch("startup_industries");
@@ -105,7 +106,9 @@ export function ApplicationForm({ onSuccess }: Props) {
     2: ["startup_name", "startup_website", "startup_linkedin", "startup_country_ops", "startup_countries_expansion", "startup_description", "startup_industries", "business_model", "startup_stage", "founder_team_women", "startup_usa_intl", "startup_team_size"],
     3: ["startup_mrr", "startup_sales_12m"],
     4: ["prior_fundraising"],
-    5: ["round_open", "round_series", "round_size", "round_tickets", "runway"],
+    5: watch("round_open") === "Sí"
+      ? ["round_open", "round_series", "round_size", "round_tickets", "runway"]
+      : ["round_open", "runway"],
     6: ["deck_url"],
     7: ["has_referrals"],
     8: ["program_source", "ias_interested", "accept_legal_terms"],
@@ -400,32 +403,36 @@ export function ApplicationForm({ onSuccess }: Props) {
               ))}
             </div>
           </FieldWrapper>
-          <div className="grid grid-cols-2 gap-4">
-            <FieldWrapper label="Tipo de ronda" required error={errors.round_series?.message}>
-              <Controller
-                name="round_series"
-                control={control}
-                render={({ field }) => (
-                  <select {...field} className={`${inputClass} ${errors.round_series ? errorClass : ""}`}>
-                    <option value="">Selecciona</option>
-                    {["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"].map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                )}
-              />
-            </FieldWrapper>
-            <FieldWrapper label="Tamaño objetivo de la ronda (USD)" required error={errors.round_size?.message} help="Monto total que buscan levantar">
-              <Input {...register("round_size")} type="number" min="0" placeholder="1000000" className={cn(inputClass, errors.round_size && errorClass)} />
-            </FieldWrapper>
-          </div>
-          <FieldWrapper label="Rango de ticket que buscan" required error={errors.round_tickets?.message} help="Ticket por inversor, no monto total">
-            <Controller
-              name="round_tickets"
-              control={control}
-              render={({ field }) => (
-                <MultiSelect options={TICKET_SIZES} value={field.value ?? []} onChange={field.onChange} error={errors.round_tickets?.message} />
-              )}
-            />
-          </FieldWrapper>
+          {roundOpen === "Sí" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <FieldWrapper label="Tipo de ronda" required error={errors.round_series?.message}>
+                  <Controller
+                    name="round_series"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} className={`${inputClass} ${errors.round_series ? errorClass : ""}`}>
+                        <option value="">Selecciona</option>
+                        {["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"].map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    )}
+                  />
+                </FieldWrapper>
+                <FieldWrapper label="Tamaño objetivo de la ronda (USD)" required error={errors.round_size?.message} help="Monto total que buscan levantar">
+                  <Input {...register("round_size")} type="number" min="0" placeholder="1000000" className={cn(inputClass, errors.round_size && errorClass)} />
+                </FieldWrapper>
+              </div>
+              <FieldWrapper label="Rango de ticket que buscan" required error={errors.round_tickets?.message} help="Ticket por inversor, no monto total">
+                <Controller
+                  name="round_tickets"
+                  control={control}
+                  render={({ field }) => (
+                    <MultiSelect options={TICKET_SIZES} value={field.value ?? []} onChange={field.onChange} error={errors.round_tickets?.message} />
+                  )}
+                />
+              </FieldWrapper>
+            </>
+          )}
           <FieldWrapper label="Runway actual (meses)" required error={errors.runway?.message} help="Cuántos meses pueden operar con la caja actual">
             <Input {...register("runway")} type="number" min="0" placeholder="12" className={cn(inputClass, errors.runway && errorClass)} />
           </FieldWrapper>
