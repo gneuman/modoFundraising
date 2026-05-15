@@ -86,19 +86,24 @@ export async function PATCH(req: NextRequest) {
       const apps = await getAllApplications();
       const app = apps.find((a) => a.id === recordId);
       if (app && app.status === "Admitida") {
-        const appWithCoupon = {
-          ...app,
-          stripe_coupon_id: stripe_coupon_id ?? "",
-          stripe_promotion_code_id: stripe_promotion_code_id ?? "",
-          discount_percent: discount_percent ?? 0,
-        };
-        buildCheckoutUrl(recordId, appWithCoupon).then((checkoutUrl) => {
+        try {
+          const appWithCoupon = {
+            ...app,
+            stripe_coupon_id: stripe_coupon_id ?? "",
+            stripe_promotion_code_id: stripe_promotion_code_id ?? "",
+            discount_percent: discount_percent ?? 0,
+          };
+          const checkoutUrl = await buildCheckoutUrl(recordId, appWithCoupon);
           const discountPct = Number(discount_percent ?? 0);
-          const sendFn = discountPct > 0
-            ? sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct)
-            : sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
-          sendFn.catch((err) => console.error("Coupon email resend error:", err));
-        }).catch((err) => console.error("Checkout URL rebuild error:", err));
+          console.log(`[coupon_assign] recordId=${recordId} email=${app.email} discount=${discountPct}% url=${checkoutUrl}`);
+          if (discountPct > 0) {
+            await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct);
+          } else {
+            await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
+          }
+        } catch (err) {
+          console.error(`[coupon_assign] email error recordId=${recordId}`, err);
+        }
       }
 
       return NextResponse.json({ success: true });

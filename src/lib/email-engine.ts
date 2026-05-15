@@ -232,12 +232,22 @@ export async function sendAutomationEmail(
   ctx: TemplateContext,
   triggerCondition?: Record<string, string | number>,
 ): Promise<void> {
+  console.log(`[automation] trigger=${trigger} to=${toEmail}`);
   const rules = await getAutomationRules(trigger);
-  if (!rules.length) return;
+  if (!rules.length) {
+    console.warn(`[automation] no rules found for trigger=${trigger} — email NOT sent to ${toEmail}`);
+    return;
+  }
 
   for (const rule of rules) {
-    if (!rule.template) continue;
-    if (!rule.template.active) continue;
+    if (!rule.template) {
+      console.warn(`[automation] rule id=${rule.id} has no template, skipping`);
+      continue;
+    }
+    if (!rule.template.active) {
+      console.warn(`[automation] rule id=${rule.id} template is inactive, skipping`);
+      continue;
+    }
 
     // Evaluate trigger_condition if present
     if (rule.trigger_condition) {
@@ -249,9 +259,12 @@ export async function sendAutomationEmail(
         const match = Object.entries(condition).every(
           ([k, v]) => triggerCondition?.[k]?.toString() === v?.toString(),
         );
-        if (!match) continue;
+        if (!match) {
+          console.log(`[automation] rule id=${rule.id} condition not met, skipping`);
+          continue;
+        }
       } catch {
-        // Malformed condition — skip silently
+        console.warn(`[automation] rule id=${rule.id} malformed trigger_condition, skipping`);
       }
     }
 
@@ -260,10 +273,19 @@ export async function sendAutomationEmail(
     const html = wrapInBaseLayout(bodyHtml);
 
     const sendFn = async () => {
-      await sendViaGmail(toEmail, subject, html);
+      const start = Date.now();
+      console.log(`[automation] sending trigger=${trigger} to=${toEmail} subject="${subject}"`);
+      try {
+        await sendViaGmail(toEmail, subject, html);
+        console.log(`[automation] sent ok trigger=${trigger} to=${toEmail} ms=${Date.now() - start}`);
+      } catch (err) {
+        console.error(`[automation] FAILED trigger=${trigger} to=${toEmail} ms=${Date.now() - start}`, err);
+        throw err;
+      }
     };
 
     if (rule.delay_hours > 0) {
+      console.log(`[automation] deferring trigger=${trigger} to=${toEmail} delay=${rule.delay_hours}h`);
       const ms = rule.delay_hours * 60 * 60 * 1000;
       setTimeout(() => {
         sendFn().catch(console.error);
