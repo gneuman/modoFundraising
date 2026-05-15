@@ -53,7 +53,11 @@ const TICKET_SIZES = [
 ];
 
 type InternalKeys = "_add_ref_2" | "_add_ref_3";
-type FormState = Partial<ApplicationFormData> & { [K in InternalKeys]?: "Sí" | "No" };
+type FormState = Partial<ApplicationFormData> & { [K in InternalKeys]?: "Sí" | "No" } & {
+  _founder_record_id?: string;
+  _startup_record_id?: string;
+  _postulacion_record_id?: string;
+};
 
 type QuestionType =
   | "text" | "email" | "tel" | "phone" | "number" | "url"
@@ -256,7 +260,22 @@ export function ChatForm({ onSuccess }: Props) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, formData: cleanData }),
-    }).catch(() => {});
+    })
+      .then((r) => r.json())
+      .then((res: { founderRecordId?: string; startupRecordId?: string; postulacionRecordId?: string }) => {
+        const updates: Partial<FormState> = {};
+        if (res.founderRecordId) updates._founder_record_id = res.founderRecordId;
+        if (res.startupRecordId) updates._startup_record_id = res.startupRecordId;
+        if (res.postulacionRecordId) updates._postulacion_record_id = res.postulacionRecordId;
+        if (Object.keys(updates).length) {
+          setFormData((prev) => {
+            const next = { ...prev, ...updates };
+            saveToStorage(next, qIdx + 1);
+            return next;
+          });
+        }
+      })
+      .catch(() => {});
   }
 
   async function handleNext(overrideVal?: unknown) {

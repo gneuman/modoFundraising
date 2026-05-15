@@ -4,13 +4,21 @@ import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   ExternalLink, CheckCircle, XCircle, X, Loader2,
-  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff, Send, Building2, Search,
+  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff, Send, Building2, Search, AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ApplicationProfile } from "@/components/admin/application-profile";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ApplicationRecord, ApplicationStatus, CouponRecord, PagoRecord } from "@/lib/airtable";
+import { applicationSchema } from "@/lib/form-schema";
+
+function isIncompleta(a: ApplicationRecord): boolean {
+  if (a.status !== "Nueva postulación") return false;
+  let data: unknown = {};
+  try { data = JSON.parse(a.form_responses ?? "{}"); } catch { /* ignore */ }
+  return !applicationSchema.safeParse(data).success;
+}
 
 // ─── Pipeline columns ─────────────────────────────────────────────────────────
 
@@ -118,6 +126,12 @@ function KanbanCard({
             {a.ias_interested === "Sí" && (
               <span title="Invitación Institucional">
                 <Building2 className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+              </span>
+            )}
+            {isIncompleta(a) && (
+              <span title="No terminó el formulario" className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 text-[10px] font-semibold shrink-0">
+                <AlertCircle className="h-3 w-3" />
+                Incompleta
               </span>
             )}
           </div>

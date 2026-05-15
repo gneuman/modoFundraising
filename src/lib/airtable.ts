@@ -156,6 +156,7 @@ export interface PostulacionRecord {
   referral_3_linkedin?: string;
   referral_3_relation?: string;
   accept_legal_terms?: boolean;
+  form_responses?: string;
   // Linked records (populated from lookups or joins in code)
   founder_record?: string[];
   startup_record?: string[];
@@ -570,7 +571,7 @@ export async function getStartupByFounderId(founderRecordId: string): Promise<st
   const records = await base(Tables.STARTUPS)
     .select({
       filterByFormula: `FIND("${founderRecordId}", ARRAYJOIN({Founders}))`,
-      fields: [],
+      fields: ["startup_name"],
       maxRecords: 1,
     })
     .firstPage();
@@ -596,10 +597,15 @@ export async function updateStartup(id: string, data: Partial<StartupRecord> | P
     'round_open', 'round_series', 'round_size', 'round_tickets', 'runway',
     'deck_url', 'program_source', 'ias_interested',
   ];
+  const ARRAY_TO_STRING = new Set(['startup_countries_expansion', 'startup_industries', 'round_tickets']);
+  const NUM_FIELDS = new Set(['startup_team_size', 'startup_mrr', 'startup_sales_12m', 'prior_fundraising_amount', 'round_size', 'runway']);
   const fields: Record<string, unknown> = {};
   for (const key of STARTUP_FIELDS) {
     const val = (data as Record<string, unknown>)[key];
-    if (val !== undefined) fields[key] = val;
+    if (val === undefined || val === "") continue;
+    if (ARRAY_TO_STRING.has(key)) { fields[key] = Array.isArray(val) ? val.join(", ") : val; }
+    else if (NUM_FIELDS.has(key)) { const n = Number(val); if (!isNaN(n)) fields[key] = n; }
+    else fields[key] = val;
   }
   if (Object.keys(fields).length === 0) return;
   await base(Tables.STARTUPS).update(id, fields as never);
@@ -618,80 +624,72 @@ export async function getAllStartups(): Promise<StartupRecord[]> {
 
 // ─── Postulaciones ────────────────────────────────────────────────────────────
 
-// Find a draft (En progreso) postulacion record by email stored in form_responses
-export async function getDraftByEmail(email: string): Promise<{
-  id: string;
-  founderRecordId: string | null;
-  startupRecordId: string | null;
-} | null> {
+// Find an in-progress postulacion linked to a founder (no status filter — status is empty during draft)
+export async function getPostulacionByFounderId(founderRecordId: string): Promise<string | null> {
   const records = await base(Tables.POSTULACIONES)
     .select({
-      filterByFormula: `AND({status} = "En progreso", FIND("${email}", {form_responses}))`,
-      fields: ["founder_record", "startup_record"],
+      filterByFormula: `AND(NOT({status}), FIND("${founderRecordId}", ARRAYJOIN({founder_record})))`,
+      fields: ["founder_record"],
       maxRecords: 1,
     })
     .firstPage();
-  if (!records.length) return null;
-  const f = records[0].fields as Record<string, unknown>;
-  const founderIds = f.founder_record as string[] | undefined;
-  const startupIds = f.startup_record as string[] | undefined;
-  return {
-    id: records[0].id,
-    founderRecordId: founderIds?.[0] ?? null,
-    startupRecordId: startupIds?.[0] ?? null,
-  };
+  return records.length ? records[0].id : null;
 }
 
-// Create or update a draft postulacion with partial form data
-// Pass existingDraft to skip the extra lookup when the caller already has it
-export async function upsertDraftApplication(
-  email: string,
-  partialData: Record<string, unknown>,
-  links?: { founderRecordId?: string; startupRecordId?: string },
-  existingDraft?: { id: string } | null
-): Promise<string> {
-  const draft = existingDraft !== undefined ? existingDraft : await getDraftByEmail(email);
-  const baseFields: Record<string, unknown> = {
-    status: "En progreso",
-    form_responses: JSON.stringify(partialData, null, 2),
-  };
-  if (links?.founderRecordId) baseFields.founder_record = [links.founderRecordId];
-  if (links?.startupRecordId) baseFields.startup_record = [links.startupRecordId];
-
-  if (draft) {
-    await base(Tables.POSTULACIONES).update(draft.id, baseFields as never);
-    return draft.id;
-  }
-
+// Create a blank postulacion linked to founder (no status — set only on final submit)
+export async function createDraftPostulacion(founderRecordId: string): Promise<string> {
   const record = await base(Tables.POSTULACIONES).create({
-    ...baseFields,
     created_at: new Date().toISOString(),
     payment_status: "Pendiente",
     portal_access: false,
+    founder_record: [founderRecordId],
   } as never);
   return record.id;
 }
 
-export async function createApplication(data: ApplicationFormData): Promise<{
+// Update a draft postulacion with form data and links
+export async function updateDraftPostulacion(
+  postulacionId: string,
+  formData: Record<string, unknown>,
+  links?: { founderRecordId?: string; startupRecordId?: string }
+): Promise<void> {
+  const fields: Record<string, unknown> = {
+    form_responses: JSON.stringify(formData, null, 2),
+  };
+  if (links?.founderRecordId) fields.founder_record = [links.founderRecordId];
+  if (links?.startupRecordId) fields.startup_record = [links.startupRecordId];
+  await base(Tables.POSTULACIONES).update(postulacionId, fields as never);
+}
+
+export async function createApplication(
+  data: ApplicationFormData,
+  existingIds?: { founderRecordId?: string; startupRecordId?: string; postulacionRecordId?: string }
+): Promise<{
   postulacionId: string;
   founderRecordId: string;
   startupRecordId: string;
 }> {
-  // Reuse records created during draft, or create fresh if no draft existed
-  const draft = await getDraftByEmail(data.email);
-  const founderRecordId = draft?.founderRecordId ?? await createFounderRecord(data);
-  const startupRecordId = draft?.startupRecordId ?? await createStartupRecord(data, founderRecordId);
+  // Use IDs from draft if provided, otherwise resolve by email/founder
+  let founderRecordId = existingIds?.founderRecordId ?? "";
+  let startupRecordId = existingIds?.startupRecordId ?? "";
 
-  // Update records with final complete data
+  if (!founderRecordId) {
+    const existing = await getFounderByEmail(data.email);
+    founderRecordId = existing?.id ?? await createFounderRecord(data);
+  }
+  if (!startupRecordId) {
+    const existing = await getStartupByFounderId(founderRecordId);
+    startupRecordId = existing ?? await createStartupRecord(data, founderRecordId);
+  }
+
+  // Update both records with final complete data
   await Promise.all([
     updateFounder(founderRecordId, data),
     updateStartup(startupRecordId, data),
   ]);
 
-  const postulacionFields = {
+  const finalFields = {
     status: "Nueva postulación",
-    payment_status: "Pendiente",
-    portal_access: false,
     accept_legal_terms: data.accept_legal_terms,
     form_responses: JSON.stringify(data, null, 2),
     referral_code: data.referral_code ?? "",
@@ -715,14 +713,18 @@ export async function createApplication(data: ApplicationFormData): Promise<{
     startup_record: [startupRecordId],
   };
 
-  let postulacionId: string;
-  if (draft) {
-    await base(Tables.POSTULACIONES).update(draft.id, postulacionFields as never);
-    postulacionId = draft.id;
+  let postulacionId: string = existingIds?.postulacionRecordId ?? "";
+
+  if (postulacionId) {
+    // Draft postulacion already exists — just update with final data
+    await base(Tables.POSTULACIONES).update(postulacionId, finalFields as never);
   } else {
+    // No draft — create fresh
     const record = await base(Tables.POSTULACIONES).create({
-      ...postulacionFields,
+      ...finalFields,
       created_at: new Date().toISOString(),
+      payment_status: "Pendiente",
+      portal_access: false,
     } as never);
     postulacionId = record.id;
   }

@@ -2,11 +2,12 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Search, ExternalLink, CheckCircle, XCircle, X, Loader2, BellOff, Send, ChevronDown } from "lucide-react";
+import { Search, ExternalLink, CheckCircle, XCircle, X, Loader2, BellOff, Send, ChevronDown, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ApplicationRecord, ApplicationStatus } from "@/lib/airtable";
+import { applicationSchema } from "@/lib/form-schema";
 
 const STATUS_TABS: { label: string; value: ApplicationStatus | "all" }[] = [
   { label: "Todas", value: "all" },
@@ -57,6 +58,13 @@ const CHANGEABLE_STATUSES: ApplicationStatus[] = [
   "Sin Respuesta",
   "Inscrita",
 ];
+
+function isIncompleta(a: ApplicationRecord): boolean {
+  if (a.status !== "Nueva postulación") return false;
+  let data: unknown = {};
+  try { data = JSON.parse(a.form_responses as string ?? "{}"); } catch { /* ignore */ }
+  return !applicationSchema.safeParse(data).success;
+}
 
 export function PostulacionesTable({ initialData }: { initialData: ApplicationRecord[] }) {
   const [data, setData] = useState(initialData);
@@ -265,7 +273,15 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
               {filtered.map((a) => (
                 <tr key={a.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-zinc-800">{a.startup_name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-zinc-800">{a.startup_name}</p>
+                      {isIncompleta(a) && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 text-[10px] font-semibold">
+                          <AlertCircle className="h-3 w-3" />
+                          Incompleta
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-zinc-400">{a.first_name} {a.last_name} · {a.email}</p>
                   </td>
                   <td className="px-4 py-3 text-zinc-600">{a.startup_country_ops}</td>

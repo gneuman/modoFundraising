@@ -27,12 +27,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Creates Founder + Startup + Postulacion records
-    await createApplication({
-      ...data,
-      startup_logo_url: body.startup_logo_url ?? "",
-      accept_legal_terms: true,
-    });
+    // Creates Postulacion — reuses Founder + Startup if already created during draft
+    await createApplication(
+      { ...data, startup_logo_url: body.startup_logo_url ?? "", accept_legal_terms: true },
+      {
+        founderRecordId: body._founder_record_id as string | undefined,
+        startupRecordId: body._startup_record_id as string | undefined,
+        postulacionRecordId: body._postulacion_record_id as string | undefined,
+      }
+    );
 
     // Fire-and-forget emails
     sendApplicationConfirmation(data.email, data.first_name).catch(console.error);
