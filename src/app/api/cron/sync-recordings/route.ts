@@ -1,4 +1,19 @@
 export const dynamic = "force-dynamic";
+/**
+ * Sincroniza grabaciones de Google Meet con las clases en Airtable.
+ *
+ * TRIGGER: Llamar manualmente después de cada clase (o via n8n/cron).
+ *
+ * POST https://www.modofundraising.com/api/cron/sync-recordings
+ *   Authorization: Bearer <CRON_SECRET>
+ *
+ * Qué hace:
+ *   1. Busca clases con status "En vivo" que ya terminaron (inicio + 90 min) y sin url_grabacion
+ *   2. Busca grabaciones en Google Drive creadas entre (clase - 1h) y (clase + 4h)
+ *   3. Hace pública la grabación y actualiza Airtable: url_grabacion + status → "Grabada"
+ *
+ * Respuesta: { processed, assigned, results[] }
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { getClasesWithContent, updateClase } from "@/lib/airtable";
 import { getMeetRecordings, makeFilePublic } from "@/lib/drive";
