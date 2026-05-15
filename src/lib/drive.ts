@@ -24,7 +24,7 @@ export async function getMeetRecordings(sinceDate?: string): Promise<DriveRecord
   const drive = google.drive({ version: "v3", auth: getAuth() });
 
   // Busca archivos de video creados por Meet (nombre empieza con el patrón de Meet)
-  let query = `mimeType contains 'video/' and trashed = false and name contains 'Recording'`;
+  let query = `mimeType contains 'video/' and trashed = false`;
   if (sinceDate) {
     // sinceDate en formato YYYY-MM-DD
     query += ` and createdTime >= '${sinceDate}T00:00:00'`;
