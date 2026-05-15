@@ -539,7 +539,6 @@ export async function createStartupRecord(data: Pick<ApplicationFormData, 'start
   };
   if (data.startup_website) fields.startup_website = data.startup_website;
   if (data.startup_linkedin) fields.startup_linkedin = data.startup_linkedin;
-  if (data.startup_logo_url) fields.startup_logo_url = data.startup_logo_url;
   if (data.startup_country_ops) fields.startup_country_ops = data.startup_country_ops;
   if (data.startup_countries_expansion) fields.startup_countries_expansion = Array.isArray(data.startup_countries_expansion) ? data.startup_countries_expansion.join(", ") : data.startup_countries_expansion;
   if (data.startup_description) fields.startup_description = data.startup_description;
@@ -589,7 +588,7 @@ export async function getStartupById(id: string): Promise<StartupRecord | null> 
 
 export async function updateStartup(id: string, data: Partial<StartupRecord> | Partial<ApplicationFormData>) {
   const STARTUP_FIELDS: (keyof StartupRecord)[] = [
-    'startup_name', 'startup_website', 'startup_linkedin', 'startup_logo_url',
+    'startup_name', 'startup_website', 'startup_linkedin',
     'startup_country_ops', 'startup_countries_expansion', 'startup_description',
     'startup_industries', 'startup_industry_other', 'business_model', 'business_model_other',
     'startup_stage', 'startup_usa_intl', 'startup_team_size', 'startup_mrr',
@@ -803,11 +802,21 @@ export async function getAllPagos(): Promise<PagoRecord[]> {
 }
 
 export async function getApplicationByEmail(email: string): Promise<PostulacionRecord | null> {
-  // Check in Founders table
+  // Only block if there's already a completed postulacion (has status set)
   const founders = await base(Tables.FOUNDERS)
-    .select({ filterByFormula: `{email} = "${email}"`, maxRecords: 1 })
+    .select({ filterByFormula: `{email} = "${email}"`, fields: [], maxRecords: 1 })
     .firstPage();
-  return founders.length ? { email } as PostulacionRecord : null;
+  if (!founders.length) return null;
+
+  const founderId = founders[0].id;
+  const postulaciones = await base(Tables.POSTULACIONES)
+    .select({
+      filterByFormula: `AND({status}, FIND("${founderId}", ARRAYJOIN({founder_record})))`,
+      fields: ["status"],
+      maxRecords: 1,
+    })
+    .firstPage();
+  return postulaciones.length ? { email } as PostulacionRecord : null;
 }
 
 export async function assignCouponToApplication(

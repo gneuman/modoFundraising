@@ -368,9 +368,12 @@ export function ChatForm({ onSuccess }: Props) {
     setUploadingLogo(true);
     const form = new FormData();
     form.append("file", file);
+    const startupRecordId = formData._startup_record_id ?? "";
+    if (startupRecordId) form.append("startupRecordId", startupRecordId);
     const res = await fetch("/api/upload", { method: "POST", body: form });
     const data = await res.json();
     setUploadingLogo(false);
+    if (!data.url) throw new Error(data.error ?? "Upload failed");
     return data.url;
   }
 
