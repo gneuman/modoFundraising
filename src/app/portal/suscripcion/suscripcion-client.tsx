@@ -20,6 +20,23 @@ interface Props {
   discountPercent?: number;
 }
 
+type ReasonCode =
+  | "precio"
+  | "tiempo"
+  | "prioridades"
+  | "ronda_levantada"
+  | "no_esperado"
+  | "otro";
+
+const REASONS: { code: ReasonCode; label: string }[] = [
+  { code: "precio", label: "💸 El precio no se ajusta a mi presupuesto actual" },
+  { code: "tiempo", label: "⏰ No tengo el tiempo que requiere el programa" },
+  { code: "prioridades", label: "🎯 Mis prioridades cambiaron y el fundraising no es el foco ahora" },
+  { code: "ronda_levantada", label: "✅ Ya levanté mi ronda" },
+  { code: "no_esperado", label: "🤔 El programa no era lo que esperaba" },
+  { code: "otro", label: "Otro" },
+];
+
 export function SuscripcionClient({
   paymentStatus,
   portalAccess,
@@ -28,12 +45,18 @@ export function SuscripcionClient({
 }: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [reasonCode, setReasonCode] = useState<ReasonCode | null>(null);
+  const [detail, setDetail] = useState("");
   const [redirecting, setRedirecting] = useState(false);
 
   const PRICE_MONTHLY = 349;
   const PRICE_ONETIME = 1047;
-  const discountedMonthly = discountPercent ? Math.round(PRICE_MONTHLY * (1 - discountPercent / 100)) : null;
-  const discountedOnetime = discountPercent ? Math.round(PRICE_ONETIME * (1 - discountPercent / 100)) : null;
+  const discountedMonthly = discountPercent
+    ? Math.round(PRICE_MONTHLY * (1 - discountPercent / 100))
+    : null;
+  const discountedOnetime = discountPercent
+    ? Math.round(PRICE_ONETIME * (1 - discountPercent / 100))
+    : null;
 
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
   const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
@@ -42,9 +65,21 @@ export function SuscripcionClient({
     haPagado && !!stripeSubscriptionId && paymentStatus !== "Cuota 3 pagada";
 
   async function handleCancel() {
+    if (!reasonCode) {
+      toast.error("Selecciona un motivo");
+      return;
+    }
+    if (reasonCode === "otro" && !detail.trim()) {
+      toast.error("Cuéntanos brevemente el motivo");
+      return;
+    }
     setCancelling(true);
     try {
-      const res = await fetch("/api/stripe/cancel", { method: "POST" });
+      const res = await fetch("/api/stripe/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reasonCode, detail: detail.trim() }),
+      });
       if (!res.ok) throw new Error();
       toast.success(
         "Suscripción cancelada. Tu acceso permanecerá activo hasta el fin del período.",
@@ -53,7 +88,7 @@ export function SuscripcionClient({
       window.location.href = "/portal";
     } catch {
       toast.error(
-        "Error al cancelar la suscripción. Contacta a amdin@impacta.vc",
+        "Error al cancelar la suscripción. Contacta a admin@impacta.vc",
       );
     } finally {
       setCancelling(false);
@@ -104,17 +139,23 @@ export function SuscripcionClient({
                 Modo Fundraising 2026
               </h3>
               <p className="text-sm text-zinc-500 mt-0.5">
-                {discountedMonthly
-                  ? <>US${discountedMonthly} / mes · 3 cuotas <span className="line-through text-zinc-400">US$349</span> · {discountPercent}% OFF</>
-                  : "US$349 / mes · 3 cuotas"
-                }
+                {discountedMonthly ? (
+                  <>
+                    US${discountedMonthly} / mes · 3 cuotas{" "}
+                    <span className="line-through text-zinc-400">US$349</span> ·{" "}
+                    {discountPercent}% OFF
+                  </>
+                ) : (
+                  "US$349 / mes · 3 cuotas"
+                )}
               </p>
             </div>
 
             <div className="border-t border-zinc-100 pt-4 space-y-3">
               {discountPercent && (
                 <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700 font-medium">
-                  🎉 Tenés un descuento del {discountPercent}% aplicado a tu cuenta
+                  🎉 Tenés un descuento del {discountPercent}% aplicado a tu
+                  cuenta
                 </div>
               )}
               <p className="text-sm font-medium text-zinc-700">
@@ -132,16 +173,26 @@ export function SuscripcionClient({
                   </span>
                   <span className="text-2xl font-bold text-blue-800 mt-1">
                     {discountedMonthly ? (
-                      <>US${discountedMonthly}<span className="text-base font-medium">/mes</span></>
+                      <>
+                        US${discountedMonthly}
+                        <span className="text-base font-medium">/mes</span>
+                      </>
                     ) : (
-                      <>US$349<span className="text-base font-medium">/mes</span></>
+                      <>
+                        US$349
+                        <span className="text-base font-medium">/mes</span>
+                      </>
                     )}
                   </span>
                   <span className="text-xs text-blue-600 mt-1">
-                    {discountedOnetime
-                      ? <>Cobro automático · Total US${discountedOnetime} <span className="line-through">US$1,047</span></>
-                      : "Cobro automático · Total US$1,047"
-                    }
+                    {discountedOnetime ? (
+                      <>
+                        Cobro automático · Total US${discountedOnetime}{" "}
+                        <span className="line-through">US$1,047</span>
+                      </>
+                    ) : (
+                      "Cobro automático · Total US$1,047"
+                    )}
                   </span>
                 </button>
 
@@ -154,13 +205,21 @@ export function SuscripcionClient({
                     Pago único
                   </span>
                   <span className="text-2xl font-bold text-zinc-800 mt-1">
-                    {discountedOnetime ? <>US${discountedOnetime}</> : "US$1,047"}
+                    {discountedOnetime ? (
+                      <>US${discountedOnetime}</>
+                    ) : (
+                      "US$1,047"
+                    )}
                   </span>
                   <span className="text-xs text-zinc-500 mt-1">
-                    {discountedOnetime
-                      ? <><span className="line-through">US$1,047</span> · Un solo cobro</>
-                      : "Un solo cobro · Acceso completo"
-                    }
+                    {discountedOnetime ? (
+                      <>
+                        <span className="line-through">US$1,047</span> · Un solo
+                        cobro
+                      </>
+                    ) : (
+                      "Un solo cobro · Acceso completo"
+                    )}
                   </span>
                 </button>
               </div>
@@ -218,24 +277,58 @@ export function SuscripcionClient({
                     Cancelar suscripción
                   </Button>
                 ) : (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-4">
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-semibold text-red-700">
-                          ¿Confirmás la cancelación?
+                          Antes de irte, cuéntanos por qué
                         </p>
                         <p className="text-xs text-red-600 mt-1">
-                          Perderás acceso al portal y a todas las clases y
-                          misiones.
+                          Tu respuesta nos ayuda a mejorar el programa. Perderás
+                          acceso al portal y a todas las clases y misiones al
+                          final del período.
                         </p>
                       </div>
                     </div>
+
+                    <div className="space-y-2">
+                      {REASONS.map((r) => (
+                        <label
+                          key={r.code}
+                          className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors text-sm ${
+                            reasonCode === r.code
+                              ? "border-red-400 bg-white"
+                              : "border-red-100 bg-white/60 hover:bg-white"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="reason"
+                            className="mt-0.5"
+                            checked={reasonCode === r.code}
+                            onChange={() => setReasonCode(r.code)}
+                          />
+                          <span className="text-zinc-700">{r.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {reasonCode === "otro" && (
+                      <textarea
+                        value={detail}
+                        onChange={(e) => setDetail(e.target.value)}
+                        placeholder="Cuéntanos brevemente…"
+                        rows={3}
+                        className="w-full text-sm rounded-lg border border-red-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-300"
+                      />
+                    )}
+
                     <div className="flex gap-3">
                       <Button
                         onClick={handleCancel}
-                        disabled={cancelling}
-                        className="bg-red-600 hover:bg-red-700 text-white text-sm"
+                        disabled={cancelling || !reasonCode}
+                        className="bg-red-600 hover:bg-red-700 text-white text-sm disabled:opacity-50"
                       >
                         {cancelling ? (
                           <>
@@ -248,7 +341,11 @@ export function SuscripcionClient({
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => setShowConfirm(false)}
+                        onClick={() => {
+                          setShowConfirm(false);
+                          setReasonCode(null);
+                          setDetail("");
+                        }}
                         className="text-sm"
                       >
                         No, mantener
@@ -272,8 +369,8 @@ export function SuscripcionClient({
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-5">
         <p className="text-sm text-zinc-600">
           ¿Tienes preguntas sobre tu suscripción?{" "}
-          <a href="mailto:amdin@impacta.vc" className="text-blue-600 underline">
-            amdin@impacta.vc
+          <a href="mailto:admin@impacta.vc" className="text-blue-600 underline">
+            admin@impacta.vc
           </a>
         </p>
       </div>

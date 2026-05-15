@@ -19,6 +19,7 @@ export const Tables = {
   FEEDBACK: "Feedback MF26",
   EMAIL_TEMPLATES: "Email Templates MF26",
   AUTOMATION_RULES: "Automation Rules MF26",
+  RECHAZOS: "Rechazos MF26",
   // CMS público
   HOME_METRICS: "home_metrics",
   HOME_TESTIMONIOS: "home_testimonios",
@@ -1833,4 +1834,46 @@ export async function deleteAutomationRule(id: string): Promise<void> {
 
 export async function saveChurnReason(postulacionId: string, reason: string): Promise<void> {
   await base(Tables.POSTULACIONES).update(postulacionId, { churn_reason: reason } as never);
+}
+
+export type ChurnReasonCode =
+  | "precio"
+  | "tiempo"
+  | "prioridades"
+  | "ronda_levantada"
+  | "no_esperado"
+  | "otro";
+
+export const CHURN_REASON_LABELS: Record<ChurnReasonCode, string> = {
+  precio: "El precio no se ajusta a mi presupuesto actual",
+  tiempo: "No tengo el tiempo que requiere el programa",
+  prioridades: "Mis prioridades cambiaron y el fundraising no es el foco ahora",
+  ronda_levantada: "Ya levanté mi ronda",
+  no_esperado: "El programa no era lo que esperaba",
+  otro: "Otro",
+};
+
+export interface RechazoInput {
+  startupId?: string;
+  postulacionId?: string;
+  founderId?: string;
+  reasonCode: ChurnReasonCode;
+  reasonLabel: string;
+  detail?: string;
+  email?: string;
+}
+
+export async function createRechazoRecord(data: RechazoInput): Promise<string> {
+  const fields: Record<string, unknown> = {
+    reason_code: data.reasonCode,
+    reason_label: data.reasonLabel,
+    created_at: new Date().toISOString(),
+  };
+  if (data.detail) fields.detail = data.detail;
+  if (data.email) fields.email = data.email;
+  if (data.startupId) fields.Startup = [data.startupId];
+  if (data.postulacionId) fields.Postulacion = [data.postulacionId];
+  if (data.founderId) fields.Founder = [data.founderId];
+  const record = await base(Tables.RECHAZOS).create(fields as never);
+  return record.id;
 }

@@ -72,7 +72,7 @@ function email(content: string) {
         <tr><td style="padding:24px 0;text-align:center;">
           <p style="margin:0;font-size:12px;color:#a1a1aa;">
             Modo Fundraising 2026 · Impacta VC<br/>
-            <a href="mailto:amdin@impacta.vc" style="color:#a1a1aa;">amdin@impacta.vc</a>
+            <a href="mailto:admin@impacta.vc" style="color:#a1a1aa;">admin@impacta.vc</a>
           </p>
         </td></tr>
 
@@ -127,7 +127,7 @@ export async function sendMagicLink(
     ${p("Haz clic en el botón para acceder. Este enlace es válido por <strong>15 minutos</strong> y solo puede usarse una vez.")}
     ${btn(url, "Ingresar al portal →")}
     ${divider()}
-    ${small("Si no solicitaste este acceso, ignorá este mensaje. Tu cuenta está segura.<br/>¿Problemas? Escribinos a <a href='mailto:amdin@impacta.vc' style='color:#a1a1aa;'>amdin@impacta.vc</a>")}
+    ${small("Si no solicitaste este acceso, ignorá este mensaje. Tu cuenta está segura.<br/>¿Problemas? Escribinos a <a href='mailto:admin@impacta.vc' style='color:#a1a1aa;'>admin@impacta.vc</a>")}
   `),
   );
 }
@@ -169,7 +169,7 @@ export async function sendReferralRequest(
     ${p(`<strong>${founderName}</strong> de <strong>${startupName}</strong> te agregó como recomendador en su postulación a Modo Fundraising 2026.`)}
     ${p("Tu recomendación suma puntos a su perfil. Si los conoces y puedes respaldarlos, responde a este email o escríbenos.")}
     ${divider()}
-    <a href="mailto:amdin@impacta.vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
+    <a href="mailto:admin@impacta.vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
     ${small("— Equipo Impacta VC")}
   `),
   );
@@ -313,7 +313,7 @@ export async function sendChurnEmail(
     ${h1(`Hola ${firstName}`)}
     ${p("Tu suscripción a <strong>Modo Fundraising 2026</strong> fue cancelada y tu acceso al portal fue revocado.")}
     ${p("Lamentamos verte partir. ¿Puedes contarnos por qué decidiste salir? Tu feedback nos ayuda a mejorar.")}
-    <a href="mailto:amdin@impacta.vc?subject=Feedback%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Enviar feedback →</a>
+    <a href="mailto:admin@impacta.vc?subject=Feedback%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Enviar feedback →</a>
     ${divider()}
     ${small("— Equipo Impacta VC")}
   `),
@@ -366,7 +366,7 @@ export async function sendPortalDeactivatedEmail(
     ${h1(`Hola ${firstName}`)}
     ${p("Tu acceso al portal de <strong>Modo Fundraising 2026</strong> fue suspendido debido a un problema con tu método de pago que no pudimos resolver.")}
     ${p("Si crees que esto es un error o querés regularizar tu situación, respondé este email y lo resolvemos juntos.")}
-    <a href="mailto:amdin@impacta.vc?subject=Reactivar%20acceso%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
+    <a href="mailto:admin@impacta.vc?subject=Reactivar%20acceso%20Modo%20Fundraising" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
     ${divider()}
     ${small("— Equipo Impacta VC")}
   `),

@@ -27,7 +27,7 @@ export function Footer() {
               <span className="text-white/50 text-xs">by Impacta VC</span>
             </a>
             <p className="text-white/30 text-xs leading-relaxed">
-              amdin@impacta.vc
+              admin@impacta.vc
             </p>
           </div>
 
@@ -100,7 +100,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-white/20">
-          <p>© 2026 Impacta VC · amdin@impacta.vc</p>
+          <p>© 2026 Impacta VC · admin@impacta.vc</p>
           <p>Built with ❤️ in LatAm</p>
         </div>
       </div>

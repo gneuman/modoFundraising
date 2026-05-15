@@ -92,10 +92,10 @@ export default function TerminosPage() {
             <p className="mt-3">
               Para solicitar el reembolso, escribí a{" "}
               <a
-                href="mailto:amdin@impacta.vc"
+                href="mailto:admin@impacta.vc"
                 className="text-(--brand-teal) hover:underline"
               >
-                amdin@impacta.vc
+                admin@impacta.vc
               </a>{" "}
               desde el correo registrado en el Programa.
             </p>
@@ -111,10 +111,10 @@ export default function TerminosPage() {
               meses ya pagados (salvo dentro del período de garantía de 14 días
               del primer pago). Para cancelar, escribí a{" "}
               <a
-                href="mailto:amdin@impacta.vc"
+                href="mailto:admin@impacta.vc"
                 className="text-(--brand-teal) hover:underline"
               >
-                amdin@impacta.vc
+                admin@impacta.vc
               </a>
               .
             </p>
@@ -220,10 +220,10 @@ export default function TerminosPage() {
             <p>
               Para consultas sobre estos términos:{" "}
               <a
-                href="mailto:amdin@impacta.vc"
+                href="mailto:admin@impacta.vc"
                 className="text-(--brand-teal) hover:underline"
               >
-                amdin@impacta.vc
+                admin@impacta.vc
               </a>{" "}
               · Impacta VC SpA · Santiago, Chile.
             </p>

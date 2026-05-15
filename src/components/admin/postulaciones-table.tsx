@@ -425,25 +425,20 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
               </button>
             </div>
 
-            {/* Reason */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700">
-                {modal.type === "Admitida"
-                  ? "Mensaje de admisión (opcional)"
-                  : "Razón de rechazo (opcional)"}
-              </label>
-              <textarea
-                value={modal.reason}
-                onChange={(e) => setModal((m) => m ? { ...m, reason: e.target.value } : m)}
-                placeholder={
-                  modal.type === "Admitida"
-                    ? "Ej: Excelente tracción, encaja perfecto con el programa..."
-                    : "Ej: El MRR no cumple el mínimo requerido para esta cohorte..."
-                }
-                rows={4}
-                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
+            {modal.type === "Admitida" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700">
+                  Mensaje de admisión (opcional)
+                </label>
+                <textarea
+                  value={modal.reason}
+                  onChange={(e) => setModal((m) => m ? { ...m, reason: e.target.value } : m)}
+                  placeholder="Ej: Excelente tracción, encaja perfecto con el programa..."
+                  rows={4}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+            )}
 
             {modal.type === "Admitida" && (
               <div className="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-700">

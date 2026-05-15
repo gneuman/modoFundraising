@@ -67,10 +67,10 @@ export default async function QAPage() {
                 Todo lo que necesitás saber antes de postular. Si tu pregunta no
                 está acá, escribinos a{" "}
                 <a
-                  href="mailto:amdin@impacta.vc"
+                  href="mailto:admin@impacta.vc"
                   className="text-(--brand-teal) hover:underline"
                 >
-                  amdin@impacta.vc
+                  admin@impacta.vc
                 </a>
                 .
               </p>
@@ -122,10 +122,10 @@ export default async function QAPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="mailto:amdin@impacta.vc"
+                href="mailto:admin@impacta.vc"
                 className="inline-flex items-center justify-center gap-2 border border-white/20 hover:border-white/40 text-white font-semibold px-8 py-4 rounded-xl transition-colors"
               >
-                amdin@impacta.vc
+                admin@impacta.vc
               </a>
               <a
                 href="https://wa.me/56912345678?text=Hola%2C%20tengo%20una%20pregunta%20sobre%20Modo%20Fundraising%202026"

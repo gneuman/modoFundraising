@@ -80,7 +80,7 @@ function wrapInBaseLayout(content: string): string {
         <tr><td style="padding:24px 0;text-align:center;">
           <p style="margin:0;font-size:12px;color:#a1a1aa;">
             Modo Fundraising 2026 · Impacta VC<br/>
-            <a href="mailto:amdin@impacta.vc" style="color:#a1a1aa;">amdin@impacta.vc</a>
+            <a href="mailto:admin@impacta.vc" style="color:#a1a1aa;">admin@impacta.vc</a>
           </p>
         </td></tr>
 
@@ -93,47 +93,130 @@ function wrapInBaseLayout(content: string): string {
 
 // ─── Funciones compatibles con gmail.ts ──────────────────────────────────────
 
-export async function sendApplicationConfirmation(emailAddr: string, firstName: string) {
-  await sendAutomationEmail("application_received", emailAddr, { nombre: firstName, email: emailAddr });
+export async function sendApplicationConfirmation(
+  emailAddr: string,
+  firstName: string,
+) {
+  await sendAutomationEmail("application_received", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+  });
 }
 
-export async function sendAdmissionEmail(emailAddr: string, firstName: string, checkoutUrl: string) {
-  await sendAutomationEmail("admission_approved", emailAddr, { nombre: firstName, email: emailAddr, checkout_url: checkoutUrl });
+export async function sendAdmissionEmail(
+  emailAddr: string,
+  firstName: string,
+  checkoutUrl: string,
+) {
+  await sendAutomationEmail("admission_approved", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+    checkout_url: checkoutUrl,
+  });
 }
 
-export async function sendCouponLink(emailAddr: string, firstName: string, checkoutUrl: string, _discountPercent: number) {
-  await sendAutomationEmail("admission_approved", emailAddr, { nombre: firstName, email: emailAddr, checkout_url: checkoutUrl });
+export async function sendCouponLink(
+  emailAddr: string,
+  firstName: string,
+  checkoutUrl: string,
+  _discountPercent: number,
+) {
+  await sendAutomationEmail("admission_approved", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+    checkout_url: checkoutUrl,
+  });
 }
 
 export async function sendRejectionEmail(emailAddr: string, firstName: string) {
-  await sendAutomationEmail("admission_rejected", emailAddr, { nombre: firstName, email: emailAddr });
+  await sendAutomationEmail("admission_rejected", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+  });
 }
 
-export async function sendAdmissionFollowUp(emailAddr: string, firstName: string, checkoutUrl: string, followUpNumber: number) {
+export async function sendAdmissionFollowUp(
+  emailAddr: string,
+  firstName: string,
+  checkoutUrl: string,
+  followUpNumber: number,
+) {
   const trigger = followUpNumber === 1 ? "follow_up_1" : "follow_up_2";
-  await sendAutomationEmail(trigger, emailAddr, { nombre: firstName, email: emailAddr, checkout_url: checkoutUrl });
+  await sendAutomationEmail(trigger, emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+    checkout_url: checkoutUrl,
+  });
 }
 
-export async function sendOnboardingEmail(emailAddr: string, firstName: string, portalUrl: string) {
-  await sendAutomationEmail("onboarding", emailAddr, { nombre: firstName, email: emailAddr, portal_url: portalUrl });
+export async function sendOnboardingEmail(
+  emailAddr: string,
+  firstName: string,
+  portalUrl: string,
+) {
+  await sendAutomationEmail("onboarding", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+    portal_url: portalUrl,
+  });
 }
 
-export async function sendPaymentConfirmation(emailAddr: string, firstName: string, installment: number) {
-  const trigger = installment === 2 ? "invoice_paid_cuota2" : installment === 3 ? "invoice_paid_cuota3" : "checkout_completed";
-  await sendAutomationEmail(trigger, emailAddr, { nombre: firstName, email: emailAddr, cuota_num: String(installment) });
+export async function sendPaymentConfirmation(
+  emailAddr: string,
+  firstName: string,
+  installment: number,
+) {
+  const trigger =
+    installment === 2
+      ? "invoice_paid_cuota2"
+      : installment === 3
+        ? "invoice_paid_cuota3"
+        : "checkout_completed";
+  await sendAutomationEmail(trigger, emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+    cuota_num: String(installment),
+  });
 }
 
-export async function sendPaymentFailedEmail(emailAddr: string, firstName: string, attempt: number, portalUrl: string) {
-  const trigger = attempt === 1 ? "payment_failed_1" : attempt === 2 ? "payment_failed_2" : "payment_failed_3";
-  await sendAutomationEmail(trigger, emailAddr, { nombre: firstName, email: emailAddr, portal_url: portalUrl });
+export async function sendPaymentFailedEmail(
+  emailAddr: string,
+  firstName: string,
+  attempt: number,
+  portalUrl: string,
+) {
+  const trigger =
+    attempt === 1
+      ? "payment_failed_1"
+      : attempt === 2
+        ? "payment_failed_2"
+        : "payment_failed_3";
+  await sendAutomationEmail(trigger, emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+    portal_url: portalUrl,
+  });
 }
 
-export async function sendChurnEmail(emailAddr: string, firstName: string, _postulacionId?: string) {
-  await sendAutomationEmail("subscription_cancelled", emailAddr, { nombre: firstName, email: emailAddr });
+export async function sendChurnEmail(
+  emailAddr: string,
+  firstName: string,
+  _postulacionId?: string,
+) {
+  await sendAutomationEmail("subscription_cancelled", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+  });
 }
 
-export async function sendPortalDeactivatedEmail(emailAddr: string, firstName: string) {
-  await sendAutomationEmail("portal_deactivated", emailAddr, { nombre: firstName, email: emailAddr });
+export async function sendPortalDeactivatedEmail(
+  emailAddr: string,
+  firstName: string,
+) {
+  await sendAutomationEmail("portal_deactivated", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+  });
 }
 
 /**

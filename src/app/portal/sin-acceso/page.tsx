@@ -29,7 +29,9 @@ export default async function SinAccesoPage() {
         firstName: app.first_name!,
         startupName: app.startup_name!,
         stripeCouponId: app.stripe_coupon_id as string | undefined,
-        stripePromotionCodeId: app.stripe_promotion_code_id as string | undefined,
+        stripePromotionCodeId: app.stripe_promotion_code_id as
+          | string
+          | undefined,
         discountPercent: app.discount_percent
           ? Number(app.discount_percent)
           : undefined,
@@ -83,10 +85,10 @@ export default async function SinAccesoPage() {
               <p>
                 Revisa tu email o escríbenos a{" "}
                 <a
-                  href="mailto:amdin@impacta.vc"
+                  href="mailto:admin@impacta.vc"
                   className="underline font-medium"
                 >
-                  amdin@impacta.vc
+                  admin@impacta.vc
                 </a>
               </p>
             </div>
@@ -94,8 +96,8 @@ export default async function SinAccesoPage() {
 
           <p className="text-center text-xs text-zinc-400">
             Pagos procesados de forma segura por Stripe.{" "}
-            <a href="mailto:amdin@impacta.vc" className="underline">
-              ¿Preguntas? amdin@impacta.vc
+            <a href="mailto:admin@impacta.vc" className="underline">
+              ¿Preguntas? admin@impacta.vc
             </a>
           </p>
         </div>
@@ -124,8 +126,8 @@ export default async function SinAccesoPage() {
 
           <p className="text-center text-xs text-zinc-400">
             ¿Fue un error?{" "}
-            <a href="mailto:amdin@impacta.vc" className="underline">
-              amdin@impacta.vc
+            <a href="mailto:admin@impacta.vc" className="underline">
+              admin@impacta.vc
             </a>
           </p>
         </div>
@@ -150,10 +152,10 @@ export default async function SinAccesoPage() {
             </p>
           </div>
           <a
-            href="mailto:amdin@impacta.vc"
+            href="mailto:admin@impacta.vc"
             className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline"
           >
-            amdin@impacta.vc
+            admin@impacta.vc
           </a>
         </div>
       </div>
@@ -181,10 +183,10 @@ export default async function SinAccesoPage() {
             </p>
           </div>
           <a
-            href="mailto:amdin@impacta.vc"
+            href="mailto:admin@impacta.vc"
             className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline"
           >
-            ¿Preguntas? amdin@impacta.vc
+            ¿Preguntas? admin@impacta.vc
           </a>
         </div>
       </div>
@@ -242,8 +244,8 @@ export default async function SinAccesoPage() {
         </Link>
         <p className="text-xs text-zinc-400">
           ¿Ya postulaste?{" "}
-          <a href="mailto:amdin@impacta.vc" className="underline">
-            amdin@impacta.vc
+          <a href="mailto:admin@impacta.vc" className="underline">
+            admin@impacta.vc
           </a>
         </p>
       </div>

@@ -38,10 +38,10 @@ export default function PrivacidadPage() {
             <p className="mt-3">
               Contacto:{" "}
               <a
-                href="mailto:amdin@impacta.vc"
+                href="mailto:admin@impacta.vc"
                 className="text-(--brand-teal) hover:underline"
               >
-                amdin@impacta.vc
+                admin@impacta.vc
               </a>
             </p>
           </div>
@@ -189,10 +189,10 @@ export default function PrivacidadPage() {
             <p className="mt-3">
               Para ejercer cualquiera de estos derechos, escribí a{" "}
               <a
-                href="mailto:amdin@impacta.vc"
+                href="mailto:admin@impacta.vc"
                 className="text-(--brand-teal) hover:underline"
               >
-                amdin@impacta.vc
+                admin@impacta.vc
               </a>{" "}
               con el asunto "Derechos ARCO".
             </p>
@@ -257,10 +257,10 @@ export default function PrivacidadPage() {
             <h2 className="text-white font-black text-xl mb-3">13. Contacto</h2>
             <p>
               <a
-                href="mailto:amdin@impacta.vc"
+                href="mailto:admin@impacta.vc"
                 className="text-(--brand-teal) hover:underline"
               >
-                amdin@impacta.vc
+                admin@impacta.vc
               </a>{" "}
               · Impacta VC SpA · Santiago, Chile.
             </p>

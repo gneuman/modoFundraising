@@ -726,26 +726,24 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700">
-                {statusModal.type === "Admitida"
-                  ? "Nota de admisión (opcional)"
-                  : statusModal.type === "Rechazada por founder"
-                  ? "¿Por qué rechazó el founder? *"
-                  : "Razón de rechazo (opcional)"}
-              </label>
-              <textarea
-                value={statusModal.reason}
-                onChange={(e) => setStatusModal((m) => m ? { ...m, reason: e.target.value } : m)}
-                placeholder={statusModal.type === "Admitida"
-                  ? "Excelente tracción, encaja perfecto con el programa..."
-                  : statusModal.type === "Rechazada por founder"
-                  ? "El founder indicó que el precio no se ajusta a su presupuesto..."
-                  : "El MRR no cumple el mínimo requerido para esta cohorte..."}
-                rows={3}
-                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
+            {statusModal.type !== "Rechazada" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700">
+                  {statusModal.type === "Admitida"
+                    ? "Nota de admisión (opcional)"
+                    : "¿Por qué rechazó el founder? *"}
+                </label>
+                <textarea
+                  value={statusModal.reason}
+                  onChange={(e) => setStatusModal((m) => m ? { ...m, reason: e.target.value } : m)}
+                  placeholder={statusModal.type === "Admitida"
+                    ? "Excelente tracción, encaja perfecto con el programa..."
+                    : "El founder indicó que el precio no se ajusta a su presupuesto..."}
+                  rows={3}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+            )}
             {statusModal.type === "Admitida" && (
               <div className="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-700">
                 Se enviará automáticamente un email con el link de pago de Stripe.

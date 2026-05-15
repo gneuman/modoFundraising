@@ -207,7 +207,7 @@ function wrapForPreview(content: string): string {
 ${content}
 </td></tr>
 <tr><td style="padding:20px 0;text-align:center;">
-<p style="margin:0;font-size:11px;color:#a1a1aa;">Modo Fundraising 2026 · Impacta VC<br/>amdin@impacta.vc</p>
+<p style="margin:0;font-size:11px;color:#a1a1aa;">Modo Fundraising 2026 · Impacta VC<br/>admin@impacta.vc</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }

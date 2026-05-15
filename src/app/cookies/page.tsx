@@ -257,10 +257,10 @@ export default function CookiesPage() {
             <p>
               Si tenés dudas sobre el uso de cookies:{" "}
               <a
-                href="mailto:amdin@impacta.vc"
+                href="mailto:admin@impacta.vc"
                 className="text-(--brand-teal) hover:underline"
               >
-                amdin@impacta.vc
+                admin@impacta.vc
               </a>
             </p>
           </div>

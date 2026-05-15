@@ -228,7 +228,8 @@ function ClaseRow({ clase }: { clase: ClaseFull }) {
 }
 
 export default async function ClasesPage() {
-  if (process.env.NEXT_PUBLIC_SHOW_CLASES_MISIONES !== "true") redirect("/portal");
+  if (process.env.NEXT_PUBLIC_SHOW_CLASES_MISIONES !== "true")
+    redirect("/portal");
   const session = await obtenerSesion();
   const clases = await getClasesWithContent();
 
@@ -325,10 +326,10 @@ export default async function ClasesPage() {
         <p className="text-sm text-zinc-600">
           Las clases son en vivo por Google Meet. ¿Preguntas?{" "}
           <a
-            href="mailto:amdin@impacta.vc"
+            href="mailto:admin@impacta.vc"
             className="underline font-medium text-zinc-700"
           >
-            amdin@impacta.vc
+            admin@impacta.vc
           </a>
         </p>
       </div>
