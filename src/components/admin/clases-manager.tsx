@@ -85,8 +85,9 @@ function NuevaClaseForm({ onCreated }: { onCreated: (clase: ClaseWithContent) =>
           fecha: form.fecha ? santiagoInputToISO(form.fecha) : undefined,
         }),
       });
-      const { id } = await res.json();
-      onCreated({ id, ...form, semana: Number(form.semana) || 0, misionesData: [], recursosData: [] } as ClaseWithContent);
+      const { id, meet_link } = await res.json();
+      const url_live = form.url_live || meet_link || "";
+      onCreated({ id, ...form, url_live, meet_link, semana: Number(form.semana) || 0, misionesData: [], recursosData: [] } as ClaseWithContent);
       setForm({ titulo: "", semana: "", fecha: "", url_live: "", status: "Próxima" });
       setOpen(false);
       toast.success("Clase creada");

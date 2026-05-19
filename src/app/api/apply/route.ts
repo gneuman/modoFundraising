@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     // Creates Postulacion — reuses Founder + Startup if already created during draft
     await createApplication(
-      { ...data, startup_logo_url: body.startup_logo_url ?? "", accept_legal_terms: true },
+      { ...data, round_series: data.round_series ?? "", round_size: data.round_size ?? 0, round_tickets: data.round_tickets ?? [], startup_logo_url: body.startup_logo_url ?? "", accept_legal_terms: true },
       {
         founderRecordId: body._founder_record_id as string | undefined,
         startupRecordId: body._startup_record_id as string | undefined,

@@ -39,10 +39,10 @@ export const applicationSchema = z.object({
 
   // S5 — Ronda
   round_open: z.enum(["Sí", "No (pero la iniciaremos en los próximos 12 meses)"]),
-  round_series: z.string().min(1),
-  round_size: z.coerce.number().int().min(0),
+  round_series: z.string().optional(),
+  round_size: z.coerce.number().int().min(0).optional(),
   startup_valuation: z.coerce.number().int().min(0).optional(),
-  round_tickets: z.array(z.string()).min(1),
+  round_tickets: z.array(z.string()).optional(),
   runway: z.coerce.number().int().min(0),
 
   // S6 — Deck

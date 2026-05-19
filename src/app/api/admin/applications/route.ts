@@ -63,6 +63,7 @@ export async function PATCH(req: NextRequest) {
       if (!app) return NextResponse.json({ error: "Postulación no encontrada" }, { status: 404 });
       const checkoutUrl = await buildCheckoutUrl(recordId, app);
       const discountPct = app.discount_percent ? Number(app.discount_percent) : 0;
+      console.log(`[resend_checkout] recordId=${recordId} email=${app.email} discount=${discountPct}%`);
       if (discountPct > 0) {
         await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct);
       } else {
@@ -70,6 +71,7 @@ export async function PATCH(req: NextRequest) {
       }
       return NextResponse.json({ success: true, url: checkoutUrl });
     } catch (err) {
+      console.error(`[resend_checkout] error recordId=${recordId}`, err);
       return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }
   }
@@ -84,19 +86,24 @@ export async function PATCH(req: NextRequest) {
       const apps = await getAllApplications();
       const app = apps.find((a) => a.id === recordId);
       if (app && app.status === "Admitida") {
-        const appWithCoupon = {
-          ...app,
-          stripe_coupon_id: stripe_coupon_id ?? "",
-          stripe_promotion_code_id: stripe_promotion_code_id ?? "",
-          discount_percent: discount_percent ?? 0,
-        };
-        buildCheckoutUrl(recordId, appWithCoupon).then((checkoutUrl) => {
+        try {
+          const appWithCoupon = {
+            ...app,
+            stripe_coupon_id: stripe_coupon_id ?? "",
+            stripe_promotion_code_id: stripe_promotion_code_id ?? "",
+            discount_percent: discount_percent ?? 0,
+          };
+          const checkoutUrl = await buildCheckoutUrl(recordId, appWithCoupon);
           const discountPct = Number(discount_percent ?? 0);
-          const sendFn = discountPct > 0
-            ? sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct)
-            : sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
-          sendFn.catch((err) => console.error("Coupon email resend error:", err));
-        }).catch((err) => console.error("Checkout URL rebuild error:", err));
+          console.log(`[coupon_assign] recordId=${recordId} email=${app.email} discount=${discountPct}% url=${checkoutUrl}`);
+          if (discountPct > 0) {
+            await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct);
+          } else {
+            await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
+          }
+        } catch (err) {
+          console.error(`[coupon_assign] email error recordId=${recordId}`, err);
+        }
       }
 
       return NextResponse.json({ success: true });
@@ -120,22 +127,25 @@ export async function PATCH(req: NextRequest) {
       const app = apps.find((a) => a.id === recordId);
       if (app) {
         const discountPct = app.discount_percent ? Number(app.discount_percent) : 0;
+        console.log(`[admit] recordId=${recordId} email=${app.email} discount=${discountPct}%`);
         if (discountPct === 100) {
           await updateApplicationStatus(recordId, "Inscrita", { portal_access: true });
-          // Invitar founders al calendario (beca completa = inscripción directa)
           const startupId = (app.startup_record as string[] | undefined)?.[0];
           if (startupId) await inviteStartupToCalendar(startupId);
           return NextResponse.json({ success: true, inscrita_directa: true });
         }
         const checkoutUrl = await buildCheckoutUrl(recordId, app);
+        console.log(`[admit] checkoutUrl=${checkoutUrl}`);
         if (discountPct > 0) {
           await sendCouponLink(app.email!, app.first_name!, checkoutUrl, discountPct);
         } else {
           await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
         }
+      } else {
+        console.error(`[admit] app not found for recordId=${recordId}`);
       }
     } catch (err) {
-      console.error("Admission email error:", err);
+      console.error(`[admit] email error recordId=${recordId}`, err);
     }
   }
 
@@ -143,9 +153,12 @@ export async function PATCH(req: NextRequest) {
     try {
       const apps = await getAllApplications();
       const app = apps.find((a) => a.id === recordId);
-      if (app) await sendRejectionEmail(app.email!, app.first_name!);
+      if (app) {
+        console.log(`[reject] recordId=${recordId} email=${app.email}`);
+        await sendRejectionEmail(app.email!, app.first_name!);
+      }
     } catch (err) {
-      console.error("Rejection email error:", err);
+      console.error(`[reject] email error recordId=${recordId}`, err);
     }
   }
 
