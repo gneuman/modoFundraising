@@ -51,12 +51,14 @@ export function SuscripcionClient({
 
   const PRICE_MONTHLY = 349;
   const PRICE_ONETIME = 1047;
+  const ONETIME_FIXED = 20; // 20% off SIEMPRE en pago único
+  // Cuotas: solo descuento del cupón.
   const discountedMonthly = discountPercent
     ? Math.round(PRICE_MONTHLY * (1 - discountPercent / 100))
     : null;
-  const discountedOnetime = discountPercent
-    ? Math.round(PRICE_ONETIME * (1 - discountPercent / 100))
-    : null;
+  // Pago único: 20% fijo + descuento del cupón (cap 100%). Siempre hay descuento.
+  const onetimeDiscount = Math.min(100, ONETIME_FIXED + (discountPercent ?? 0));
+  const discountedOnetime = Math.round(PRICE_ONETIME * (1 - onetimeDiscount / 100));
 
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
   const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
@@ -154,8 +156,8 @@ export function SuscripcionClient({
             <div className="border-t border-zinc-100 pt-4 space-y-3">
               {discountPercent && (
                 <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700 font-medium">
-                  🎉 Tenés un descuento del {discountPercent}% aplicado a tu
-                  cuenta
+                  🎉 Tenés un código de {discountPercent}% off aplicado (válido
+                  para cuotas o se suma al 20% del pago único)
                 </div>
               )}
               <p className="text-sm font-medium text-zinc-700">
@@ -185,9 +187,9 @@ export function SuscripcionClient({
                     )}
                   </span>
                   <span className="text-xs text-blue-600 mt-1">
-                    {discountedOnetime ? (
+                    {discountedMonthly ? (
                       <>
-                        Cobro automático · Total US${discountedOnetime}{" "}
+                        Cobro automático · Total US${discountedMonthly * 3}{" "}
                         <span className="line-through">US$1,047</span>
                       </>
                     ) : (
@@ -199,27 +201,22 @@ export function SuscripcionClient({
                 <button
                   onClick={() => handleCheckout("payment")}
                   disabled={redirecting}
-                  className="flex flex-col items-start p-4 rounded-xl border-2 border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 transition-colors text-left disabled:opacity-50"
+                  className="relative flex flex-col items-start p-4 rounded-xl border-2 border-green-500 bg-green-50 hover:bg-green-100 transition-colors text-left disabled:opacity-50"
                 >
-                  <span className="text-sm font-semibold text-zinc-700">
+                  <span className="absolute -top-2 right-3 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {onetimeDiscount}% OFF
+                  </span>
+                  <span className="text-sm font-semibold text-green-700">
                     Pago único
                   </span>
-                  <span className="text-2xl font-bold text-zinc-800 mt-1">
-                    {discountedOnetime ? (
-                      <>US${discountedOnetime}</>
-                    ) : (
-                      "US$1,047"
-                    )}
+                  <span className="text-2xl font-bold text-green-800 mt-1">
+                    US${discountedOnetime}
                   </span>
-                  <span className="text-xs text-zinc-500 mt-1">
-                    {discountedOnetime ? (
-                      <>
-                        <span className="line-through">US$1,047</span> · Un solo
-                        cobro
-                      </>
-                    ) : (
-                      "Un solo cobro · Acceso completo"
-                    )}
+                  <span className="text-xs text-green-700 mt-1">
+                    <span className="line-through">US$1,047</span> ·{" "}
+                    {discountPercent
+                      ? `20% off + ${discountPercent}% código`
+                      : "20% off automático"}
                   </span>
                 </button>
               </div>

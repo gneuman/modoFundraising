@@ -26,6 +26,9 @@ export const stripe = new Stripe(stripeSecretKey, {
 
 export const PROGRAM_PRICE_USD = 349;
 
+// Descuento fijo aplicado SIEMPRE al pago único (independiente del código de cupón)
+export const ONETIME_FIXED_DISCOUNT = 20;
+
 // Descuentos permitidos (%)
 export const ALLOWED_DISCOUNTS = [10, 15, 20, 25, 50, 100] as const;
 export type DiscountPercent = (typeof ALLOWED_DISCOUNTS)[number];
@@ -104,22 +107,40 @@ export async function createStripePromoCode(couponId: string, code: string) {
   });
 }
 
-// One-time full payment checkout (3 cuotas * precio - descuento)
+// Pago único: SIEMPRE aplica 20% off fijo. Si el founder tiene un cupón asignado,
+// su porcentaje se SUMA al 20% (cap a 100%). Para combinar ambos descuentos en una
+// sola sesión, creamos un cupón Stripe one-shot con el total y lo aplicamos.
+// No se permite ingresar códigos en el checkout (el descuento ya está calculado).
 export async function createOneTimeCheckout({
   customerId,
-  couponId,
-  promotionCodeId,
+  extraDiscountPercent = 0,
   successUrl,
   cancelUrl,
   metadata,
 }: {
   customerId: string;
-  couponId?: string;
-  promotionCodeId?: string;
+  extraDiscountPercent?: number;
   successUrl: string;
   cancelUrl: string;
   metadata?: Record<string, string>;
 }) {
+  const totalDiscount = Math.min(100, ONETIME_FIXED_DISCOUNT + extraDiscountPercent);
+
+  const dynamicCoupon = await stripe.coupons.create({
+    name: extraDiscountPercent > 0
+      ? `Pago único ${ONETIME_FIXED_DISCOUNT}% + ${extraDiscountPercent}% cupón`
+      : `Pago único ${ONETIME_FIXED_DISCOUNT}%`,
+    percent_off: totalDiscount,
+    duration: "once",
+    max_redemptions: 1,
+    currency: "usd",
+    metadata: {
+      ...(metadata ?? {}),
+      fixed_pct: String(ONETIME_FIXED_DISCOUNT),
+      extra_pct: String(extraDiscountPercent),
+    },
+  });
+
   const params: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
     mode: "payment",
@@ -128,14 +149,9 @@ export async function createOneTimeCheckout({
     cancel_url: cancelUrl,
     metadata,
     payment_method_types: ["card"],
+    discounts: [{ coupon: dynamicCoupon.id }],
   };
-  if (promotionCodeId) {
-    params.discounts = [{ promotion_code: promotionCodeId }];
-  } else if (couponId) {
-    params.discounts = [{ coupon: couponId }];
-  } else {
-    params.allow_promotion_codes = true;
-  }
+
   return stripe.checkout.sessions.create(params);
 }
 

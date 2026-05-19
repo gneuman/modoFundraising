@@ -198,20 +198,6 @@ export async function sendAdmissionEmail(
   );
 }
 
-export async function sendRejectionEmail(emailAddr: string, firstName: string) {
-  await sendEmail(
-    emailAddr,
-    "Actualización sobre tu postulación a Modo Fundraising 2026",
-    email(`
-    ${h1(`Hola ${firstName}`)}
-    ${p("Gracias por tu interés en <strong>Modo Fundraising 2026</strong>. Tras revisar tu postulación, en esta ocasión no podemos continuar con tu candidatura.")}
-    ${p("Esto no es un reflejo de tu potencial. Te animamos a seguir construyendo y esperamos verte en futuras ediciones del programa.")}
-    ${divider()}
-    ${small("Si tienes preguntas, responde a este email.<br/>— Equipo Impacta VC")}
-  `),
-  );
-}
-
 export async function sendAdmissionFollowUp(
   emailAddr: string,
   firstName: string,

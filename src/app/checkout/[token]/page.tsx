@@ -11,9 +11,13 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
   const { firstName, startupName, discountPercent } = payload;
   const BASE = 349;
   const TOTAL = BASE * 3; // $1,047
-  const discount = discountPercent ?? 0;
-  const monthlyPrice = Math.round(BASE * (1 - discount / 100));
-  const fullPrice = Math.round(TOTAL * (1 - discount / 100));
+  const ONETIME_FIXED = 20; // 20% off SIEMPRE en pago único
+  const couponDiscount = discountPercent ?? 0;
+  // Cuotas: solo aplica el descuento del cupón.
+  const monthlyPrice = Math.round(BASE * (1 - couponDiscount / 100));
+  // Pago único: 20% fijo + descuento del cupón (cap 100%).
+  const onetimeDiscount = Math.min(100, ONETIME_FIXED + couponDiscount);
+  const fullPrice = Math.round(TOTAL * (1 - onetimeDiscount / 100));
   const fullSaving = TOTAL - fullPrice;
 
   return (
@@ -34,9 +38,9 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
               <span className="font-semibold text-zinc-700">{startupName}</span> fue admitida a Modo Fundraising 2026.
               <br />Elige cómo quieres pagar para activar tu acceso.
             </p>
-            {discount > 0 && (
+            {couponDiscount > 0 && (
               <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full">
-                🎁 Tienes un descuento del {discount}% aplicado
+                🎁 Tienes un descuento del {couponDiscount}% aplicado
               </div>
             )}
           </div>
@@ -67,7 +71,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
             monthlyPrice={monthlyPrice}
             fullPrice={fullPrice}
             fullSaving={fullSaving}
-            hasDiscount={discount > 0}
+            couponDiscount={couponDiscount}
+            onetimeDiscount={onetimeDiscount}
           />
 
           <p className="text-center text-xs text-zinc-400">
