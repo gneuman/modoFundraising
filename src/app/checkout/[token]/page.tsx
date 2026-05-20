@@ -15,8 +15,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
   const couponDiscount = discountPercent ?? 0;
   // Cuotas: solo aplica el descuento del cupón.
   const monthlyPrice = Math.round(BASE * (1 - couponDiscount / 100));
-  // Pago único: 20% fijo + descuento del cupón (cap 100%).
-  const onetimeDiscount = Math.min(100, ONETIME_FIXED + couponDiscount);
+  // Pago único: siempre 20% fijo, cupones NO aplican.
+  const onetimeDiscount = ONETIME_FIXED;
   const fullPrice = Math.round(TOTAL * (1 - onetimeDiscount / 100));
   const fullSaving = TOTAL - fullPrice;
 

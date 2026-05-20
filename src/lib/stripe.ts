@@ -107,29 +107,22 @@ export async function createStripePromoCode(couponId: string, code: string) {
   });
 }
 
-// Pago único: SIEMPRE aplica 20% off fijo. Si el founder tiene un cupón asignado,
-// su porcentaje se SUMA al 20% (cap a 100%). Para combinar ambos descuentos en una
-// sola sesión, creamos un cupón Stripe one-shot con el total y lo aplicamos.
-// No se permite ingresar códigos en el checkout (el descuento ya está calculado).
+// Pago único: SIEMPRE aplica 20% off fijo. Cupones NO aplican a esta modalidad.
 export async function createOneTimeCheckout({
   customerId,
-  extraDiscountPercent = 0,
   successUrl,
   cancelUrl,
   metadata,
 }: {
   customerId: string;
-  extraDiscountPercent?: number;
   successUrl: string;
   cancelUrl: string;
   metadata?: Record<string, string>;
 }) {
-  const totalDiscount = Math.min(100, ONETIME_FIXED_DISCOUNT + extraDiscountPercent);
+  const totalDiscount = ONETIME_FIXED_DISCOUNT;
 
   const dynamicCoupon = await stripe.coupons.create({
-    name: extraDiscountPercent > 0
-      ? `Pago único ${ONETIME_FIXED_DISCOUNT}% + ${extraDiscountPercent}% cupón`
-      : `Pago único ${ONETIME_FIXED_DISCOUNT}%`,
+    name: `Pago único ${ONETIME_FIXED_DISCOUNT}%`,
     percent_off: totalDiscount,
     duration: "once",
     max_redemptions: 1,

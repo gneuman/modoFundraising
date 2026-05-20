@@ -115,9 +115,7 @@ export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, co
         </div>
 
         <p className="text-xs text-zinc-400">
-          {couponDiscount > 0
-            ? `20% off siempre + tu código de ${couponDiscount}% = ${onetimeDiscount}% off total.`
-            : "20% off automático por pago único. Sin renovaciones."}
+          20% off automático por pago único. Sin renovaciones.
         </p>
 
         {loading && selected === "payment" && (
