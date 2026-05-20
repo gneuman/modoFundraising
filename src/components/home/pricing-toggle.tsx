@@ -8,7 +8,7 @@ const MODES = {
     label: "Pago completo",
     saving: "Ahorras ~US$210",
     amount: "US$837",
-    suffix: "pago único · US$279/mes · 3 meses",
+    suffix: "pago único · 3 meses",
     finePrint:
       "El programa entrega valor completo en cualquiera de las dos modalidades. Pago completo asegura tu cupo hasta el final con descuento.",
   },
@@ -16,7 +16,7 @@ const MODES = {
     label: "Pago mensual",
     saving: "Cancela cuando quieras",
     amount: "US$349",
-    suffix: "por mes · US$1.047 total · 3 meses",
+    suffix: "por mes · US$1.047 total",
     finePrint:
       "Con pago mensual puedes desuscribirte en cualquier momento. Después de los 14 días pierdes acceso al terminar el mes pagado.",
   },
