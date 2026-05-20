@@ -40,7 +40,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
             </p>
             {couponDiscount > 0 && (
               <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full">
-                🎁 Tienes un descuento del {couponDiscount}% aplicado
+                🎁 Tienes un descuento del {couponDiscount}% aplicado en mensualidades
               </div>
             )}
           </div>

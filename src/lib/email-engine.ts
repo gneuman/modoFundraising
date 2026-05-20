@@ -202,6 +202,17 @@ export async function sendAdmissionFollowUp(
   });
 }
 
+export async function sendFormAbandonado(
+  emailAddr: string,
+  firstName: string,
+) {
+  await sendAutomationEmail("form_abandonado", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+    apply_url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://modofundraising.com"}/apply`,
+  });
+}
+
 export async function sendOnboardingEmail(
   emailAddr: string,
   firstName: string,
