@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin).replace(/\/$/, "");
   const enlace = `${base}/api/auth/verify?token=${token}&role=${rol}`;
 
-  const { sendMagicLink } = await import("@/lib/gmail");
+  const { sendMagicLink } = await import("@/lib/email-engine");
   await sendMagicLink(email, token, rol);
   return NextResponse.json({ success: true });
 }
