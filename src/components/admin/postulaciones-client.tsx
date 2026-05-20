@@ -138,7 +138,7 @@ export function PostulacionesClient({ initialData, initialCoupons, initialPagos 
       </div>
 
       {vista === "kanban" ? (
-        <KanbanPostulaciones initialData={datos} coupons={initialCoupons} pagos={initialPagos} />
+        <KanbanPostulaciones key={tab} initialData={datos} coupons={initialCoupons} pagos={initialPagos} />
       ) : (
         <PostulacionesTable initialData={datos} />
       )}
