@@ -15,6 +15,7 @@ import {
   Building2,
   CalendarDays,
   Mail,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -30,6 +31,7 @@ const NAV = [
   { href: "/admin/misiones",      label: "Misiones",       icon: Target },
   { href: "/admin/recursos",       label: "Recursos",        icon: Link2 },
   { href: "/admin/comunicaciones", label: "Comunicaciones",  icon: Mail },
+  { href: "/admin/design",         label: "Diseño",          icon: Palette },
   { href: "/admin/api",            label: "API Docs",        icon: Code2 },
 ];
 

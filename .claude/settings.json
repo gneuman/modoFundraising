@@ -42,7 +42,9 @@
       "Bash(cat .env.production)",
       "Bash(cat .env)",
       "Bash(/c/Users/Usuario/.claude/skills/gstack/browse/dist/browse goto *)",
-      "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Usuario\\\\GNB Labs\\\\Gabriel Neuman\\\\proyectos\\\\clientes\\\\modoFundraising\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\modoFundraising\\src\\app\\portal\\clases\\[id]",

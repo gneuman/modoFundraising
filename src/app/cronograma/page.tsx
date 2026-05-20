@@ -4,7 +4,7 @@ import { Footer } from "@/components/home/footer";
 
 export const metadata = {
   title: "Cronograma — Modo Fundraising 2026",
-  description: "14 semanas, 26 clases, 12 misiones. El programa completo para levantar tu ronda.",
+  description: "14 semanas, 26 clases, 4 fases. El programa completo para levantar tu ronda.",
 };
 
 const FASES = [
@@ -30,7 +30,7 @@ const FASES = [
   {
     id: "fase2",
     label: "Fase 2",
-    titulo: "Research & Approach",
+    titulo: "Approach & Connect",
     semanas: "Semanas 6–9",
     color: "#0d6efd",
     clases: [
@@ -47,8 +47,8 @@ const FASES = [
   {
     id: "fase3",
     label: "Fase 3",
-    titulo: "Momentum & FOMO",
-    semanas: "Semanas 10–14",
+    titulo: "Manage Momentum",
+    semanas: "Semanas 10–12",
     color: "#f59e0b",
     clases: [
       { nro: 19, titulo: "Managing Momentum", tipo: "Teoría", fecha: "1 Sep", semana: 10, expositor: "David Alvo", desc: "Creación de hitos de tracción para mover inversores del 'quizás' al 'sí'." },
@@ -57,6 +57,15 @@ const FASES = [
       { nro: 22, titulo: "Rockstar Lead", tipo: "Rockstar", fecha: "10 Sep", semana: 11, desc: "Análisis de term sheets y negociación de valuación." },
       { nro: 23, titulo: "FOMO", tipo: "Teoría", fecha: "22 Sep", semana: 12, expositor: "David Alvo", desc: "Psicología del inversor para generar urgencia, escasez y competencia sana entre fondos." },
       { nro: 24, titulo: "Rockstar FOMO", tipo: "Rockstar", fecha: "24 Sep", semana: 12, desc: "Diseño de estrategia FOMO y cierre de ronda." },
+    ],
+  },
+  {
+    id: "fase4",
+    label: "Fase 4",
+    titulo: "Closing the Round",
+    semanas: "Semanas 13–14",
+    color: "#10b981",
+    clases: [
       { nro: 25, titulo: "Closing Round", tipo: "Teoría", fecha: "29 Sep", semana: 13, expositor: "David Alvo", desc: "Cierre legal, firmas, Due Diligence final y relación post-closing." },
       { nro: 26, titulo: "Graduation", tipo: "Graduation", fecha: "1 Oct", semana: 14, desc: "Presentación final ante VCs invitados y ceremonia de cierre del programa." },
     ],
@@ -85,9 +94,25 @@ export default function CronogramaPage() {
               Cronograma <span className="text-(--brand-teal)">completo</span>
             </h1>
             <p className="text-white/60 text-lg leading-relaxed mb-8">
-              14 semanas · 26 clases · 12 misiones · 100% online.<br />
+              14 semanas · 26 clases · 4 fases · 100% online.<br />
               Inicio: <strong className="text-white">30 de junio, 2026</strong> · Horario: <strong className="text-white">12:00–13:30 (CLT)</strong>
             </p>
+
+            {/* Resumen de 4 fases */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {FASES.map((f) => (
+                <a
+                  key={f.id}
+                  href={`#${f.id}`}
+                  className="text-xs font-bold px-3 py-1.5 rounded-full border transition-colors hover:opacity-80"
+                  style={{ color: f.color, borderColor: `${f.color}40`, backgroundColor: `${f.color}15` }}
+                >
+                  {f.label} · {f.titulo}
+                </a>
+              ))}
+            </div>
+
+            {/* Leyenda de tipos */}
             <div className="flex flex-wrap gap-3">
               {[
                 { label: "Teoría", color: "bg-(--brand-teal)/15 text-(--brand-teal) border border-(--brand-teal)/30" },
@@ -104,7 +129,7 @@ export default function CronogramaPage() {
       {/* Fases */}
       <section className="max-w-6xl mx-auto px-4 py-16 space-y-20">
         {FASES.map((fase) => (
-          <div key={fase.id}>
+          <div key={fase.id} id={fase.id}>
             {/* Fase header */}
             <div className="flex items-center gap-4 mb-8">
               <div

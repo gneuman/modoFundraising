@@ -32,6 +32,8 @@ export const Tables = {
   HOUSE_RULES: "house_rules",
   ROCKSTARS: "rockstars",
   QA: "qa",
+  DESIGN_TOKENS: "design_tokens",
+  INSTRUCTORES: "instructores_mf26",
 } as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1876,4 +1878,272 @@ export async function createRechazoRecord(data: RechazoInput): Promise<string> {
   if (data.founderId) fields.Founder = [data.founderId];
   const record = await base(Tables.RECHAZOS).create(fields as never);
   return record.id;
+}
+
+// ── Design Tokens ─────────────────────────────────────────────────────────────
+
+export interface DesignTokens {
+  id: string;
+  edicion: string;
+  // Colores
+  color_primary: string;
+  color_secondary: string;
+  color_teal: string;
+  color_violet: string;
+  color_bg: string;
+  color_bg_deep: string;
+  impacta_green: string;
+  impacta_green_deep: string;
+  font_family: string;
+  activa: boolean;
+  // Configuración general
+  close_date: string;
+  whatsapp_phone: string;
+  pricing_upfront_monthly: number;
+  pricing_upfront_total: number;
+  pricing_mensual_monthly: number;
+  pricing_mensual_total: number;
+  // Stats homepage
+  stat_capital_usd_m: number;
+  stat_startups: number;
+  stat_inversores: number;
+  stat_nps: number;
+  stat_capital_promedio_usd_m: number;
+  stat_paises_alumni: number;
+}
+
+export async function getDesignTokens(): Promise<DesignTokens | null> {
+  const records = await base(Tables.DESIGN_TOKENS)
+    .select({ filterByFormula: "{activa} = 1", maxRecords: 1 })
+    .firstPage();
+  if (!records.length) return null;
+  const f = records[0].fields as Record<string, unknown>;
+  return {
+    id: records[0].id,
+    edicion: (f.edicion as string) ?? "MF26",
+    color_primary: (f.color_primary as string) ?? "#ff0080",
+    color_secondary: (f.color_secondary as string) ?? "#ff8a3c",
+    color_teal: (f.color_teal as string) ?? "#5eead4",
+    color_violet: (f.color_violet as string) ?? "#c4b5fd",
+    color_bg: (f.color_bg as string) ?? "#0a0f23",
+    color_bg_deep: (f.color_bg_deep as string) ?? "#050816",
+    impacta_green: (f.impacta_green as string) ?? "#10b981",
+    impacta_green_deep: (f.impacta_green_deep as string) ?? "#047857",
+    font_family: (f.font_family as string) ?? "Inter",
+    activa: (f.activa as boolean) ?? true,
+    close_date: (f.close_date as string) ?? "2026-06-22T23:59:59-03:00",
+    whatsapp_phone: (f.whatsapp_phone as string) ?? "",
+    pricing_upfront_monthly: (f.pricing_upfront_monthly as number) ?? 279,
+    pricing_upfront_total: (f.pricing_upfront_total as number) ?? 837,
+    pricing_mensual_monthly: (f.pricing_mensual_monthly as number) ?? 349,
+    pricing_mensual_total: (f.pricing_mensual_total as number) ?? 1047,
+    stat_capital_usd_m: (f.stat_capital_usd_m as number) ?? 190,
+    stat_startups: (f.stat_startups as number) ?? 400,
+    stat_inversores: (f.stat_inversores as number) ?? 200,
+    stat_nps: (f.stat_nps as number) ?? 92,
+    stat_capital_promedio_usd_m: (f.stat_capital_promedio_usd_m as number) ?? 1.9,
+    stat_paises_alumni: (f.stat_paises_alumni as number) ?? 12,
+  };
+}
+
+export async function updateDesignTokens(
+  id: string,
+  fields: Partial<Omit<DesignTokens, "id">>
+): Promise<void> {
+  await base(Tables.DESIGN_TOKENS).update(id, fields as never);
+}
+
+// ── landing_textos ────────────────────────────────────────────────────────────
+// Key-value store para copy estático del hero y otras secciones de la landing.
+
+export const LANDING_TEXTOS_DEFAULTS: Record<string, string> = {
+  hero_tagline: "Construye momentum que los inversionistas no puedan ignorar.",
+  hero_descripcion:
+    "El método que +400 startups de LatAm usaron para levantar US$190M. Si vas a salir a la calle por pre-seed, seed o post-seed entre US$500K y US$5M este año — este es el programa.",
+  hero_chip_precio: "US$349/mes",
+  hero_chip_duracion: "13 semanas",
+  hero_chip_modalidad: "100% online",
+  hero_chip_garantia: "Money Back 14 días",
+  hero_cta_primario: "Postular ahora →",
+  hero_cta_secundario: "Hablar con el equipo",
+  hero_whatsapp_url: "https://wa.me/56920620253?text=Hola%20MF26",
+  hero_instructor_nombre: "David Alvo",
+  hero_instructor_cargo: "Founder & Managing Partner, Impacta VC",
+  hero_instructor_foto_url: "",
+};
+
+export async function getLandingTextos(): Promise<Record<string, string>> {
+  try {
+    const records = await base("landing_textos")
+      .select({ filterByFormula: "{activa} = 1" })
+      .all();
+    const result: Record<string, string> = { ...LANDING_TEXTOS_DEFAULTS };
+    for (const r of records) {
+      const f = r.fields as Record<string, unknown>;
+      if (f.key && f.value) result[f.key as string] = f.value as string;
+    }
+    return result;
+  } catch {
+    return { ...LANDING_TEXTOS_DEFAULTS };
+  }
+}
+
+export async function setLandingTextos(data: Record<string, string>): Promise<void> {
+  for (const [key, value] of Object.entries(data)) {
+    const existing = await base("landing_textos")
+      .select({ filterByFormula: `{key} = "${key}"`, maxRecords: 1 })
+      .firstPage();
+    if (existing.length) {
+      await base("landing_textos").update(existing[0].id, { value } as never);
+    } else {
+      await base("landing_textos").create({ key, value, activa: true } as never);
+    }
+  }
+}
+
+// ── landing_cards ─────────────────────────────────────────────────────────────
+// Outcomes (qué aprenden) y Pillars (por qué MF) en una sola tabla.
+
+export interface LandingCard {
+  id?: string;
+  seccion: "outcome" | "pillar";
+  titulo: string;
+  descripcion: string;
+  icono: string;
+  orden: number;
+  activa: boolean;
+}
+
+export const LANDING_OUTCOMES_DEFAULTS: LandingCard[] = [
+  { seccion: "outcome", titulo: "Estrategia de ronda", descripcion: "Define el tamaño, timing y estructura de tu ronda.", icono: "🎯", orden: 1, activa: true },
+  { seccion: "outcome", titulo: "Narrativa investor-ready", descripcion: "Deck y pitch que abren reuniones con los mejores fondos.", icono: "📝", orden: 2, activa: true },
+  { seccion: "outcome", titulo: "Investor targeting", descripcion: "Lista priorizada de inversores que realmente invierten en tu tesis.", icono: "🔍", orden: 3, activa: true },
+  { seccion: "outcome", titulo: "Cierre efectivo", descripcion: "Momentum y FOMO para cerrar en términos que protejan tu cap table.", icono: "🤝", orden: 4, activa: true },
+];
+
+export const LANDING_PILLARS_DEFAULTS: LandingCard[] = [
+  { seccion: "pillar", titulo: "Premium", descripcion: "Cohortes chicas, acceso directo a instructores y red de inversores real.", icono: "⭐", orden: 1, activa: true },
+  { seccion: "pillar", titulo: "LatAm-centric", descripcion: "Construido para el ecosistema LatAm, no para Silicon Valley.", icono: "🌎", orden: 2, activa: true },
+  { seccion: "pillar", titulo: "Founder-to-founder", descripcion: "Aprende de founders que levantaron, no de consultores que nunca lo hicieron.", icono: "🤜", orden: 3, activa: true },
+  { seccion: "pillar", titulo: "Investor network real", descripcion: "Acceso a +200 inversores activos en LatAm.", icono: "🏦", orden: 4, activa: true },
+];
+
+export async function getLandingCards(seccion: "outcome" | "pillar"): Promise<LandingCard[]> {
+  try {
+    const records = await base("landing_cards")
+      .select({
+        filterByFormula: `AND({activa} = 1, {seccion} = "${seccion}")`,
+        sort: [{ field: "orden", direction: "asc" }],
+      })
+      .all();
+    if (!records.length) {
+      return seccion === "outcome" ? LANDING_OUTCOMES_DEFAULTS : LANDING_PILLARS_DEFAULTS;
+    }
+    return records.map((r) => ({ id: r.id, ...r.fields }) as LandingCard);
+  } catch {
+    return seccion === "outcome" ? LANDING_OUTCOMES_DEFAULTS : LANDING_PILLARS_DEFAULTS;
+  }
+}
+
+export async function setLandingCards(seccion: "outcome" | "pillar", cards: Omit<LandingCard, "id">[]): Promise<void> {
+  const existing = await base("landing_cards")
+    .select({ filterByFormula: `{seccion} = "${seccion}"` })
+    .all();
+  if (existing.length) {
+    await base("landing_cards").destroy(existing.map((r) => r.id));
+  }
+  if (cards.length) {
+    await base("landing_cards").create(
+      cards.map((c) => ({ fields: { ...c, seccion } as never }))
+    );
+  }
+}
+
+// ── instructores_mf26 ─────────────────────────────────────────────────────────
+
+export interface Instructor {
+  id?: string;
+  nombre: string;
+  foto_url: string;
+  rol: string;
+  org: string;
+  linkedin_url?: string;
+  orden: number;
+  activa: boolean;
+}
+
+export async function getInstructores(): Promise<Instructor[]> {
+  try {
+    const records = await base(Tables.INSTRUCTORES)
+      .select({
+        filterByFormula: "{activa} = 1",
+        sort: [{ field: "orden", direction: "asc" }],
+      })
+      .all();
+    return records.map((r) => ({ id: r.id, ...r.fields }) as Instructor);
+  } catch {
+    return [];
+  }
+}
+
+export async function setInstructores(instructores: Instructor[]): Promise<void> {
+  for (const inst of instructores) {
+    const fields = {
+      nombre: inst.nombre,
+      foto_url: inst.foto_url,
+      rol: inst.rol,
+      org: inst.org,
+      linkedin_url: inst.linkedin_url,
+      orden: inst.orden,
+      activa: inst.activa,
+    };
+    if (inst.id) {
+      await base(Tables.INSTRUCTORES).update(inst.id, fields as never);
+    } else {
+      await base(Tables.INSTRUCTORES).create(fields as never);
+    }
+  }
+}
+
+// ── home_casos_exito (extended) ───────────────────────────────────────────────
+// Re-exporta la interfaz extendida y función de actualización para el CMS admin.
+
+export interface HomeCasoExitoExtended extends HomeCasoExito {
+  destacado_quote?: boolean;
+  pais_emoji?: string;
+  link_linkedin?: string;
+  quote_destacado?: string;
+}
+
+export async function getHomeCasosExitoAll(): Promise<HomeCasoExitoExtended[]> {
+  const records = await base(Tables.HOME_CASOS_EXITO)
+    .select({ sort: [{ field: "orden", direction: "asc" }] })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as HomeCasoExitoExtended);
+}
+
+export async function updateHomeCasoExito(id: string, data: Partial<HomeCasoExitoExtended>): Promise<void> {
+  const fields: Record<string, unknown> = { ...data };
+  delete fields.id;
+  await base(Tables.HOME_CASOS_EXITO).update(id, fields as never);
+}
+
+// ── advisors (extended) ───────────────────────────────────────────────────────
+
+export interface AdvisorExtended extends Advisor {
+  cupos_total?: number;
+  cupos_disponibles?: number;
+}
+
+export async function getAdvisorsAll(): Promise<AdvisorExtended[]> {
+  const records = await base(Tables.ADVISORS)
+    .select({ sort: [{ field: "orden", direction: "asc" }] })
+    .all();
+  return records.map((r) => ({ id: r.id, ...r.fields }) as AdvisorExtended);
+}
+
+export async function updateAdvisor(id: string, data: Partial<AdvisorExtended>): Promise<void> {
+  const fields: Record<string, unknown> = { ...data };
+  delete fields.id;
+  await base(Tables.ADVISORS).update(id, fields as never);
 }

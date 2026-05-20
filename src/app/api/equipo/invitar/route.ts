@@ -3,7 +3,7 @@ import { obtenerSesion } from "@/lib/auth";
 import { crearTokenMagic } from "@/lib/auth";
 import { getAllApplications, getCalendarEventIds } from "@/lib/airtable";
 import Airtable from "airtable";
-import { sendMagicLink } from "@/lib/gmail";
+import { sendMagicLink } from "@/lib/email-engine";
 import { addAttendeeToEvents } from "@/lib/calendar";
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_PAT }).base(process.env.AIRTABLE_BASE_ID!);

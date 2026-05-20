@@ -91,7 +91,60 @@ function wrapInBaseLayout(content: string): string {
 </html>`;
 }
 
-// ─── Funciones compatibles con gmail.ts ──────────────────────────────────────
+// ─── Helpers HTML (para emails transaccionales sin template en Airtable) ─────
+
+function h1(text: string) {
+  return `<h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#18181b;letter-spacing:-0.02em;">${text}</h1>`;
+}
+function p(text: string) {
+  return `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">${text}</p>`;
+}
+function btn(url: string, label: string, color = "#2563eb") {
+  return `<table cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td style="background:${color};border-radius:10px;"><a href="${url}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">${label}</a></td></tr></table>`;
+}
+function divider() {
+  return `<hr style="border:none;border-top:1px solid #f4f4f5;margin:24px 0;" />`;
+}
+function small(text: string) {
+  return `<p style="margin:16px 0 0;font-size:13px;color:#a1a1aa;line-height:1.5;">${text}</p>`;
+}
+
+// ─── Emails transaccionales ───────────────────────────────────────────────────
+
+export async function sendMagicLink(
+  emailAddr: string,
+  token: string,
+  role: "admin" | "founder",
+) {
+  const url = `${APP_URL}/api/auth/verify?token=${token}&role=${role}`;
+  const html = wrapInBaseLayout(`
+    ${h1("Ingresá a tu portal")}
+    ${p("Haz clic en el botón para acceder. Este enlace es válido por <strong>15 minutos</strong> y solo puede usarse una vez.")}
+    ${btn(url, "Ingresar al portal →")}
+    ${divider()}
+    ${small("Si no solicitaste este acceso, ignorá este mensaje. Tu cuenta está segura.<br/>¿Problemas? Escribinos a <a href='mailto:admin@impacta.vc' style='color:#a1a1aa;'>admin@impacta.vc</a>")}
+  `);
+  await sendViaGmail(emailAddr, "Tu enlace de acceso a Modo Fundraising 2026", html);
+}
+
+export async function sendReferralRequest(
+  referralEmail: string,
+  referralName: string,
+  founderName: string,
+  startupName: string,
+) {
+  const html = wrapInBaseLayout(`
+    ${h1(`Hola ${referralName}`)}
+    ${p(`<strong>${founderName}</strong> de <strong>${startupName}</strong> te agregó como recomendador en su postulación a Modo Fundraising 2026.`)}
+    ${p("Tu recomendación suma puntos a su perfil. Si los conoces y puedes respaldarlos, responde a este email o escríbenos.")}
+    ${divider()}
+    <a href="mailto:admin@impacta.vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Contactar al equipo →</a>
+    ${small("— Equipo Impacta VC")}
+  `);
+  await sendViaGmail(referralEmail, `${founderName} te pidió una recomendación en Modo Fundraising 2026`, html);
+}
+
+// ─── Funciones vía Airtable automation rules ──────────────────────────────────
 
 export async function sendApplicationConfirmation(
   emailAddr: string,

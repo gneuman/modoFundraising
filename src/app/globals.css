@@ -182,3 +182,211 @@
     @apply font-sans;
   }
 }
+
+/* ── Pricing Toggle ────────────────────────────────────────────────────────── */
+
+.pricing-single-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pricing-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.pricing-toggle-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pricing-toggle-option.active {
+  background: var(--brand-pink);
+}
+
+.toggle-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.toggle-saving {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pricing-toggle-option.active .toggle-saving {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.pricing-display {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.pricing-amount {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--brand-pink);
+  line-height: 1;
+}
+
+.pricing-amount-suffix {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 6px;
+}
+
+.pricing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.pricing-features li svg {
+  width: 18px;
+  height: 18px;
+  color: var(--brand-green);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pricing-fine-print {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.35);
+  line-height: 1.5;
+}
+
+.cta-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-pink);
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.1rem;
+  padding: 16px 32px;
+  border-radius: 14px;
+  text-decoration: none;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.cta-primary:hover {
+  background: color-mix(in srgb, var(--brand-pink) 85%, #000);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--brand-pink) 40%, transparent);
+}
+
+.pricing-cta {
+  width: 100%;
+  text-align: center;
+}
+
+.pricing-selection-note {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ── FAQ Accordion ─────────────────────────────────────────────────────────── */
+
+.faq-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.faq-item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.faq-item.faq-open {
+  border-color: rgba(229, 0, 126, 0.4);
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.faq-question:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.faq-answer {
+  padding: 0 20px 18px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.65;
+}
+
+/* ── WhatsApp Float ────────────────────────────────────────────────────────── */
+
+.whatsapp-float {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 50;
+  background: var(--brand-whatsapp);
+  color: #fff;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.whatsapp-float:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(37, 211, 102, 0.55);
+}
+
+.whatsapp-float svg {
+  width: 30px;
+  height: 30px;
+}

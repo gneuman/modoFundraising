@@ -6,73 +6,27 @@ import { Countdown } from "@/components/home/countdown";
 import { MetricsAnimated } from "@/components/home/metrics-animated";
 import { LogosStrip } from "@/components/home/logos-strip";
 import { NewsletterForm } from "@/components/home/newsletter-form";
+import { PricingToggle } from "@/components/home/pricing-toggle";
+import { FAQAccordion } from "@/components/home/faq-accordion";
+import { WhatsAppFloat } from "@/components/home/whatsapp-float";
 import {
   getHomeMetrics,
   getHomeTestimonios,
   getHomeCasosExito,
   getHomeLogosAlumni,
   getHomeLogosPartnersByTier,
+  getLandingTextos,
+  getLandingCards,
+  getDesignTokens,
+  LANDING_TEXTOS_DEFAULTS,
   type HomeTestimonio,
   type HomeCasoExito,
   type HomeLogoPartner,
   type HomeLogoAlumni,
+  type LandingCard,
 } from "@/lib/airtable";
 
 export const revalidate = 900; // 15 min ISR
-
-const CLOSE_DATE = "2026-06-22T23:59:00-04:00";
-const WHATSAPP_URL =
-  "https://wa.me/56912345678?text=Hola%2C%20quiero%20info%20sobre%20Modo%20Fundraising%202026";
-
-// ─── Outcomes ─────────────────────────────────────────────────────────────────
-
-const OUTCOMES = [
-  {
-    icon: "🎯",
-    title: "Estrategia de ronda",
-    desc: "Define el tamaño, timing y estructura de tu ronda con precisión.",
-  },
-  {
-    icon: "📣",
-    title: "Narrativa investor-ready",
-    desc: "Construye el pitch que hace que los VCs quieran reunirse contigo.",
-  },
-  {
-    icon: "🗺️",
-    title: "Investor targeting",
-    desc: "Identifica y accede a los inversionistas correctos para tu etapa.",
-  },
-  {
-    icon: "🤝",
-    title: "Cierre efectivo",
-    desc: "Negocia y cierra tu ronda con los mejores términos posibles.",
-  },
-];
-
-// ─── Pillars ──────────────────────────────────────────────────────────────────
-
-const PILLARS = [
-  {
-    icon: "⭐",
-    title: "Premium",
-    desc: "Contenido de clase mundial, no genérico. Cada sesión está diseñada para transformar tu proceso de fundraising.",
-  },
-  {
-    icon: "🌎",
-    title: "LatAm-centric",
-    desc: "Contexto real del ecosistema donde operás. Casos, inversores y lógica de los mercados donde levantás capital.",
-  },
-  {
-    icon: "🤜",
-    title: "Founder-to-founder",
-    desc: "Aprende de quienes lo hicieron, no de teóricos. Cada instructor levantó su propia ronda.",
-  },
-  {
-    icon: "🔗",
-    title: "Investor network real",
-    desc: "Conexión directa con fondos que invierten en LatAm. No directorio. Red viva con deal flow.",
-  },
-];
 
 // ─── Placeholder data ─────────────────────────────────────────────────────────
 
@@ -187,7 +141,7 @@ function initials(name: string) {
 
 export default async function HomePage() {
   // Fetch all data in parallel, fallback to null/[] on error
-  const [metrics, testimonios, casos, logosAlumni, tier1, tier2, tier3] =
+  const [metrics, testimonios, casos, logosAlumni, tier1, tier2, tier3, textos, outcomes, pillars, designTokens] =
     await Promise.all([
       getHomeMetrics("2025").catch(() => null),
       getHomeTestimonios().catch(() => [] as HomeTestimonio[]),
@@ -196,7 +150,13 @@ export default async function HomePage() {
       getHomeLogosPartnersByTier(1).catch(() => [] as HomeLogoPartner[]),
       getHomeLogosPartnersByTier(2).catch(() => [] as HomeLogoPartner[]),
       getHomeLogosPartnersByTier(3).catch(() => [] as HomeLogoPartner[]),
+      getLandingTextos().catch(() => ({ ...LANDING_TEXTOS_DEFAULTS })),
+      getLandingCards("outcome").catch(() => [] as LandingCard[]),
+      getLandingCards("pillar").catch(() => [] as LandingCard[]),
+      getDesignTokens().catch(() => null),
     ]);
+
+  const CLOSE_DATE = designTokens?.close_date ?? "2026-06-22T23:59:00-03:00";
 
   const displayTestimonios =
     testimonios.length > 0 ? testimonios : PLACEHOLDER_TESTIMONIOS;
@@ -220,6 +180,44 @@ export default async function HomePage() {
       value: metrics ? `${metrics.n_masterclasses}+` : "80+",
     },
     { label: "NPS", value: metrics ? `${metrics.nps}` : "9.2" },
+  ];
+
+  const FAQ_ITEMS = [
+    {
+      pregunta: "¿Necesito tener una startup ya armada?",
+      respuesta:
+        "Sí. El programa está diseñado para founders que ya tienen un MVP o tracción inicial y quieren levantar entre US$500K y US$5M. Si estás en etapa de idea, aún no es el momento.",
+    },
+    {
+      pregunta: "¿Cómo funciona la garantía de 14 días?",
+      respuesta:
+        "Desde el primer pago tenés 14 días para solicitar el reembolso, sin necesidad de justificar asistencia ni completar ninguna tarea. El reembolso es neto (descontando las comisiones de Stripe). Aplica para ambas modalidades de pago.",
+    },
+    {
+      pregunta: "¿Es 100% online? ¿Hay clases en vivo?",
+      respuesta:
+        "Sí, 100% online. Cada semana hay al menos una clase en vivo con David y el equipo, más masterclasses con inversores reales. Todo queda grabado en el portal del cohort.",
+    },
+    {
+      pregunta: "¿Qué pasa si no me seleccionan para el Pitch Training?",
+      respuesta:
+        "El Pitch Training quincenal y el Demo Day final son para startups seleccionadas dentro del cohort. El resto del programa — clases, misiones, comunidad y acceso a inversores — aplica para todos los participantes.",
+    },
+    {
+      pregunta: "¿Cuándo empieza la edición 2026?",
+      respuesta:
+        "El programa arranca el 30 de junio de 2026 y tiene una duración de 13 semanas. El cierre de postulaciones es el 22 de junio.",
+    },
+    {
+      pregunta: "¿Puedo postular en cualquier etapa de ronda?",
+      respuesta:
+        "El programa está optimizado para pre-seed, seed y post-seed entre US$500K y US$5M. Si estás levantando montos distintos, escribinos y te orientamos.",
+    },
+    {
+      pregunta: "¿Cómo funciona el derecho de inversión de Impacta VC?",
+      respuesta:
+        "Impacta VC y sus fondos afiliados se reservan el derecho de invertir hasta el 20% de la ronda de startups seleccionadas del cohort, sujeto a due diligence, fit de tesis y aprobación interna. No es una condición para participar.",
+    },
   ];
 
   const jsonLd = {
@@ -295,23 +293,20 @@ export default async function HomePage() {
                   <span className="text-(--brand-teal)">FUNDRAISING</span>
                 </h1>
                 <p className="text-xl md:text-2xl font-semibold text-white/90 mb-4 leading-snug">
-                  Construye momentum que los inversionistas no puedan ignorar.
+                  {textos.hero_tagline}
                 </p>
                 <p className="text-white/60 text-base mb-6 leading-relaxed">
-                  Aprende cómo los mejores founders de LatAm levantan capital
-                  usando estrategia, narrativa y ejecución. Si planeas levantar
-                  una ronda pre-seed, seed o post-seed entre US$500K y US$5M
-                  este año, déjanos ayudarte.
+                  {textos.hero_descripcion}
                 </p>
 
                 {/* Pricing chips */}
                 <div className="flex flex-wrap gap-2 mb-6">
                   {[
-                    "US$349/mes",
-                    "13 semanas",
-                    "100% online",
-                    "Money Back 14 días",
-                  ].map((item) => (
+                    textos.hero_chip_precio,
+                    textos.hero_chip_duracion,
+                    textos.hero_chip_modalidad,
+                    textos.hero_chip_garantia,
+                  ].filter(Boolean).map((item) => (
                     <span
                       key={item}
                       className="bg-white/10 border border-white/20 rounded-full px-3 py-1 text-sm font-semibold text-white"
@@ -332,33 +327,47 @@ export default async function HomePage() {
                     href="/apply"
                     className="inline-flex items-center justify-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-base px-8 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
                   >
-                    Postular ahora →
+                    {textos.hero_cta_primario}
                   </Link>
                   <a
-                    href={WHATSAPP_URL}
+                    href={textos.hero_whatsapp_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2 border border-white/20 hover:border-white/40 text-white font-semibold text-base px-8 py-4 rounded-xl transition-colors"
                   >
-                    Hablar con el equipo
+                    {textos.hero_cta_secundario}
                   </a>
                 </div>
               </div>
 
-              {/* David (Bicho) placeholder */}
+              {/* Instructor principal */}
               <div className="flex justify-center md:justify-center mt-8 md:mt-0">
                 <div className="flex flex-col items-center gap-4">
-                  <div className="w-[120px] h-[120px] md:w-[220px] md:h-[220px] rounded-full bg-gradient-to-br from-(--brand-teal)/30 to-(--brand-blue)/20 border-2 border-(--brand-teal)/40 flex items-center justify-center shadow-[0_0_60px_#00e5c020]">
-                    <span className="text-4xl md:text-7xl font-black text-(--brand-teal)">
-                      DA
-                    </span>
-                  </div>
+                  {textos.hero_instructor_foto_url ? (
+                    <Image
+                      src={textos.hero_instructor_foto_url}
+                      alt={textos.hero_instructor_nombre}
+                      width={220}
+                      height={220}
+                      className="w-[120px] h-[120px] md:w-[220px] md:h-[220px] rounded-full object-cover border-2 border-(--brand-teal)/40 shadow-[0_0_60px_#00e5c020]"
+                    />
+                  ) : (
+                    <div className="w-[120px] h-[120px] md:w-[220px] md:h-[220px] rounded-full bg-gradient-to-br from-(--brand-teal)/30 to-(--brand-blue)/20 border-2 border-(--brand-teal)/40 flex items-center justify-center shadow-[0_0_60px_#00e5c020]">
+                      <span className="text-4xl md:text-7xl font-black text-(--brand-teal)">
+                        {textos.hero_instructor_nombre
+                          .split(" ")
+                          .slice(0, 2)
+                          .map((w: string) => w[0])
+                          .join("")}
+                      </span>
+                    </div>
+                  )}
                   <div className="text-center">
                     <div className="font-black text-white text-lg md:text-xl">
-                      David Alvo
+                      {textos.hero_instructor_nombre}
                     </div>
                     <div className="text-white/50 text-xs md:text-sm mt-1 max-w-[200px] leading-snug">
-                      Founder &amp; Managing Partner, Impacta VC
+                      {textos.hero_instructor_cargo}
                     </div>
                   </div>
                 </div>
@@ -421,14 +430,14 @@ export default async function HomePage() {
           </p>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {OUTCOMES.map(({ icon, title, desc }) => (
+            {outcomes.map((card) => (
               <div
-                key={title}
+                key={card.titulo}
                 className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-(--brand-teal)/40 hover:bg-(--brand-teal)/5 transition-all"
               >
-                <div className="text-4xl mb-4">{icon}</div>
-                <h3 className="font-black text-white mb-2">{title}</h3>
-                <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
+                <div className="text-4xl mb-4">{card.icono}</div>
+                <h3 className="font-black text-white mb-2">{card.titulo}</h3>
+                <p className="text-white/60 text-sm leading-relaxed">{card.descripcion}</p>
               </div>
             ))}
           </div>
@@ -448,17 +457,17 @@ export default async function HomePage() {
             </p>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {PILLARS.map(({ icon, title, desc }) => (
+              {pillars.map((card) => (
                 <div
-                  key={title}
+                  key={card.titulo}
                   className="bg-(--brand-navy) border border-white/10 rounded-2xl p-6 hover:border-(--brand-teal)/30 transition-all"
                 >
-                  <div className="text-4xl mb-4">{icon}</div>
+                  <div className="text-4xl mb-4">{card.icono}</div>
                   <h3 className="font-black text-(--brand-teal) mb-2">
-                    {title}
+                    {card.titulo}
                   </h3>
                   <p className="text-white/60 text-sm leading-relaxed">
-                    {desc}
+                    {card.descripcion}
                   </p>
                 </div>
               ))}
@@ -615,7 +624,18 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── 11. Money Back Guarantee ───────────────────────────────────────────── */}
+        {/* ── 11. Precios ────────────────────────────────────────────────────────── */}
+        <section className="max-w-2xl mx-auto px-4 py-24">
+          <h2 className="text-4xl md:text-5xl font-black mb-2 text-center">
+            Precio del programa
+          </h2>
+          <p className="text-center text-white/50 mb-12 text-lg">
+            Elegí la modalidad que mejor se adapta a tu situación.
+          </p>
+          <PricingToggle />
+        </section>
+
+        {/* ── 12. Money Back Guarantee ───────────────────────────────────────────── */}
         <section className="max-w-4xl mx-auto px-4 py-24">
           <div className="border border-(--brand-teal)/30 bg-(--brand-teal)/5 rounded-3xl p-10 text-center">
             <div className="text-5xl mb-4">🛡️</div>
@@ -777,7 +797,18 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── 14. CTA final ──────────────────────────────────────────────────────── */}
+        {/* ── 14. FAQ ────────────────────────────────────────────────────────────── */}
+        <section className="max-w-3xl mx-auto px-4 py-24">
+          <h2 className="text-4xl md:text-5xl font-black mb-2 text-center">
+            Preguntas frecuentes
+          </h2>
+          <p className="text-center text-white/50 mb-12">
+            Si no encontras la respuesta, escribinos al WhatsApp.
+          </p>
+          <FAQAccordion items={FAQ_ITEMS} />
+        </section>
+
+        {/* ── 15. CTA final ──────────────────────────────────────────────────────── */}
         <section className="bg-gradient-to-b from-(--brand-navy-mid)/50 to-(--brand-navy) border-y border-white/10 py-24 px-4">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-5xl md:text-6xl font-black mb-4 leading-tight">
@@ -809,6 +840,7 @@ export default async function HomePage() {
         </section>
 
         <Footer />
+        <WhatsAppFloat phone={designTokens?.whatsapp_phone ?? "56988888888"} />
       </div>
     </>
   );
