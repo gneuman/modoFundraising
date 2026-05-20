@@ -15,9 +15,9 @@ function getTimeLeft(closeDate: string) {
 
 interface CountdownProps {
   closeDate?: string;
-  targetIso?: string; // alias legacy
+  targetIso?: string;
   variant?: "full" | "mini" | "inline";
-  compact?: boolean; // alias legacy para variant="mini"
+  compact?: boolean;
 }
 
 export function Countdown({ closeDate, targetIso, variant, compact }: CountdownProps) {
@@ -34,32 +34,33 @@ export function Countdown({ closeDate, targetIso, variant, compact }: CountdownP
 
   if (resolvedVariant === "mini") {
     return (
-      <span className="cd-mini-pill">
-        Cierra en <span>{t.days}d</span>
+      <span className="inline-flex items-center gap-1 text-sm font-semibold text-white/70">
+        Cierra en <span className="text-white">{t.days}d</span>
       </span>
     );
   }
 
   if (resolvedVariant === "inline") {
     return (
-      <p className="hero-countdown-explicit">
-        Faltan <strong>{t.days}</strong> días, <strong>{pad(t.hours)}</strong> horas,{" "}
-        <strong>{pad(t.mins)}</strong> min para el cierre de la convocatoria.
+      <p className="text-sm text-white/60">
+        Faltan <strong className="text-white">{t.days}</strong> días,{" "}
+        <strong className="text-white">{pad(t.hours)}</strong> horas,{" "}
+        <strong className="text-white">{pad(t.mins)}</strong> min para el cierre de la convocatoria.
       </p>
     );
   }
 
   return (
-    <div className="countdown-row countdown-xl">
+    <div className="flex items-center gap-4">
       {[
         { value: t.days, label: "Días" },
         { value: t.hours, label: "Horas" },
         { value: t.mins, label: "Min" },
         { value: t.secs, label: "Seg" },
       ].map(({ value, label }) => (
-        <div key={label} className="countdown-unit">
-          <div className="countdown-value">{pad(value)}</div>
-          <div className="countdown-label">{label}</div>
+        <div key={label} className="flex flex-col items-center">
+          <span className="text-3xl font-black text-white leading-none">{pad(value)}</span>
+          <span className="text-xs text-white/50 uppercase tracking-widest mt-1">{label}</span>
         </div>
       ))}
     </div>
