@@ -8,7 +8,7 @@ const MODES = {
     label: "Pago completo",
     saving: "Ahorras ~US$210",
     amount: "US$837",
-    suffix: "pago único · 3 meses",
+    suffix: "pago único",
     finePrint:
       "El programa entrega valor completo en cualquiera de las dos modalidades. Pago completo asegura tu cupo hasta el final con descuento.",
   },
