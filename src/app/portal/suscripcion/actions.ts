@@ -41,7 +41,8 @@ export async function iniciarPago(mode: "subscription" | "payment") {
   if (mode === "subscription") {
     checkoutSession = await createSubscriptionCheckout({ customerId, priceId: STRIPE_PRICE_ID_MONTHLY, couponId, promotionCodeId, successUrl, cancelUrl, metadata });
   } else {
-    checkoutSession = await createOneTimeCheckout({ customerId, couponId, promotionCodeId, successUrl, cancelUrl, metadata });
+    // Pago único: siempre 20% fijo. Cupones NO aplican.
+    checkoutSession = await createOneTimeCheckout({ customerId, successUrl, cancelUrl, metadata });
   }
 
   redirect(checkoutSession.url!);

@@ -41,8 +41,9 @@ export default async function SinAccesoPage() {
     const hasDiscount =
       app?.discount_percent && Number(app.discount_percent) > 0;
     const discountPct = hasDiscount ? Number(app!.discount_percent) : 0;
+    const ONETIME_FIXED = 20; // 20% off SIEMPRE en pago único; cupones NO aplican
     const precioMensual = Math.round(349 * (1 - discountPct / 100));
-    const precioUnico = Math.round(349 * 3 * (1 - discountPct / 100));
+    const precioUnico = Math.round(349 * 3 * (1 - ONETIME_FIXED / 100));
 
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50">
@@ -77,7 +78,8 @@ export default async function SinAccesoPage() {
               monthlyPrice={precioMensual}
               fullPrice={precioUnico}
               fullSaving={349 * 3 - precioUnico}
-              hasDiscount={hasDiscount}
+              couponDiscount={discountPct}
+              onetimeDiscount={ONETIME_FIXED}
             />
           ) : (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-center">
