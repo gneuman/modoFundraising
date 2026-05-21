@@ -28,8 +28,13 @@ export function middleware(req: NextRequest) {
   }
 
   // En portal: el form de postulación vive en postula. Mandar para allá.
-  if (!isApi && host === PORTAL_HOST && (pathname === "/" || pathname === "/apply" || pathname.startsWith("/apply/"))) {
+  if (!isApi && host === PORTAL_HOST && (pathname === "/apply" || pathname.startsWith("/apply/"))) {
     return NextResponse.redirect(`https://${POSTULA_HOST}${pathname}${search}`, 308);
+  }
+
+  // En portal: la raíz va al login (puerta de entrada del dominio privado).
+  if (!isApi && host === PORTAL_HOST && pathname === "/") {
+    return NextResponse.redirect(`https://${PORTAL_HOST}/ingresar`, 308);
   }
 
   // Inyectar pathname para que layouts/admin lo lean
