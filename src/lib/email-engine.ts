@@ -1,8 +1,13 @@
 import { google } from "googleapis";
 import { getAutomationRules, type TriggerEvent } from "@/lib/airtable";
 
+// Portal: magic link, login, /portal/*, /admin/*, landing y resto de páginas
 const APP_URL = (
   process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com"
+).replace(/\/$/, "");
+// Postula: solo el formulario de postulación
+const POSTULA_URL = (
+  process.env.NEXT_PUBLIC_POSTULA_URL ?? "https://postula.modofundraising.com"
 ).replace(/\/$/, "");
 const FROM = process.env.GMAIL_FROM ?? "Modo Fundraising <admin@impacta.vc>";
 
@@ -209,7 +214,7 @@ export async function sendFormAbandonado(
   await sendAutomationEmail("form_abandonado", emailAddr, {
     nombre: firstName,
     email: emailAddr,
-    apply_url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com"}/`,
+    apply_url: `${POSTULA_URL}/`,
   });
 }
 
