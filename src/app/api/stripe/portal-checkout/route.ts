@@ -59,12 +59,9 @@ export async function POST(req: NextRequest) {
         metadata,
       });
     } else {
-      // Pago único: 20% fijo + descuento del cupón (si existe).
-      const extraDiscountPercent =
-        couponRecord?.discount_percent ?? (app.discount_percent as number | undefined) ?? 0;
+      // Pago único: siempre 20% fijo. Cupones NO aplican.
       checkoutSession = await createOneTimeCheckout({
         customerId,
-        extraDiscountPercent,
         successUrl,
         cancelUrl,
         metadata,

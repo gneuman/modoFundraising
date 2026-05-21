@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import { esAdmin } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   const cookieStore = await cookies();
@@ -24,18 +25,18 @@ export async function GET(req: NextRequest) {
   try {
     const key = new TextEncoder().encode(secret!);
     const { payload } = await jwtVerify(token, key);
-    const admins = (adminEmails ?? "").split(",").map((e) => e.trim());
-    const isAdmin = payload.role === "admin" && typeof payload.email === "string" && admins.includes(payload.email as string);
+    const email = payload.email as string;
+    const role = payload.role as string;
+    const isAdmin = role === "admin" && esAdmin(email);
 
     return NextResponse.json({
       step: "JWT_OK",
-      email: payload.email,
-      role: payload.role,
+      email,
+      role,
       secret_set: !!secret,
       admin_emails_raw: adminEmails,
-      admins_parsed: admins,
-      email_in_list: admins.includes(payload.email as string),
-      role_is_admin: payload.role === "admin",
+      esAdmin_result: esAdmin(email),
+      role_is_admin: role === "admin",
       would_pass: isAdmin,
       email_api_secret_set: !!emailApiSecret,
     });

@@ -68,7 +68,6 @@ export async function POST(req: NextRequest) {
       // Pago único: siempre 20% fijo. Cupones NO aplican.
       session = await createOneTimeCheckout({
         customerId,
-        extraDiscountPercent,
         successUrl,
         cancelUrl,
         metadata,

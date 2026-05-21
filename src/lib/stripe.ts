@@ -119,18 +119,15 @@ export async function createOneTimeCheckout({
   cancelUrl: string;
   metadata?: Record<string, string>;
 }) {
-  const totalDiscount = ONETIME_FIXED_DISCOUNT;
-
   const dynamicCoupon = await stripe.coupons.create({
     name: `Pago único ${ONETIME_FIXED_DISCOUNT}%`,
-    percent_off: totalDiscount,
+    percent_off: ONETIME_FIXED_DISCOUNT,
     duration: "once",
     max_redemptions: 1,
     currency: "usd",
     metadata: {
       ...(metadata ?? {}),
       fixed_pct: String(ONETIME_FIXED_DISCOUNT),
-      extra_pct: String(extraDiscountPercent),
     },
   });
 

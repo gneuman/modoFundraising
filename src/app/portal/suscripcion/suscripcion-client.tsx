@@ -56,8 +56,8 @@ export function SuscripcionClient({
   const discountedMonthly = discountPercent
     ? Math.round(PRICE_MONTHLY * (1 - discountPercent / 100))
     : null;
-  // Pago único: 20% fijo + descuento del cupón (cap 100%). Siempre hay descuento.
-  const onetimeDiscount = Math.min(100, ONETIME_FIXED + (discountPercent ?? 0));
+  // Pago único: siempre 20% fijo. Cupones NO aplican.
+  const onetimeDiscount = ONETIME_FIXED;
   const discountedOnetime = Math.round(PRICE_ONETIME * (1 - onetimeDiscount / 100));
 
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
@@ -156,8 +156,8 @@ export function SuscripcionClient({
             <div className="border-t border-zinc-100 pt-4 space-y-3">
               {discountPercent && (
                 <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-700 font-medium">
-                  🎉 Tenés un código de {discountPercent}% off aplicado (válido
-                  para cuotas o se suma al 20% del pago único)
+                  🎉 Tienes un código de {discountPercent}% off aplicado solo en
+                  mensualidades. El pago único ya incluye 20% off fijo.
                 </div>
               )}
               <p className="text-sm font-medium text-zinc-700">
@@ -213,10 +213,8 @@ export function SuscripcionClient({
                     US${discountedOnetime}
                   </span>
                   <span className="text-xs text-green-700 mt-1">
-                    <span className="line-through">US$1,047</span> ·{" "}
-                    {discountPercent
-                      ? `20% off + ${discountPercent}% código`
-                      : "20% off automático"}
+                    <span className="line-through">US$1,047</span> · 20% off
+                    automático
                   </span>
                 </button>
               </div>
