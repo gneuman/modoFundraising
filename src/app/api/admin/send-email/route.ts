@@ -10,6 +10,7 @@ import {
   sendOnboardingEmail,
   sendPaymentConfirmation,
   sendChurnEmail,
+  sendApplicationConfirmation,
 } from "@/lib/email-engine";
 
 function isAuthorized(req: NextRequest): boolean {
@@ -34,9 +35,24 @@ export async function POST(req: NextRequest) {
 
   const { recordId, type, installment } = body;
 
+  // confirmacion no necesita recordId — prueba directa de application_received
+  if (type === "confirmacion") {
+    const { email, nombre } = body as { email?: string; nombre?: string };
+    if (!email || !nombre) {
+      return NextResponse.json({ error: "Falta email o nombre" }, { status: 400 });
+    }
+    try {
+      await sendApplicationConfirmation(email, nombre);
+      return NextResponse.json({ sent: "confirmacion", to: email });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
+  }
+
   if (!recordId || !type) {
     return NextResponse.json(
-      { error: "Falta recordId o type", validTypes: ["admision", "cupon", "rechazo", "follow_up_1", "follow_up_2", "onboarding", "pago_confirmado", "churn"] },
+      { error: "Falta recordId o type", validTypes: ["confirmacion", "admision", "cupon", "rechazo", "follow_up_1", "follow_up_2", "onboarding", "pago_confirmado", "churn"] },
       { status: 400 }
     );
   }
