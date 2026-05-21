@@ -135,7 +135,7 @@ export default async function AdvisoryPage() {
         <h2 className="text-4xl font-black mb-4">¿Querés acceder a esta red?</h2>
         <p className="text-white/50 mb-8">Postulá al programa y conectá directamente con el advisory board.</p>
         <Link
-          href="/apply"
+          href="/"
           className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
         >
           Postular ahora →

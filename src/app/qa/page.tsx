@@ -148,7 +148,7 @@ export default async function QAPage() {
             Postulaciones abiertas hasta el 22 de junio de 2026.
           </p>
           <Link
-            href="/apply"
+            href="/"
             className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"
           >
             Postular ahora →

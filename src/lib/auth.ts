@@ -90,6 +90,19 @@ export async function destruirSesion() {
 }
 
 export function esAdmin(email: string): boolean {
-  const admins = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim());
-  return admins.includes(email);
+  const normalizado = email.trim().toLowerCase();
+  const patrones = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  for (const patron of patrones) {
+    if (patron.startsWith("*@")) {
+      const dominio = patron.slice(2);
+      if (normalizado.endsWith(`@${dominio}`)) return true;
+    } else if (patron === normalizado) {
+      return true;
+    }
+  }
+  return false;
 }

@@ -11,7 +11,7 @@ import { CreditCard } from "lucide-react";
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
   const session = await obtenerSesion();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect("/ingresar");
 
   const pathname = headersList.get("x-pathname") ?? "";
   const isSinAcceso = pathname.includes("sin-acceso");

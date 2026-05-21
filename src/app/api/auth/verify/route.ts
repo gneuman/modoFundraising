@@ -4,12 +4,12 @@ import { verificarTokenMagic, crearSesion, esAdmin } from "@/lib/auth";
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   if (!token) {
-    return NextResponse.redirect(new URL("/auth/login?error=invalido", req.url));
+    return NextResponse.redirect(new URL("/ingresar?error=invalido", req.url));
   }
 
   const email = await verificarTokenMagic(token);
   if (!email) {
-    return NextResponse.redirect(new URL("/auth/login?error=expirado", req.url));
+    return NextResponse.redirect(new URL("/ingresar?error=expirado", req.url));
   }
 
   const rol = esAdmin(email) ? "admin" : "founder";

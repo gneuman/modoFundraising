@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 const NAV_LINKS = [
-  { href: "/", label: "Programa" },
+  { href: "/landing", label: "Programa" },
   { href: "/cronograma", label: "Cronograma" },
   { href: "/live-interviews", label: "Live Interviews" },
   { href: "/advisory", label: "Advisory" },
@@ -22,7 +22,7 @@ export function Nav() {
     <>
       <nav className="sticky top-0 z-50 bg-(--brand-navy)/95 backdrop-blur border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/">
+          <Link href="/landing">
             <Image
               src="/logo-mf.png"
               alt="Modo Fundraising"
@@ -44,7 +44,7 @@ export function Nav() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/apply"
+              href="/"
               className="bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-bold text-sm px-5 py-2 rounded-full transition-colors whitespace-nowrap"
             >
               Postular
@@ -79,7 +79,7 @@ export function Nav() {
               </Link>
             ))}
             <Link
-              href="/apply"
+              href="/"
               className="mt-6 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-bold text-center py-3 rounded-xl transition-colors"
               onClick={() => setOpen(false)}
             >

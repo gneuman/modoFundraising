@@ -9,7 +9,7 @@ const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hola%2C%20quiero%20i
 
 export function WhatsAppButton() {
   const pathname = usePathname();
-  if (pathname === "/apply") return null;
+  if (pathname === "/") return null;
 
   return (
     <a

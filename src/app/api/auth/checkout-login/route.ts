@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get("session_id");
 
   if (!sessionId) {
-    return NextResponse.redirect(new URL("/auth/login", req.url));
+    return NextResponse.redirect(new URL("/ingresar", req.url));
   }
 
   try {
@@ -16,12 +16,12 @@ export async function GET(req: NextRequest) {
       (session.customer_details?.email as string | undefined);
 
     if (!email) {
-      return NextResponse.redirect(new URL("/auth/login", req.url));
+      return NextResponse.redirect(new URL("/ingresar", req.url));
     }
 
     await crearSesion({ email, role: esAdmin(email) ? "admin" : "founder" });
     return NextResponse.redirect(new URL("/portal", req.url));
   } catch {
-    return NextResponse.redirect(new URL("/auth/login", req.url));
+    return NextResponse.redirect(new URL("/ingresar", req.url));
   }
 }

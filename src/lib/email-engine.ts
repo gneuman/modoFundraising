@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import { getAutomationRules, type TriggerEvent } from "@/lib/airtable";
 
 const APP_URL = (
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://modofundraising.vercel.app"
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com"
 ).replace(/\/$/, "");
 const FROM = process.env.GMAIL_FROM ?? "Modo Fundraising <admin@impacta.vc>";
 
@@ -209,7 +209,7 @@ export async function sendFormAbandonado(
   await sendAutomationEmail("form_abandonado", emailAddr, {
     nombre: firstName,
     email: emailAddr,
-    apply_url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://modofundraising.com"}/apply`,
+    apply_url: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com"}/`,
   });
 }
 

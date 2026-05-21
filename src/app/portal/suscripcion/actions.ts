@@ -7,7 +7,7 @@ import { createStripeCustomer, createSubscriptionCheckout, createOneTimeCheckout
 
 export async function iniciarPago(mode: "subscription" | "payment") {
   const session = await obtenerSesion();
-  if (!session) redirect("/auth/login");
+  if (!session) redirect("/ingresar");
 
   const [profile, coupons] = await Promise.all([
     getFounderProfile(session.email),

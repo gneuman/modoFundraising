@@ -72,7 +72,7 @@ export function PricingToggle() {
 
       <p className="pricing-fine-print">{m.finePrint}</p>
 
-      <Link href="/apply" className="cta-primary pricing-cta">
+      <Link href="/" className="cta-primary pricing-cta">
         Postular a MF26 →
       </Link>
 

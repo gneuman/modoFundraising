@@ -3,7 +3,7 @@ import { destruirSesion } from "@/lib/auth";
 
 async function handle(req: NextRequest) {
   await destruirSesion();
-  return NextResponse.redirect(new URL("/auth/login", req.url));
+  return NextResponse.redirect(new URL("/ingresar", req.url));
 }
 
 export const GET = handle;

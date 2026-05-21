@@ -237,7 +237,7 @@ export default async function SinAccesoPage() {
           </p>
         </div>
         <Link
-          href="/apply"
+          href="/"
           className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
         >
           Postular al programa <ArrowRight className="h-4 w-4" />
