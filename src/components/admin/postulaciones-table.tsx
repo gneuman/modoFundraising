@@ -11,12 +11,13 @@ import { applicationSchema } from "@/lib/form-schema";
 
 const STATUS_TABS: { label: string; value: ApplicationStatus | "all" }[] = [
   { label: "Todas", value: "all" },
-  { label: "Nuevas", value: "Nueva postulación" },
-  { label: "Admitidas", value: "Admitida" },
-  { label: "Sin respuesta", value: "Sin Respuesta" },
-  { label: "Rechazadas", value: "Rechazada" },
-  { label: "Inscritas", value: "Inscrita" },
+  { label: "Nueva postulación", value: "Nueva postulación" },
+  { label: "Admitida", value: "Admitida" },
+  { label: "Inscrita", value: "Inscrita" },
+  { label: "Rechazada por founder", value: "Rechazada por founder" },
   { label: "Churn", value: "Churn" },
+  { label: "Sin respuesta", value: "Sin Respuesta" },
+  { label: "Rechazada", value: "Rechazada" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -65,6 +66,50 @@ function isIncompleta(a: ApplicationRecord): boolean {
   try { data = JSON.parse(a.form_responses as string ?? "{}"); } catch { /* ignore */ }
   return !applicationSchema.safeParse(data).success;
 }
+
+type ColumnKey =
+  | "startup_founder"
+  | "country"
+  | "stage"
+  | "mrr"
+  | "deck"
+  | "website"
+  | "followups"
+  | "payment_status"
+  | "cobranza"
+  | "comentarios"
+  | "churn_reason"
+  | "estado"
+  | "acciones"
+  | "fecha";
+
+const COLUMNS_BY_STATUS: Record<string, ColumnKey[]> = {
+  "all": ["startup_founder", "country", "stage", "mrr", "deck", "estado", "acciones", "fecha"],
+  "Nueva postulación": ["startup_founder", "country", "stage", "mrr", "deck", "website", "estado", "acciones", "fecha"],
+  "Admitida": ["startup_founder", "deck", "website", "followups", "payment_status", "acciones", "fecha"],
+  "Inscrita": ["startup_founder", "deck", "website", "payment_status", "cobranza", "acciones", "fecha"],
+  "Rechazada por founder": ["startup_founder", "comentarios", "acciones", "fecha"],
+  "Churn": ["startup_founder", "churn_reason", "acciones", "fecha"],
+  "Sin Respuesta": ["startup_founder", "country", "stage", "deck", "estado", "acciones", "fecha"],
+  "Rechazada": ["startup_founder", "comentarios", "acciones", "fecha"],
+};
+
+const COLUMN_LABELS: Record<ColumnKey, string> = {
+  startup_founder: "Startup / Founder",
+  country: "País",
+  stage: "Etapa",
+  mrr: "MRR",
+  deck: "Deck",
+  website: "Página web",
+  followups: "Follow-ups",
+  payment_status: "Status pago",
+  cobranza: "Seguim. cobranza",
+  comentarios: "Comentarios",
+  churn_reason: "Razón de churn",
+  estado: "Estado",
+  acciones: "Acciones",
+  fecha: "Fecha",
+};
 
 export function PostulacionesTable({ initialData }: { initialData: ApplicationRecord[] }) {
   const [data, setData] = useState(initialData);
@@ -214,6 +259,8 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
     return counts;
   }, [data]);
 
+  const columns = COLUMNS_BY_STATUS[activeTab] ?? COLUMNS_BY_STATUS.all;
+
   return (
     <div className="space-y-4">
       {/* Tabs */}
@@ -252,73 +299,139 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50">
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Startup / Founder</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">País</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Etapa</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">MRR</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Deck</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Estado</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Acciones</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Fecha</th>
+                {columns.map((col) => (
+                  <th key={col} className="text-left px-4 py-3 font-semibold text-zinc-600">
+                    {COLUMN_LABELS[col]}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-zinc-400">
+                  <td colSpan={columns.length} className="px-4 py-10 text-center text-zinc-400">
                     No hay postulaciones que coincidan
                   </td>
                 </tr>
               )}
               {filtered.map((a) => (
                 <tr key={a.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-zinc-800">{a.startup_name}</p>
-                      {isIncompleta(a) && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 text-[10px] font-semibold">
-                          <AlertCircle className="h-3 w-3" />
-                          Incompleta
+                  {columns.includes("startup_founder") && (
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-zinc-800">{a.startup_name}</p>
+                        {isIncompleta(a) && (
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 text-[10px] font-semibold">
+                            <AlertCircle className="h-3 w-3" />
+                            Incompleta
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-zinc-400">{a.first_name} {a.last_name} · {a.email}</p>
+                    </td>
+                  )}
+                  {columns.includes("country") && (
+                    <td className="px-4 py-3 text-zinc-600">{a.startup_country_ops}</td>
+                  )}
+                  {columns.includes("stage") && (
+                    <td className="px-4 py-3 text-zinc-600 text-xs">{a.startup_stage}</td>
+                  )}
+                  {columns.includes("mrr") && (
+                    <td className="px-4 py-3 text-zinc-700 font-mono">
+                      {a.startup_mrr ? `$${Number(a.startup_mrr).toLocaleString()}` : "-"}
+                    </td>
+                  )}
+                  {columns.includes("deck") && (
+                    <td className="px-4 py-3">
+                      {a.deck_url ? (
+                        <a href={a.deck_url as string} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs">
+                          Ver <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : "-"}
+                    </td>
+                  )}
+                  {columns.includes("website") && (
+                    <td className="px-4 py-3">
+                      {a.startup_website ? (
+                        <a href={a.startup_website as string} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs">
+                          Visitar <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : "-"}
+                    </td>
+                  )}
+                  {columns.includes("followups") && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5 text-xs">
+                        <span className={cn(
+                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded w-fit",
+                          a.follow_up_1_sent ? "bg-amber-50 text-amber-700" : "bg-zinc-50 text-zinc-400"
+                        )}>
+                          {a.follow_up_1_sent ? "✓" : "○"} FU 1
                         </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-zinc-400">{a.first_name} {a.last_name} · {a.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">{a.startup_country_ops}</td>
-                  <td className="px-4 py-3 text-zinc-600 text-xs">{a.startup_stage}</td>
-                  <td className="px-4 py-3 text-zinc-700 font-mono">
-                    {a.startup_mrr ? `$${Number(a.startup_mrr).toLocaleString()}` : "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {a.deck_url ? (
-                      <a href={a.deck_url as string} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs">
-                        Ver <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <span className={cn(
-                        "inline-flex px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap w-fit",
-                        STATUS_COLORS[a.status ?? "Nueva postulación"] ?? "bg-zinc-100 text-zinc-600"
-                      )}>
-                        {a.status ?? "Nueva postulación"}
-                      </span>
-                      {a.status === "Admitida" && a.follow_up_2_sent && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-600 w-fit">
-                          ⚠ Seg. 2/2
+                        <span className={cn(
+                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded w-fit",
+                          a.follow_up_2_sent ? "bg-red-50 text-red-600" : "bg-zinc-50 text-zinc-400"
+                        )}>
+                          {a.follow_up_2_sent ? "✓" : "○"} FU 2
                         </span>
-                      )}
-                      {a.status === "Admitida" && a.follow_up_1_sent && !a.follow_up_2_sent && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 w-fit">
-                          Seg. 1/2
+                      </div>
+                    </td>
+                  )}
+                  {columns.includes("payment_status") && (
+                    <td className="px-4 py-3 text-zinc-600 text-xs">
+                      {a.payment_status ?? "—"}
+                    </td>
+                  )}
+                  {columns.includes("cobranza") && (
+                    <td className="px-4 py-3 text-xs">
+                      {a.payment_failed_at && !a.payment_resolved_at ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 text-red-600">
+                          ⚠ Falló {new Date(a.payment_failed_at as string).toLocaleDateString("es")}
                         </span>
+                      ) : a.payment_resolved_at ? (
+                        <span className="text-green-600">Al día</span>
+                      ) : (
+                        <span className="text-zinc-400">—</span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    </td>
+                  )}
+                  {columns.includes("comentarios") && (
+                    <td className="px-4 py-3 text-zinc-600 text-xs max-w-md">
+                      {a.rejection_reason || <span className="text-zinc-400">—</span>}
+                    </td>
+                  )}
+                  {columns.includes("churn_reason") && (
+                    <td className="px-4 py-3 text-zinc-600 text-xs max-w-md">
+                      {a.churn_reason || <span className="text-zinc-400">—</span>}
+                    </td>
+                  )}
+                  {columns.includes("estado") && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <span className={cn(
+                          "inline-flex px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap w-fit",
+                          STATUS_COLORS[a.status ?? "Nueva postulación"] ?? "bg-zinc-100 text-zinc-600"
+                        )}>
+                          {a.status ?? "Nueva postulación"}
+                        </span>
+                        {a.status === "Admitida" && a.follow_up_2_sent && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-600 w-fit">
+                            ⚠ Seg. 2/2
+                          </span>
+                        )}
+                        {a.status === "Admitida" && a.follow_up_1_sent && !a.follow_up_2_sent && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 w-fit">
+                            Seg. 1/2
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                  {columns.includes("acciones") && (
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                       {/* Quick actions per status */}
                       {(a.status === "Nueva postulación" || a.status === "Sin Respuesta") && (
                         <>
@@ -394,11 +507,14 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
                           </div>
                         )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-zinc-400">
-                    {a.created_at ? new Date(a.created_at as string).toLocaleDateString("es") : "-"}
-                  </td>
+                      </div>
+                    </td>
+                  )}
+                  {columns.includes("fecha") && (
+                    <td className="px-4 py-3 text-xs text-zinc-400">
+                      {a.created_at ? new Date(a.created_at as string).toLocaleDateString("es") : "-"}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
