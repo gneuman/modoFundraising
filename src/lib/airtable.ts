@@ -58,6 +58,7 @@ export type PaymentStatus =
   | "Cuota 1 pagada"
   | "Cuota 2 pagada"
   | "Cuota 3 pagada"
+  | "Cuota 4 pagada"
   | "Sin respuesta"
   | "Rechazada por founder"
   | "Baja";
@@ -130,6 +131,7 @@ export interface PostulacionRecord {
   admission_score?: number;
   assigned_reviewer?: string;
   payment_status?: PaymentStatus;
+  total_cuotas?: number;
   follow_up_1_sent?: boolean;
   follow_up_2_sent?: boolean;
   admitted_at?: string;

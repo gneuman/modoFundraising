@@ -5,8 +5,19 @@ export const dynamic = "force-dynamic";
 
 const PRECIO_CUOTA = 349;
 
+function normalizeStartupName(name?: string) {
+  return (name ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
 export default async function RevenuePage() {
   const [apps, pagos] = await Promise.all([getAllApplications(), getAllPagos()]);
+
+  const totalCuotasByStartup = new Map<string, number>();
+  apps.forEach((a) => {
+    if (a.startup_name) {
+      totalCuotasByStartup.set(normalizeStartupName(a.startup_name), a.total_cuotas ?? 3);
+    }
+  });
 
   const inscritas = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional");
   const pagosTotales = pagos.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -118,7 +129,9 @@ export default async function RevenuePage() {
                 <tr key={p.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-zinc-800">{p.startup_name || "—"}</td>
                   <td className="px-4 py-3 text-zinc-500 text-xs">{p.email || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-600">{p.cuota ? `${p.cuota}/3` : "—"}</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    {p.cuota ? `${p.cuota}/${totalCuotasByStartup.get(normalizeStartupName(p.startup_name)) ?? 3}` : "—"}
+                  </td>
                   <td className="px-4 py-3 font-mono text-zinc-700">
                     {p.amount ? `US$${Number(p.amount).toLocaleString()}` : "—"}
                   </td>

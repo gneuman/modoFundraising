@@ -9,6 +9,7 @@ import {
   deactivateAllFoundersForApplication,
   getFounderEmailsByStartup,
   getCalendarEventIds,
+  type PaymentStatus,
 } from "@/lib/airtable";
 import {
   sendOnboardingEmail,
@@ -164,11 +165,16 @@ export async function POST(req: NextRequest) {
         portal_access: true,
       });
 
-      // Set cancel_at on the subscription so Stripe hard-stops after 3 cycles
+      // Set cancel_at on the subscription so Stripe hard-stops after the configured cuotas
+      // total_cuotas todavía no está seteado en este punto del flujo (se hace después por el script
+      // de reconciliación o manualmente); para checkouts vía portal usamos 3 cuotas como base.
       if (!isOneTime && session.subscription) {
         const { stripe } = await import("@/lib/stripe");
+        const cuotasParaCancelar = app.total_cuotas ?? 3;
+        // Margen de 5 días por ciclo para que Stripe alcance a cobrar antes del cancel
+        const diasParaCancelar = (cuotasParaCancelar - 1) * 30 + 5;
         await stripe.subscriptions.update(session.subscription, {
-          cancel_at: Math.floor(Date.now() / 1000) + 95 * 24 * 60 * 60,
+          cancel_at: Math.floor(Date.now() / 1000) + diasParaCancelar * 24 * 60 * 60,
         });
       }
 
@@ -208,9 +214,12 @@ export async function POST(req: NextRequest) {
       const app = apps.find((a) => a.stripe_subscription_id === invoice.subscription);
       if (!app) break;
 
-      const currentInstallment = app.payment_status === "Cuota 1 pagada" ? 2 : 3;
+      const totalCuotas = app.total_cuotas ?? 3;
+      const prevMatch = (app.payment_status ?? "").match(/Cuota (\d+) pagada/);
+      const prevInstallment = prevMatch ? parseInt(prevMatch[1], 10) : 0;
+      const currentInstallment = prevInstallment + 1;
       await updateApplicationStatus(app.id!, app.status!, {
-        payment_status: `Cuota ${currentInstallment} pagada` as const,
+        payment_status: `Cuota ${currentInstallment} pagada` as PaymentStatus,
         // Si venía de un fallo previo, marcar como resuelto
         ...(app.payment_failed_at && !app.payment_resolved_at
           ? { payment_resolved_at: new Date().toISOString() }
@@ -234,8 +243,8 @@ export async function POST(req: NextRequest) {
         await sendPaymentConfirmation(app.email, app.first_name, currentInstallment);
       }
 
-      // After cuota 3, cancel the subscription automatically
-      if (currentInstallment === 3 && invoice.subscription) {
+      // Al llegar a la última cuota, cancelar la suscripción automáticamente
+      if (currentInstallment >= totalCuotas && invoice.subscription) {
         const { stripe } = await import("@/lib/stripe");
         await stripe.subscriptions.cancel(invoice.subscription, { prorate: false });
       }
