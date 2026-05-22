@@ -41,3 +41,5 @@ yarn-error.log*
 next-env.d.ts
 .gstack/
 .claude/worktrees/agent-a36627d6bdbec5bee
+.claude/settings.json
+.claude/settings.local.json
