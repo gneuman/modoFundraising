@@ -14,8 +14,10 @@ export default async function DashboardPage() {
   ]);
   const empresasStats = await getEmpresasStats(apps);
 
-  const total = apps.length;
-  const nuevas = apps.filter((a) => a.status === "Nueva postulación").length;
+  const completas = apps.filter((a) => a.accept_legal_terms === true);
+  const incompletas = apps.length - completas.length;
+  const recibidas = completas.length;
+  const nuevas = completas.filter((a) => a.status === "Nueva postulación").length;
   const admitidas = apps.filter((a) => a.status === "Admitida").length;
   const inscritas = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional").length;
   const rechazadas = apps.filter((a) => a.status === "Rechazada").length;
@@ -53,7 +55,8 @@ export default async function DashboardPage() {
 
       {/* KPIs */}
       <DashboardStats
-        total={total}
+        total={recibidas}
+        incompletas={incompletas}
         nuevas={nuevas}
         admitidas={admitidas}
         inscritas={inscritas}

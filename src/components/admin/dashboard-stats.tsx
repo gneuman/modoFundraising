@@ -17,6 +17,7 @@ import {
 
 interface Props {
   total: number;
+  incompletas: number;
   nuevas: number;
   admitidas: number;
   inscritas: number;
@@ -72,6 +73,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function DashboardStats({
   total,
+  incompletas,
   nuevas,
   admitidas,
   inscritas,
@@ -109,9 +111,9 @@ export function DashboardStats({
         <SectionLabel>Programa</SectionLabel>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
-            label="Postulaciones"
+            label="Postulaciones recibidas"
             value={total}
-            sub={`${nuevas > 0 ? `${nuevas} sin revisar` : "Al día"}`}
+            sub={`${nuevas > 0 ? `${nuevas} sin revisar` : "Al día"}${incompletas > 0 ? ` · ${incompletas} sin terminar` : ""}`}
             icon={Users}
             accent="bg-zinc-100 text-zinc-500"
           />
