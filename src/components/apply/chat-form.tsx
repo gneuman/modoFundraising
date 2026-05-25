@@ -15,6 +15,14 @@ import { applicationSchema, type ApplicationFormData } from "@/lib/form-schema";
 import { ALL_COUNTRIES } from "@/lib/countries";
 
 const STORAGE_KEY = "mf2026_chat";
+const SUBMITTED_KEY = "mf2026_submitted";
+
+interface SubmittedMarker {
+  email: string;
+  startup_name: string;
+  founder_name: string;
+  submitted_at: string;
+}
 
 const PHONE_CODES = [
   { code: "+56", label: "🇨🇱 +56 Chile" },
@@ -74,20 +82,20 @@ interface Question {
   condition?: (d: FormState) => boolean;
 }
 
-const QUESTIONS: Question[] = [
+export const QUESTIONS: Question[] = [
   // S1 — Founder
   { id: "first_name", text: "¡Hola! Soy el asistente de postulación de Impacta VC.\n\n¿Cuál es tu nombre?", type: "text" },
   { id: "last_name", text: "¿Y tu apellido?", type: "text" },
   { id: "email", text: "¿Cuál es tu email de contacto?", type: "email" },
   { id: "whatsapp", text: "¿Cuál es tu número de WhatsApp?", type: "phone" },
-  { id: "linkedin_founder", text: "¿URL de tu perfil de LinkedIn?", type: "url", help: "https://linkedin.com/in/..." },
+  { id: "linkedin_founder", text: "¿URL de tu perfil de LinkedIn? (opcional)", type: "url", optional: true, help: "https://linkedin.com/in/... Puedes saltarlo si no tienes." },
   { id: "founder_role", text: "¿Cuál es tu rol en la startup?", type: "radio", options: ["CEO", "CTO", "COO", "CMO", "CFO", "Co-founder", "Otro"] },
   { id: "country_residence", text: "¿En qué país vives actualmente?", type: "select", options: ALL_COUNTRIES },
 
   // S2 — Startup
   { id: "startup_name", text: "¿Cómo se llama tu startup?", type: "text" },
   { id: "startup_website", text: "¿Cuál es el website de la startup?", type: "url", help: "Incluir https://" },
-  { id: "startup_linkedin", text: "¿LinkedIn de la startup?", type: "url", help: "https://linkedin.com/company/..." },
+  { id: "startup_linkedin", text: "¿LinkedIn de la startup? (opcional)", type: "url", optional: true, help: "https://linkedin.com/company/... Puedes saltarlo si no tienen." },
   { id: "startup_country_ops", text: "¿Cuál es el país principal de operaciones?", type: "select", options: ALL_COUNTRIES },
   { id: "startup_countries_expansion", text: "¿En qué países operan o quieren operar en los próximos 18 meses?", type: "multiselect", options: ALL_COUNTRIES, help: "Selecciona todos los que apliquen" },
   { id: "startup_description", text: "Describe tu startup en 1–2 frases. ¿Qué problema resuelven y para quién?", type: "textarea" },
@@ -108,12 +116,12 @@ const QUESTIONS: Question[] = [
   { id: "prior_fundraising", text: "¿Han levantado capital anteriormente?", type: "radio", options: ["Sí", "No (esta sería nuestra primera ronda)"] },
   { id: "prior_fundraising_amount", text: "¿Cuánto han levantado en total hasta hoy (USD)?", type: "number", optional: true, condition: (d) => d.prior_fundraising === "Sí", help: "Suma de todas las rondas previas" },
 
-  // S5 — Ronda
+  // S5 — Ronda (se saltan las preguntas de ronda activa si round_open === "No ...")
   { id: "round_open", text: "¿Están levantando ronda actualmente?", type: "radio", options: ["Sí", "No (pero la iniciaremos en los próximos 12 meses)"] },
-  { id: "round_series", text: "¿Qué tipo de ronda es?", type: "radio", options: ["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"] },
-  { id: "round_size", text: "¿Cuál es el tamaño objetivo de la ronda (USD)?", type: "number", help: "Monto total que buscan levantar" },
-  { id: "startup_valuation", text: "¿Cuál es la valuación actual de tu startup (USD)?", type: "number", optional: true, help: "Pre-money. Si no tienen valuación definida, puedes saltarlo." },
-  { id: "round_tickets", text: "¿Qué rango de ticket buscan por inversor?", type: "multiselect", options: TICKET_SIZES },
+  { id: "round_series", text: "¿Qué tipo de ronda es?", type: "radio", options: ["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"], condition: (d) => d.round_open === "Sí" },
+  { id: "round_size", text: "¿Cuál es el tamaño objetivo de la ronda (USD)?", type: "number", help: "Monto total que buscan levantar", condition: (d) => d.round_open === "Sí" },
+  { id: "startup_valuation", text: "¿Cuál es la valuación actual de tu startup (USD)?", type: "number", optional: true, help: "Pre-money. Si no tienen valuación definida, puedes saltarlo.", condition: (d) => d.round_open === "Sí" },
+  { id: "round_tickets", text: "¿Qué rango de ticket buscan por inversor?", type: "multiselect", options: TICKET_SIZES, condition: (d) => d.round_open === "Sí" },
   { id: "runway", text: "¿Cuántos meses de runway tienen actualmente?", type: "number", help: "Meses que pueden operar con la caja actual" },
 
   // S6 — Deck
@@ -126,21 +134,21 @@ const QUESTIONS: Question[] = [
   // Referral 1
   { id: "referral_1_name", text: "Nombre y apellido del primer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" },
   { id: "referral_1_email", text: "Email del primer recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" },
-  { id: "referral_1_linkedin", text: "LinkedIn del primer recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" },
+  { id: "referral_1_linkedin", text: "LinkedIn del primer recomendador (opcional)", type: "text", optional: true, help: "Si no tienes, puedes saltarlo.", condition: (d) => d.has_referrals === "Sí" },
   { id: "referral_1_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" },
   { id: "_add_ref_2", text: "¿Quieres agregar otro recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" },
 
   // Referral 2
   { id: "referral_2_name", text: "Nombre y apellido del segundo recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
   { id: "referral_2_email", text: "Email del segundo recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
-  { id: "referral_2_linkedin", text: "LinkedIn del segundo recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
+  { id: "referral_2_linkedin", text: "LinkedIn del segundo recomendador (opcional)", type: "text", optional: true, help: "Si no tienes, puedes saltarlo.", condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
   { id: "referral_2_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
   { id: "_add_ref_3", text: "¿Quieres agregar un tercer recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
 
   // Referral 3
   { id: "referral_3_name", text: "Nombre y apellido del tercer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
   { id: "referral_3_email", text: "Email del tercer recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
-  { id: "referral_3_linkedin", text: "LinkedIn del tercer recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
+  { id: "referral_3_linkedin", text: "LinkedIn del tercer recomendador (opcional)", type: "text", optional: true, help: "Si no tienes, puedes saltarlo.", condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
   { id: "referral_3_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
 
   // S8 — Programa
@@ -208,9 +216,40 @@ export function ChatForm({ onSuccess }: Props) {
   const [phoneCode, setPhoneCode] = useState("+56");
   const [phoneNum, setPhoneNum] = useState("");
   const [showBasesLegales, setShowBasesLegales] = useState(false);
+  const [previousSubmission, setPreviousSubmission] = useState<SubmittedMarker | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const startFreshApplication = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SUBMITTED_KEY);
+    setPreviousSubmission(null);
+    setFormData({});
+    setLogoFile(null);
+    setPhoneCode("+56");
+    setPhoneNum("");
+    setInputVal(getDefaultVal(QUESTIONS[0]));
+    setQIdx(0);
+    setMessages([
+      { from: "bot", text: "¡Empecemos una nueva postulación! Usa un email distinto para esta empresa." },
+      { from: "bot", text: QUESTIONS[0].text },
+    ]);
+  }, []);
+
   useEffect(() => {
+    // Si ya envió una postulación antes, mostrar pantalla de opciones en vez del chat
+    const submittedRaw = localStorage.getItem(SUBMITTED_KEY);
+    if (submittedRaw) {
+      try {
+        const submitted = JSON.parse(submittedRaw) as SubmittedMarker;
+        if (submitted?.email) {
+          setPreviousSubmission(submitted);
+          return;
+        }
+      } catch {
+        // ignore corrupt data
+      }
+    }
+
     const saved = localStorage.getItem(STORAGE_KEY);
     let savedData: FormState = {};
     let startIdx = 0;
@@ -299,15 +338,20 @@ export function ChatForm({ onSuccess }: Props) {
         const data = await res.json();
         if (data.exists) {
           setBotTyping(false);
-          setMessages((prev) => [
-            ...prev,
-            { from: "user", text: val as string },
-            {
-              from: "bot",
-              text: `Ya tenemos una postulación registrada con ese email. Si crees que es un error o quieres consultarnos algo, escríbenos a maca@impacta.vc`,
-            },
-          ]);
-          setQIdx(QUESTIONS.length); // halt the form
+          // Mostrar la misma pantalla "ya enviaste" con los datos del backend
+          // y persistir el marker para futuras visitas en este navegador.
+          const marker: SubmittedMarker = data.submission ?? {
+            email: val as string,
+            startup_name: "",
+            founder_name: "",
+            submitted_at: new Date().toISOString(),
+          };
+          try {
+            localStorage.setItem(SUBMITTED_KEY, JSON.stringify(marker));
+          } catch {
+            // ignore quota
+          }
+          setPreviousSubmission(marker);
           return;
         }
       } catch {
@@ -381,7 +425,14 @@ export function ChatForm({ onSuccess }: Props) {
     setSubmitting(true);
     try {
       let logoUrl = "";
-      if (logoFile) logoUrl = await uploadLogo(logoFile);
+      if (logoFile) {
+        try {
+          logoUrl = await uploadLogo(logoFile);
+        } catch (e) {
+          console.error("[submitForm] uploadLogo failed:", e);
+          // No bloquear el submit por el logo — es opcional
+        }
+      }
 
       // Strip internal navigation keys before submitting
       const { _add_ref_2: _r2, _add_ref_3: _r3, ...submitData } = data;
@@ -394,19 +445,43 @@ export function ChatForm({ onSuccess }: Props) {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        if (err.code === "DUPLICATE_EMAIL") {
-          toast.error("Ya existe una postulación con este email.");
-        } else {
-          toast.error("Error al enviar. Intenta nuevamente.");
+        let errCode: string | undefined;
+        let errDetails: unknown;
+        try {
+          const err = await res.json();
+          errCode = err.code;
+          errDetails = err;
+          console.error("[submitForm] API error:", res.status, err);
+        } catch {
+          console.error("[submitForm] API non-JSON error:", res.status);
         }
+        if (errCode === "DUPLICATE_EMAIL") {
+          toast.error("Ya existe una postulación con este email.");
+        } else if (res.status === 400) {
+          toast.error("Algunos datos son inválidos. Revisa los campos e intenta de nuevo.");
+        } else {
+          toast.error(`Error al enviar (${res.status}). Intenta nuevamente.`);
+        }
+        void errDetails;
         setSubmitting(false);
         return;
       }
 
       localStorage.removeItem(STORAGE_KEY);
+      const marker: SubmittedMarker = {
+        email: String(data.email ?? ""),
+        startup_name: String(data.startup_name ?? ""),
+        founder_name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
+        submitted_at: new Date().toISOString(),
+      };
+      try {
+        localStorage.setItem(SUBMITTED_KEY, JSON.stringify(marker));
+      } catch {
+        // ignore quota errors
+      }
       onSuccess();
-    } catch {
+    } catch (e) {
+      console.error("[submitForm] unexpected error:", e);
       toast.error("Error de conexión. Intenta nuevamente.");
       setSubmitting(false);
     }
@@ -600,6 +675,59 @@ export function ChatForm({ onSuccess }: Props) {
   const isLastQ = qIdx === QUESTIONS.length - 1;
   const showNextBtn = currentQ?.type !== "radio";
   const progress = QUESTIONS.length > 0 ? Math.round((Math.max(0, qIdx) / QUESTIONS.length) * 100) : 0;
+
+  if (previousSubmission) {
+    const submittedDate = new Date(previousSubmission.submitted_at);
+    const fechaTxt = isNaN(submittedDate.getTime())
+      ? ""
+      : submittedDate.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" });
+
+    return (
+      <div className="flex flex-col min-h-screen" style={{ background: "linear-gradient(135deg, #181b2f 0%, #1a0d2e 50%, #181b2f 100%)" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+          <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={180} height={54} className="object-contain" />
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full text-center space-y-6 bg-white/5 border border-white/10 rounded-2xl p-8">
+            <div className="text-5xl">✅</div>
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-2">Ya enviaste tu postulación</h1>
+              <p className="text-white/70 text-sm leading-relaxed">
+                Tenemos registrada tu postulación de{" "}
+                <strong className="text-white">{previousSubmission.startup_name || "tu startup"}</strong>
+                {fechaTxt && <> enviada el <strong className="text-white">{fechaTxt}</strong></>}
+                {" "}con el email <strong className="text-white">{previousSubmission.email}</strong>.
+              </p>
+            </div>
+
+            <div className="border-t border-white/10 pt-6 space-y-3">
+              <p className="text-white/60 text-sm">¿Qué quieres hacer?</p>
+
+              <button
+                type="button"
+                onClick={startFreshApplication}
+                className="w-full px-5 py-3 rounded-xl text-white font-medium transition-opacity hover:opacity-90"
+                style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)" }}
+              >
+                Postular con otra empresa
+              </button>
+
+              <a
+                href="mailto:maca@impacta.vc?subject=Modificar%20postulaci%C3%B3n%20Modo%20Fundraising%202026"
+                className="block w-full px-5 py-3 rounded-xl text-white/80 font-medium border border-white/20 hover:bg-white/5 transition-colors"
+              >
+                Modificar mi postulación anterior
+              </a>
+            </div>
+
+            <p className="text-white/40 text-xs leading-relaxed pt-2">
+              Para postular con otra empresa necesitas usar un email distinto. Para editar tu postulación enviada, escríbenos a maca@impacta.vc.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen" style={{ background: "linear-gradient(135deg, #181b2f 0%, #1a0d2e 50%, #181b2f 100%)" }}>

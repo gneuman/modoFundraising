@@ -4,11 +4,11 @@ import Image from "next/image";
 export default function SuccessPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-6">
-      <div className="max-w-md w-full text-center space-y-8">
+      <div className="max-w-2xl w-full text-center space-y-8">
         <div className="flex justify-center">
-          <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={180} height={54} className="object-contain" />
+          <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={540} height={162} className="object-contain w-full max-w-lg h-auto" />
         </div>
-        <div className="text-6xl">🚀</div>
+        <div className="text-3xl">🚀</div>
         <div>
           <h1 className="text-3xl font-bold text-white mb-4">¡Postulación enviada!</h1>
           <p className="text-blue-200 text-base">
@@ -28,9 +28,9 @@ export default function SuccessPage() {
             </a>
           </div>
         </div>
-        <Link href="https://impacta.vc"
+        <Link href="https://modofundraising.com"
           className="inline-block text-blue-400 hover:text-blue-300 text-sm underline transition-colors">
-          Volver a impacta.vc
+          Volver a modofundraising.com
         </Link>
       </div>
     </main>

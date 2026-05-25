@@ -8,5 +8,15 @@ export async function GET(req: NextRequest) {
   }
 
   const existing = await getApplicationByEmail(email.trim().toLowerCase());
-  return NextResponse.json({ exists: !!existing });
+  if (!existing) return NextResponse.json({ exists: false });
+
+  return NextResponse.json({
+    exists: true,
+    submission: {
+      email,
+      startup_name: existing.startup_name ?? "",
+      founder_name: `${existing.first_name ?? ""} ${existing.last_name ?? ""}`.trim(),
+      submitted_at: existing.created_at ?? new Date().toISOString(),
+    },
+  });
 }
