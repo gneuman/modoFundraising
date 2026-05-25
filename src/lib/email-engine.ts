@@ -155,10 +155,30 @@ export async function sendApplicationConfirmation(
   emailAddr: string,
   firstName: string,
 ) {
-  await sendAutomationEmail("application_received", emailAddr, {
-    nombre: firstName,
-    email: emailAddr,
-  });
+  // Primero intenta usar reglas configurables en Airtable
+  const rules = await getAutomationRules("application_received");
+  const hasActiveRule = rules.some((r) => r.template?.active);
+
+  if (hasActiveRule) {
+    await sendAutomationEmail("application_received", emailAddr, {
+      nombre: firstName,
+      email: emailAddr,
+    });
+    return;
+  }
+
+  // Fallback transaccional: garantiza que el postulante reciba confirmación
+  // aunque no haya regla configurada en Airtable.
+  console.log(`[application_received] no active rule — using transactional fallback to ${emailAddr}`);
+  const html = wrapInBaseLayout(`
+    ${h1(`Recibimos tu postulación, ${firstName} 🚀`)}
+    ${p("Gracias por postular a <strong>Modo Fundraising 2026</strong>. Tu aplicación quedó registrada en nuestro sistema.")}
+    ${p("Nuestro equipo la revisará en los próximos días y te contactaremos por este mismo email con los siguientes pasos.")}
+    ${divider()}
+    ${p("Si tienes alguna duda, escríbenos a <a href='mailto:admin@impacta.vc' style='color:#2563eb;'>admin@impacta.vc</a>.")}
+    ${small("— Equipo Impacta VC")}
+  `);
+  await sendViaGmail(emailAddr, "Recibimos tu postulación a Modo Fundraising 2026", html);
 }
 
 export async function sendAdmissionEmail(

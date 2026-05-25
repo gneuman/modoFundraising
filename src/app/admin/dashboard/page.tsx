@@ -1,4 +1,4 @@
-import { getAllApplications, getAllPagos, getProximaClase, countFoundersInscritos, getEmpresasStats } from "@/lib/airtable";
+import { getAllApplications, getAllPagos, getProximaClase, getEmpresasStats } from "@/lib/airtable";
 import { STRIPE_MODE } from "@/lib/stripe";
 import { DashboardStats } from "@/components/admin/dashboard-stats";
 import { HealthCheckTable } from "@/components/admin/health-check-table";
@@ -6,11 +6,10 @@ import { HealthCheckTable } from "@/components/admin/health-check-table";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [apps, pagos, proximaClase, foundersInscritos] = await Promise.all([
+  const [apps, pagos, proximaClase] = await Promise.all([
     getAllApplications(),
     getAllPagos(),
     getProximaClase(),
-    countFoundersInscritos(),
   ]);
   const empresasStats = await getEmpresasStats(apps);
 
@@ -26,9 +25,6 @@ export default async function DashboardPage() {
   const revenue = pagos.reduce((sum, p) => sum + (p.amount ?? 0), 0);
 
   const inscritasList = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional");
-  const paganFull = inscritasList.filter((a) => !a.discount_percent || a.discount_percent < 100).length;
-  const conBeca100 = inscritasList.filter((a) => a.discount_percent === 100).length;
-  const conBecaParcial = inscritasList.filter((a) => (a.discount_percent ?? 0) > 0 && (a.discount_percent ?? 0) < 100).length;
 
   const countryCounts: Record<string, number> = {};
   inscritasList.forEach((a) => {
@@ -59,15 +55,10 @@ export default async function DashboardPage() {
         incompletas={incompletas}
         nuevas={nuevas}
         admitidas={admitidas}
-        inscritas={inscritas}
-        foundersInscritos={foundersInscritos}
         rechazadas={rechazadas}
         rechazadasPorFounder={rechazadasPorFounder}
         churn={churn}
         revenue={revenue}
-        paganFull={paganFull}
-        conBeca100={conBeca100}
-        conBecaParcial={conBecaParcial}
         countryCounts={countryCounts}
         totalInscritas={inscritas}
         proximaClase={proximaClase ? { titulo: proximaClase.titulo ?? "", fecha: proximaClase.fecha } : null}

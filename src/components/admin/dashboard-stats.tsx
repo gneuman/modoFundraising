@@ -3,16 +3,12 @@
 import {
   Users,
   UserCheck,
-  TrendingUp,
   TrendingDown,
   DollarSign,
-  GraduationCap,
   XCircle,
   UserX,
   CalendarDays,
   Globe,
-  Gift,
-  Percent,
 } from "lucide-react";
 
 interface Props {
@@ -20,15 +16,10 @@ interface Props {
   incompletas: number;
   nuevas: number;
   admitidas: number;
-  inscritas: number;
-  foundersInscritos: number;
   rechazadas: number;
   rechazadasPorFounder: number;
   churn: number;
   revenue: number;
-  paganFull: number;
-  conBeca100: number;
-  conBecaParcial: number;
   countryCounts: Record<string, number>;
   totalInscritas: number;
   proximaClase: { titulo: string; fecha?: string } | null;
@@ -76,15 +67,10 @@ export function DashboardStats({
   incompletas,
   nuevas,
   admitidas,
-  inscritas,
-  foundersInscritos,
   rechazadas,
   rechazadasPorFounder,
   churn,
   revenue,
-  paganFull,
-  conBeca100,
-  conBecaParcial,
   countryCounts,
   totalInscritas,
   proximaClase,
@@ -109,7 +95,7 @@ export function DashboardStats({
       {/* ── PROGRAMA ─────────────────────────────────────────── */}
       <div>
         <SectionLabel>Programa</SectionLabel>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <KpiCard
             label="Postulaciones recibidas"
             value={total}
@@ -125,53 +111,11 @@ export function DashboardStats({
             accent="bg-blue-50 text-blue-500"
           />
           <KpiCard
-            label="Startups inscritas"
-            value={inscritas}
-            sub="con acceso activo"
-            icon={TrendingUp}
-            accent="bg-green-50 text-green-600"
-          />
-          <KpiCard
-            label="Founders inscritos"
-            value={foundersInscritos}
-            sub="usuarios con portal"
-            icon={GraduationCap}
-            accent="bg-emerald-50 text-emerald-600"
-          />
-        </div>
-      </div>
-
-      {/* ── REVENUE ──────────────────────────────────────────── */}
-      <div>
-        <SectionLabel>Revenue</SectionLabel>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard
             label="Revenue cobrado"
             value={`US$${revenue.toLocaleString()}`}
             sub="total acumulado"
             icon={DollarSign}
             accent="bg-green-50 text-green-600"
-          />
-          <KpiCard
-            label="Pagan precio full"
-            value={paganFull}
-            sub="sin descuento"
-            icon={Percent}
-            accent="bg-violet-50 text-violet-600"
-          />
-          <KpiCard
-            label="Beca parcial"
-            value={conBecaParcial}
-            sub="descuento aplicado"
-            icon={Gift}
-            accent="bg-indigo-50 text-indigo-500"
-          />
-          <KpiCard
-            label="Beca 100%"
-            value={conBeca100}
-            sub="sin costo"
-            icon={Gift}
-            accent="bg-sky-50 text-sky-500"
           />
         </div>
       </div>
