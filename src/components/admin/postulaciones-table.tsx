@@ -13,12 +13,14 @@ const STATUS_TABS: { label: string; value: ApplicationStatus | "all" }[] = [
   { label: "Todas", value: "all" },
   { label: "Nueva postulación", value: "Nueva postulación" },
   { label: "Admitida", value: "Admitida" },
-  { label: "Inscrita", value: "Inscrita" },
   { label: "Rechazada por founder", value: "Rechazada por founder" },
   { label: "Churn", value: "Churn" },
   { label: "Sin respuesta", value: "Sin Respuesta" },
   { label: "Rechazada", value: "Rechazada" },
 ];
+
+// Estados que NO se muestran en /admin/postulaciones (viven en otra vista, ej. Empresas activas)
+const HIDDEN_STATUSES: ApplicationStatus[] = ["Inscrita", "Invitada institucional"];
 
 const STATUS_COLORS: Record<string, string> = {
   "Nueva postulación": "bg-zinc-100 text-zinc-600",
@@ -57,7 +59,6 @@ const CHANGEABLE_STATUSES: ApplicationStatus[] = [
   "Admitida",
   "Rechazada",
   "Sin Respuesta",
-  "Inscrita",
 ];
 
 function isIncompleta(a: ApplicationRecord): boolean {
@@ -132,9 +133,11 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
     return () => document.removeEventListener("mousedown", handleClick);
   }, [statusDropdown]);
 
-  // Hide rejected from "all" and "En revisión" tabs — show only when filter is active
+  // Las inscritas/invitadas viven en Empresas activas, no en postulaciones.
+  // Rechazadas se ocultan de "Todas" — solo se ven cuando el tab está activo.
   const filtered = useMemo(() => {
     return data.filter((a) => {
+      if (a.status && HIDDEN_STATUSES.includes(a.status)) return false;
       if (activeTab === "all" && a.status === "Rechazada") return false;
       const matchesTab = activeTab === "all" || a.status === activeTab;
       const q = search.toLowerCase();
@@ -252,9 +255,10 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
   }
 
   const tabCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: data.filter((a) => a.status !== "Rechazada").length };
+    const visible = data.filter((a) => !a.status || !HIDDEN_STATUSES.includes(a.status));
+    const counts: Record<string, number> = { all: visible.filter((a) => a.status !== "Rechazada").length };
     STATUS_TABS.slice(1).forEach(({ value }) => {
-      counts[value] = data.filter((a) => a.status === value).length;
+      counts[value] = visible.filter((a) => a.status === value).length;
     });
     return counts;
   }, [data]);

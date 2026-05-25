@@ -25,9 +25,11 @@ function isIncompleta(a: ApplicationRecord): boolean {
 const COLUMNS: { id: ApplicationStatus; label: string; border: string; header: string }[] = [
   { id: "Nueva postulación", label: "Nueva postulación", border: "border-t-zinc-400",  header: "bg-zinc-100 text-zinc-700" },
   { id: "Admitida",          label: "Admitida",           border: "border-t-blue-500",  header: "bg-blue-50 text-blue-700" },
-  { id: "Inscrita",          label: "Inscrita",           border: "border-t-green-500", header: "bg-green-50 text-green-700" },
   { id: "Sin Respuesta",     label: "Sin respuesta",      border: "border-t-zinc-300",  header: "bg-zinc-50 text-zinc-500" },
 ];
+
+// Estados que NO se muestran en el kanban — viven en Empresas activas
+const HIDDEN_STATUSES: ApplicationStatus[] = ["Inscrita", "Invitada institucional"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -539,6 +541,7 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
   const filteredData = useMemo(() => {
     const q = search.toLowerCase();
     return data.filter((a) => {
+      if (a.status && HIDDEN_STATUSES.includes(a.status)) return false;
       if (q && !(
         a.startup_name?.toLowerCase().includes(q) ||
         a.first_name?.toLowerCase().includes(q) ||

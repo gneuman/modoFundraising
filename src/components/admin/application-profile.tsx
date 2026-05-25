@@ -459,13 +459,13 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1">Referencias</p>
               {[
-                { name: app.referral_1_name, last: app.referral_1_lastname, email: app.referral_1_email, linkedin: app.referral_1_linkedin, relation: app.referral_1_relation },
-                { name: app.referral_2_name, last: app.referral_2_lastname, email: app.referral_2_email, linkedin: app.referral_2_linkedin, relation: app.referral_2_relation },
-                { name: app.referral_3_name, last: app.referral_3_lastname, email: app.referral_3_email, linkedin: app.referral_3_linkedin, relation: app.referral_3_relation },
+                { name: app.referral_1_name, email: app.referral_1_email, linkedin: app.referral_1_linkedin, relation: app.referral_1_relation },
+                { name: app.referral_2_name, email: app.referral_2_email, linkedin: app.referral_2_linkedin, relation: app.referral_2_relation },
+                { name: app.referral_3_name, email: app.referral_3_email, linkedin: app.referral_3_linkedin, relation: app.referral_3_relation },
               ].filter((r) => r.name).map((r, i) => (
                 <div key={i} className="flex items-start justify-between gap-2 bg-zinc-50 rounded-lg px-3 py-2 text-sm">
                   <div>
-                    <p className="font-medium text-zinc-700">{r.name} {r.last}</p>
+                    <p className="font-medium text-zinc-700">{r.name}</p>
                     <p className="text-xs text-zinc-400">{r.relation} · {r.email}</p>
                   </div>
                   {r.linkedin && (

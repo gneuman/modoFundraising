@@ -19,8 +19,11 @@ export function PostulacionesClient({ initialData, initialCoupons, initialPagos 
   const [enviandoSeguimiento, setEnviandoSeguimiento] = useState(false);
   const [enviandoRecordatorio, setEnviandoRecordatorio] = useState(false);
 
-  const completas = initialData.filter((p) => p.accept_legal_terms === true);
-  const incompletas = initialData.filter((p) => !p.accept_legal_terms);
+  // Excluir inscritas e invitadas institucionales — esas viven en Empresas activas
+  const HIDDEN_STATUSES = new Set(["Inscrita", "Invitada institucional"]);
+  const visibles = initialData.filter((p) => !p.status || !HIDDEN_STATUSES.has(p.status));
+  const completas = visibles.filter((p) => p.accept_legal_terms === true);
+  const incompletas = visibles.filter((p) => !p.accept_legal_terms);
   const datos = tab === "completas" ? completas : incompletas;
 
   async function enviarSeguimientos() {
