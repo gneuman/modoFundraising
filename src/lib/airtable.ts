@@ -96,6 +96,7 @@ export interface ApplicationFormData {
   round_open: string;
   round_series: string;
   round_size: number;
+  startup_valuation?: number;
   round_tickets: string[];
   runway: number;
   deck_url: string;
@@ -105,17 +106,14 @@ export interface ApplicationFormData {
   referral_code?: string;
   has_referrals: string;
   referral_1_name?: string;
-  referral_1_lastname?: string;
   referral_1_email?: string;
   referral_1_linkedin?: string;
   referral_1_relation?: string;
   referral_2_name?: string;
-  referral_2_lastname?: string;
   referral_2_email?: string;
   referral_2_linkedin?: string;
   referral_2_relation?: string;
   referral_3_name?: string;
-  referral_3_lastname?: string;
   referral_3_email?: string;
   referral_3_linkedin?: string;
   referral_3_relation?: string;
@@ -149,17 +147,14 @@ export interface PostulacionRecord {
   referral_code?: string;
   has_referrals?: string;
   referral_1_name?: string;
-  referral_1_lastname?: string;
   referral_1_email?: string;
   referral_1_linkedin?: string;
   referral_1_relation?: string;
   referral_2_name?: string;
-  referral_2_lastname?: string;
   referral_2_email?: string;
   referral_2_linkedin?: string;
   referral_2_relation?: string;
   referral_3_name?: string;
-  referral_3_lastname?: string;
   referral_3_email?: string;
   referral_3_linkedin?: string;
   referral_3_relation?: string;
@@ -565,6 +560,7 @@ export async function createStartupRecord(data: Pick<ApplicationFormData, 'start
   if (data.round_series) fields.round_series = data.round_series;
   if (data.round_size !== undefined) fields.round_size = data.round_size;
   if (data.round_tickets) fields.round_tickets = Array.isArray(data.round_tickets) ? data.round_tickets.join(", ") : data.round_tickets;
+  if (data.startup_valuation !== undefined) fields.startup_valuation = data.startup_valuation;
   if (data.runway !== undefined) fields.runway = data.runway;
   if (data.deck_url) fields.deck_url = data.deck_url;
   if (data.program_source) fields.program_source = data.program_source;
@@ -601,11 +597,11 @@ export async function updateStartup(id: string, data: Partial<StartupRecord> | P
     'startup_industries', 'startup_industry_other', 'business_model', 'business_model_other',
     'startup_stage', 'startup_usa_intl', 'startup_team_size', 'startup_mrr',
     'startup_sales_12m', 'prior_fundraising', 'prior_fundraising_amount',
-    'round_open', 'round_series', 'round_size', 'round_tickets', 'runway',
+    'round_open', 'round_series', 'round_size', 'startup_valuation', 'round_tickets', 'runway',
     'deck_url', 'program_source', 'ias_interested',
   ];
   const ARRAY_TO_STRING = new Set(['startup_countries_expansion', 'startup_industries', 'round_tickets']);
-  const NUM_FIELDS = new Set(['startup_team_size', 'startup_mrr', 'startup_sales_12m', 'prior_fundraising_amount', 'round_size', 'runway']);
+  const NUM_FIELDS = new Set(['startup_team_size', 'startup_mrr', 'startup_sales_12m', 'prior_fundraising_amount', 'round_size', 'startup_valuation', 'runway']);
   const fields: Record<string, unknown> = {};
   for (const key of STARTUP_FIELDS) {
     const val = (data as Record<string, unknown>)[key];
@@ -665,6 +661,21 @@ export async function updateDraftPostulacion(
   };
   if (links?.founderRecordId) fields.founder_record = [links.founderRecordId];
   if (links?.startupRecordId) fields.startup_record = [links.startupRecordId];
+
+  // Replicar campos de postulación (referrals + flags) en columnas individuales
+  // para que sean filtrables en Airtable aun en estado borrador.
+  const POSTULACION_FIELDS = [
+    'referral_code', 'has_referrals',
+    'referral_1_name', 'referral_1_email', 'referral_1_linkedin', 'referral_1_relation',
+    'referral_2_name', 'referral_2_email', 'referral_2_linkedin', 'referral_2_relation',
+    'referral_3_name', 'referral_3_email', 'referral_3_linkedin', 'referral_3_relation',
+    'accept_legal_terms',
+  ];
+  for (const key of POSTULACION_FIELDS) {
+    const val = formData[key];
+    if (val !== undefined && val !== "") fields[key] = val;
+  }
+
   await base(Tables.POSTULACIONES).update(postulacionId, fields as never);
 }
 
@@ -702,17 +713,14 @@ export async function createApplication(
     referral_code: data.referral_code ?? "",
     has_referrals: data.has_referrals,
     referral_1_name: data.referral_1_name ?? "",
-    referral_1_lastname: data.referral_1_lastname ?? "",
     referral_1_email: data.referral_1_email ?? "",
     referral_1_linkedin: data.referral_1_linkedin ?? "",
     referral_1_relation: data.referral_1_relation ?? "",
     referral_2_name: data.referral_2_name ?? "",
-    referral_2_lastname: data.referral_2_lastname ?? "",
     referral_2_email: data.referral_2_email ?? "",
     referral_2_linkedin: data.referral_2_linkedin ?? "",
     referral_2_relation: data.referral_2_relation ?? "",
     referral_3_name: data.referral_3_name ?? "",
-    referral_3_lastname: data.referral_3_lastname ?? "",
     referral_3_email: data.referral_3_email ?? "",
     referral_3_linkedin: data.referral_3_linkedin ?? "",
     referral_3_relation: data.referral_3_relation ?? "",
@@ -810,21 +818,42 @@ export async function getAllPagos(): Promise<PagoRecord[]> {
 }
 
 export async function getApplicationByEmail(email: string): Promise<PostulacionRecord | null> {
-  // Only block if there's already a completed postulacion (has status set)
-  const founders = await base(Tables.FOUNDERS)
-    .select({ filterByFormula: `{email} = "${email}"`, fields: [], maxRecords: 1 })
-    .firstPage();
-  if (!founders.length) return null;
-
-  const founderId = founders[0].id;
+  // Buscar postulaciones con status definido (no drafts) usando lookup directo del email
   const postulaciones = await base(Tables.POSTULACIONES)
     .select({
-      filterByFormula: `AND({status}, FIND("${founderId}", ARRAYJOIN({founder_record})))`,
-      fields: ["status"],
+      filterByFormula: `AND({status}, {email (from founder_record)} = "${email}")`,
+      fields: ["status", "created_at", "startup_record", "first_name (from founder_record)", "last_name (from founder_record)"],
       maxRecords: 1,
     })
     .firstPage();
-  return postulaciones.length ? { email } as PostulacionRecord : null;
+  if (!postulaciones.length) return null;
+
+  const post = postulaciones[0];
+  const postFields = post.fields as Record<string, unknown>;
+  // Lookup startup_name from the linked startup
+  const startupIds = (postFields.startup_record as string[]) ?? [];
+  let startupName = "";
+  if (startupIds[0]) {
+    try {
+      const startup = await base(Tables.STARTUPS).find(startupIds[0]);
+      startupName = (startup.fields as Record<string, unknown>).startup_name as string ?? "";
+    } catch {
+      // ignore
+    }
+  }
+
+  const firstNameArr = postFields["first_name (from founder_record)"] as string[] | undefined;
+  const lastNameArr = postFields["last_name (from founder_record)"] as string[] | undefined;
+
+  return {
+    id: post.id,
+    email,
+    status: postFields.status as ApplicationStatus,
+    created_at: postFields.created_at as string,
+    startup_name: startupName,
+    first_name: firstNameArr?.[0] ?? "",
+    last_name: lastNameArr?.[0] ?? "",
+  } as PostulacionRecord;
 }
 
 export async function assignCouponToApplication(
