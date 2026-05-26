@@ -9,8 +9,11 @@ export default function SentryTestPage() {
     setServerResult('Llamando al server...');
     try {
       const res = await fetch('/sentry-test/api');
-      const data = await res.json();
-      setServerResult(JSON.stringify(data, null, 2));
+      const text = await res.text();
+      const snippet = text.length > 400 ? `${text.slice(0, 400)}…` : text;
+      setServerResult(
+        `HTTP ${res.status} ${res.statusText}\n\n${snippet || '(body vacío)'}\n\n→ Si ves 500 aquí, el error sí se lanzó en el server. Revisa Sentry en ~10s.`
+      );
     } catch (err) {
       setServerResult(`Network error: ${(err as Error).message}`);
     }
