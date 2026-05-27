@@ -1,5 +1,9 @@
 "use client";
 
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { ApplicationRecord, EmpresaStats } from "@/lib/airtable";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +62,38 @@ export function HealthCheckTable({
   startups: ApplicationRecord[];
   empresasStats: EmpresaStats[];
 }) {
+  const router = useRouter();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+
+  async function togglePortal(recordId: string, currentAccess: boolean) {
+    if (pendingId) return;
+    const next = !currentAccess;
+    setPendingId(recordId);
+    setOverrides((o) => ({ ...o, [recordId]: next }));
+    try {
+      const res = await fetch("/api/admin/applications/portal-access", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId, access: next }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Error");
+      toast.success(next ? "Acceso al portal activado" : "Acceso al portal removido");
+      startTransition(() => router.refresh());
+    } catch (err) {
+      setOverrides((o) => {
+        const copy = { ...o };
+        delete copy[recordId];
+        return copy;
+      });
+      toast.error(err instanceof Error ? err.message : "Error al cambiar acceso");
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   if (!startups.length) {
     return (
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-10 text-center">
@@ -88,7 +124,9 @@ export function HealthCheckTable({
               const stats = statsMap.get(startupId);
               const asistLevel = stats ? progressHealth(stats.clasesVistas, stats.totalClases) : "gray";
               const misionLevel = stats ? progressHealth(stats.misionesCompletadas, stats.totalMisiones) : "gray";
-              const portalLevel: HealthLevel = s.portal_access ? "green" : "red";
+              const portalAccess = overrides[s.id!] ?? s.portal_access ?? false;
+              const portalLevel: HealthLevel = portalAccess ? "green" : "red";
+              const isPending = pendingId === s.id;
 
               const asistLabel = stats
                 ? `${stats.clasesVistas}/${stats.totalClases}`
@@ -121,12 +159,26 @@ export function HealthCheckTable({
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <Dot level={portalLevel} />
-                      <span className="text-xs text-zinc-600">
-                        {s.portal_access ? "Activo" : "Sin acceso"}
+                    <button
+                      type="button"
+                      onClick={() => togglePortal(s.id!, portalAccess)}
+                      disabled={isPending}
+                      title={portalAccess ? "Click para remover acceso al portal" : "Click para activar acceso al portal"}
+                      className={cn(
+                        "mx-auto flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md transition-colors",
+                        "hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-wait",
+                        portalAccess ? "text-green-700" : "text-red-600"
+                      )}
+                    >
+                      {isPending ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Dot level={portalLevel} />
+                      )}
+                      <span className="text-xs font-medium">
+                        {portalAccess ? "Activo" : "Sin acceso"}
                       </span>
-                    </div>
+                    </button>
                   </td>
                   <td className="px-5 py-4 text-center">
                     {statusBadge(s.status)}

@@ -881,6 +881,10 @@ export async function updateApplicationStatus(
   await base(Tables.POSTULACIONES).update(recordId, fields as never, { typecast: true });
 }
 
+export async function setApplicationPortalAccess(recordId: string, access: boolean) {
+  await base(Tables.POSTULACIONES).update(recordId, { portal_access: access } as never, { typecast: true });
+}
+
 // ─── Pagos ────────────────────────────────────────────────────────────────────
 
 export async function createPagoRecord(data: {

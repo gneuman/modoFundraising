@@ -1,0 +1,148 @@
+[
+  {
+    "name": "Kawesqar Travels / Intelligence Hub",
+    "startup": {
+      "ok": true,
+      "fields": [
+        "startup_website",
+        "startup_country_ops",
+        "startup_industries",
+        "startup_description",
+        "startup_mrr",
+        "startup_sales_12m",
+        "round_size",
+        "round_series",
+        "round_tickets",
+        "deck_url"
+      ]
+    },
+    "founder": {
+      "ok": true,
+      "skipped": true
+    }
+  },
+  {
+    "name": "PIXLAB CLASS",
+    "startup": {
+      "ok": true,
+      "fields": [
+        "startup_website",
+        "startup_country_ops",
+        "startup_industries",
+        "startup_description",
+        "startup_mrr",
+        "round_size",
+        "deck_url"
+      ]
+    },
+    "founder": {
+      "ok": true,
+      "skipped": true
+    }
+  },
+  {
+    "name": "Maity",
+    "startup": {
+      "ok": true,
+      "fields": [
+        "startup_website",
+        "startup_country_ops",
+        "startup_industries",
+        "round_size",
+        "deck_url"
+      ]
+    },
+    "founder": {
+      "ok": true,
+      "skipped": true
+    }
+  },
+  {
+    "name": "Zeii",
+    "startup": {
+      "ok": true,
+      "fields": [
+        "startup_website",
+        "startup_country_ops",
+        "startup_industries",
+        "startup_description",
+        "startup_mrr",
+        "round_size",
+        "round_tickets",
+        "deck_url"
+      ]
+    },
+    "founder": {
+      "ok": true,
+      "skipped": true
+    }
+  },
+  {
+    "name": "LEAF",
+    "startup": {
+      "ok": true,
+      "fields": [
+        "startup_website",
+        "startup_country_ops",
+        "startup_industries",
+        "round_size"
+      ]
+    },
+    "founder": {
+      "ok": true,
+      "skipped": true
+    }
+  },
+  {
+    "name": "Aventia Solutions",
+    "startup": {
+      "ok": true,
+      "fields": [
+        "startup_website",
+        "startup_country_ops",
+        "startup_industries",
+        "round_size"
+      ]
+    },
+    "founder": {
+      "ok": true,
+      "skipped": true
+    }
+  },
+  {
+    "name": "Finsphera",
+    "startup": {
+      "ok": true,
+      "fields": [
+        "startup_website",
+        "startup_country_ops",
+        "startup_industries",
+        "round_size"
+      ]
+    },
+    "founder": {
+      "ok": true,
+      "skipped": true
+    }
+  },
+  {
+    "name": "Antü",
+    "startup": {
+      "ok": true,
+      "fields": [
+        "startup_website",
+        "startup_country_ops",
+        "startup_industries",
+        "startup_description",
+        "startup_mrr",
+        "startup_sales_12m",
+        "round_size",
+        "deck_url"
+      ]
+    },
+    "founder": {
+      "ok": true,
+      "skipped": true
+    }
+  }
+]

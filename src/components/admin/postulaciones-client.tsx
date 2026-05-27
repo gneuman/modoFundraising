@@ -16,7 +16,6 @@ interface Props {
 export function PostulacionesClient({ initialData, initialCoupons, initialPagos }: Props) {
   const [tab, setTab] = useState<"completas" | "incompletas">("completas");
   const [vista, setVista] = useState<"tabla" | "kanban">("kanban");
-  const [enviandoSeguimiento, setEnviandoSeguimiento] = useState(false);
   const [enviandoRecordatorio, setEnviandoRecordatorio] = useState(false);
 
   // Excluir inscritas e invitadas institucionales — esas viven en Empresas activas
@@ -25,24 +24,6 @@ export function PostulacionesClient({ initialData, initialCoupons, initialPagos 
   const completas = visibles.filter((p) => p.accept_legal_terms === true);
   const incompletas = visibles.filter((p) => !p.accept_legal_terms);
   const datos = tab === "completas" ? completas : incompletas;
-
-  async function enviarSeguimientos() {
-    setEnviandoSeguimiento(true);
-    try {
-      const res = await fetch("/api/admin/applications/followup", { method: "POST" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Error");
-      if (json.sent === 0) {
-        toast.info(json.message ?? "No hay admitidas sin pago pendiente");
-      } else {
-        toast.success(`Seguimiento enviado a ${json.sent}/${json.total} postulaciones`);
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al enviar seguimientos");
-    } finally {
-      setEnviandoSeguimiento(false);
-    }
-  }
 
   async function enviarRecordatorios() {
     setEnviandoRecordatorio(true);
@@ -72,16 +53,7 @@ export function PostulacionesClient({ initialData, initialCoupons, initialPagos 
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {tab === "completas" ? (
-            <button
-              onClick={enviarSeguimientos}
-              disabled={enviandoSeguimiento}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 text-sm font-medium transition-colors disabled:opacity-50 border border-amber-200"
-            >
-              {enviandoSeguimiento ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
-              {enviandoSeguimiento ? "Enviando..." : "Enviar seguimientos"}
-            </button>
-          ) : (
+          {tab === "incompletas" && (
             <button
               onClick={enviarRecordatorios}
               disabled={enviandoRecordatorio}

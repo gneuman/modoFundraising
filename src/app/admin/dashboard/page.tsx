@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const rechazadas = apps.filter((a) => a.status === "Rechazada").length;
   const rechazadasPorFounder = apps.filter((a) => a.status === "Rechazada por founder").length;
   const churn = apps.filter((a) => a.status === "Churn").length;
-  const revenue = pagos.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+  const revenue = pagos.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
   const inscritasList = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional");
 

@@ -1,5 +1,5 @@
 import { getAllApplications, getAllPagos } from "@/lib/airtable";
-import { DollarSign, TrendingUp, CreditCard, AlertCircle } from "lucide-react";
+import { TrendingUp, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,6 @@ export default async function RevenuePage() {
   const inscritas = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional");
   const pagosTotales = pagos.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   const pagosConFallo = apps.filter((a) => a.payment_status === "Baja").length;
-  const mrr = inscritas.length * PRECIO_CUOTA;
 
   const cuota1 = apps.filter((a) => a.payment_status === "Cuota 1 pagada").length;
   const cuota2 = apps.filter((a) => a.payment_status === "Cuota 2 pagada").length;
@@ -36,32 +35,14 @@ export default async function RevenuePage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-4 w-4 text-green-500" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">MRR actual</p>
-          </div>
-          <p className="text-2xl font-bold text-green-600">US${mrr.toLocaleString()}</p>
-          <p className="text-xs text-zinc-400 mt-1">{inscritas.length} startups × $349</p>
-        </div>
-
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="h-4 w-4 text-blue-500" />
             <p className="text-xs text-zinc-500 uppercase tracking-wide">Revenue total</p>
           </div>
           <p className="text-2xl font-bold text-blue-600">US${pagosTotales.toLocaleString()}</p>
-          <p className="text-xs text-zinc-400 mt-1">{pagos.length} pagos registrados</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <CreditCard className="h-4 w-4 text-zinc-500" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">ARR estimado</p>
-          </div>
-          <p className="text-2xl font-bold text-zinc-800">US${(mrr * 3).toLocaleString()}</p>
-          <p className="text-xs text-zinc-400 mt-1">Programa de 3 cuotas</p>
+          <p className="text-xs text-zinc-400 mt-1">{pagos.length} pagos registrados · {inscritas.length} startups inscritas</p>
         </div>
 
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
