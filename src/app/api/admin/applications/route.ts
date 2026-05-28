@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus } from "@/lib/airtable";
-import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink } from "@/lib/email-engine";
+import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink, sendPaymentConfirmation } from "@/lib/email-engine";
 import { createCheckoutToken } from "@/lib/checkout-token";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 
@@ -132,6 +132,11 @@ export async function PATCH(req: NextRequest) {
           await updateApplicationStatus(recordId, "Inscrita", { portal_access: true });
           const startupId = (app.startup_record as string[] | undefined)?.[0];
           if (startupId) await inviteStartupToCalendar(startupId);
+          // Beca 100%: no pasa por el webhook de Stripe (no hay cobro), así que el
+          // correo de inscripción confirmada se dispara acá manualmente.
+          if (app.email && app.first_name) {
+            await sendPaymentConfirmation(app.email, app.first_name, 1);
+          }
           return NextResponse.json({ success: true, inscrita_directa: true });
         }
         const checkoutUrl = await buildCheckoutUrl(recordId, app);

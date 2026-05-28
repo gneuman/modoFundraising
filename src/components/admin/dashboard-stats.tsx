@@ -9,6 +9,7 @@ import {
   UserX,
   CalendarDays,
   Globe,
+  Rocket,
 } from "lucide-react";
 
 interface Props {
@@ -95,7 +96,7 @@ export function DashboardStats({
       {/* ── PROGRAMA ─────────────────────────────────────────── */}
       <div>
         <SectionLabel>Programa</SectionLabel>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             label="Postulaciones recibidas"
             value={total}
@@ -109,6 +110,13 @@ export function DashboardStats({
             sub="pendiente de pago"
             icon={UserCheck}
             accent="bg-blue-50 text-blue-500"
+          />
+          <KpiCard
+            label="Inscritas"
+            value={totalInscritas}
+            sub="startups dentro del programa"
+            icon={Rocket}
+            accent="bg-violet-50 text-violet-500"
           />
           <KpiCard
             label="Revenue cobrado"
