@@ -150,6 +150,13 @@ const TRIGGER_META: Record<
     color: "text-emerald-600 bg-emerald-50 border-emerald-200",
     dot: "bg-emerald-500",
   },
+  form_abandonado: {
+    label: "Postulación abandonada",
+    description: "Empezó el formulario pero no lo terminó después de 1 hora.",
+    icon: <Clock className="h-4 w-4" />,
+    color: "text-amber-600 bg-amber-50 border-amber-200",
+    dot: "bg-amber-500",
+  },
 };
 
 const TRIGGER_GROUPS: { label: string; triggers: TriggerEvent[] }[] = [
@@ -168,6 +175,7 @@ const TRIGGER_GROUPS: { label: string; triggers: TriggerEvent[] }[] = [
   {
     label: "Admisiones",
     triggers: [
+      "form_abandonado",
       "application_received",
       "admission_approved",
       "admission_rejected",
@@ -189,6 +197,7 @@ const TEMPLATE_VARS: { key: string; label: string }[] = [
   { key: "{{email}}", label: "Email" },
   { key: "{{checkout_url}}", label: "Link de pago" },
   { key: "{{portal_url}}", label: "Link al portal" },
+  { key: "{{apply_url}}", label: "Link continuar postulación" },
   { key: "{{cuota_num}}", label: "Nro. de cuota" },
 ];
 

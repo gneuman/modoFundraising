@@ -230,11 +230,17 @@ export async function sendAdmissionFollowUp(
 export async function sendFormAbandonado(
   emailAddr: string,
   firstName: string,
+  postulacionId?: string,
 ) {
+  // Con id: link que recupera el draft desde Airtable (cross-device).
+  // Sin id: raíz del formulario (recupera solo vía localStorage en el mismo navegador).
+  const apply_url = postulacionId
+    ? `${POSTULA_URL}/apply/${postulacionId}`
+    : `${POSTULA_URL}/`;
   await sendAutomationEmail("form_abandonado", emailAddr, {
     nombre: firstName,
     email: emailAddr,
-    apply_url: `${POSTULA_URL}/`,
+    apply_url,
   });
 }
 

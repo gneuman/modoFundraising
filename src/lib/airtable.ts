@@ -201,6 +201,8 @@ export interface PostulacionRecord {
   payment_reminder_1_at?: string;
   payment_reminder_2_at?: string;
   payment_reminder_3_at?: string;
+  // Recordatorio de form abandonado (sensor de recuperación)
+  form_reminder_sent_at?: string;
 }
 
 export type ApplicationRecord = PostulacionRecord;
@@ -883,6 +885,15 @@ export async function updateApplicationStatus(
 
 export async function setApplicationPortalAccess(recordId: string, access: boolean) {
   await base(Tables.POSTULACIONES).update(recordId, { portal_access: access } as never, { typecast: true });
+}
+
+// Marca que ya se envió el recordatorio de form abandonado, sin tocar el status (draft).
+export async function markFormReminderSent(recordId: string) {
+  await base(Tables.POSTULACIONES).update(
+    recordId,
+    { form_reminder_sent_at: new Date().toISOString() } as never,
+    { typecast: true }
+  );
 }
 
 // ─── Pagos ────────────────────────────────────────────────────────────────────
@@ -1759,7 +1770,8 @@ export type TriggerEvent =
   | "subscription_cancelled"
   | "portal_deactivated"
   | "application_received"
-  | "onboarding";
+  | "onboarding"
+  | "form_abandonado";
 
 export interface EmailTemplate {
   id?: string;

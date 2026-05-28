@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   }
 
   const results = await Promise.allSettled(
-    incompletas.map((app) => sendFormAbandonado(app.email!, app.first_name!))
+    incompletas.map((app) => sendFormAbandonado(app.email!, app.first_name!, app.id!))
   );
 
   const sent = results.filter((r) => r.status === "fulfilled").length;
