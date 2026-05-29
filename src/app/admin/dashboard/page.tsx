@@ -26,9 +26,42 @@ export default async function DashboardPage() {
 
   const inscritasList = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional");
 
+  const ISO_BY_COUNTRY: Record<string, string> = {
+    "argentina": "AR",
+    "bolivia": "BO",
+    "chile": "CL",
+    "colombia": "CO",
+    "costa rica": "CR",
+    "cuba": "CU",
+    "ecuador": "EC",
+    "el salvador": "SV",
+    "españa": "ES",
+    "espana": "ES",
+    "guatemala": "GT",
+    "guinea ecuatorial": "GQ",
+    "honduras": "HN",
+    "mexico": "MX",
+    "méxico": "MX",
+    "nicaragua": "NI",
+    "panama": "PA",
+    "panamá": "PA",
+    "paraguay": "PY",
+    "peru": "PE",
+    "perú": "PE",
+    "puerto rico": "PR",
+    "republica dominicana": "DO",
+    "república dominicana": "DO",
+    "uruguay": "UY",
+    "venezuela": "VE",
+  };
+
   const countryCounts: Record<string, number> = {};
   inscritasList.forEach((a) => {
-    const c = a.startup_country_ops ?? "Otro";
+    const raw = (a.startup_country_ops ?? "Otro").trim();
+    const base = raw.replace(/\s*\([A-Z]{2,3}\)\s*$/, "").trim();
+    const existingCode = raw.match(/\(([A-Z]{2,3})\)\s*$/)?.[1];
+    const iso = existingCode ?? ISO_BY_COUNTRY[base.toLowerCase()];
+    const c = iso ? `${base} (${iso})` : base || raw;
     countryCounts[c] = (countryCounts[c] ?? 0) + 1;
   });
 
