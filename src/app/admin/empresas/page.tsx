@@ -94,7 +94,6 @@ export default async function EmpresasPage() {
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">País</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Levantando</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Pago</th>
-                <th className="text-center px-4 py-3 font-semibold text-zinc-600">Portal</th>
                 <th className="text-center px-4 py-3 font-semibold text-zinc-600">Asistencia</th>
                 <th className="text-center px-4 py-3 font-semibold text-zinc-600">Misiones</th>
                 <th className="text-center px-4 py-3 font-semibold text-zinc-600">Engagement</th>
@@ -103,7 +102,7 @@ export default async function EmpresasPage() {
             <tbody>
               {inscritas.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-zinc-400">
+                  <td colSpan={7} className="px-4 py-12 text-center text-zinc-400">
                     No hay empresas inscritas aún
                   </td>
                 </tr>
@@ -128,11 +127,6 @@ export default async function EmpresasPage() {
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${BADGE_PAGO[a.payment_status ?? "Pendiente"] ?? "bg-zinc-100 text-zinc-500"}`}>
                         {a.payment_status ?? "Pendiente"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.portal_access ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-500"}`}>
-                        {a.portal_access ? "Activo" : "Sin acceso"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
