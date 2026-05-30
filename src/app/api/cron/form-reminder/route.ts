@@ -19,14 +19,14 @@ function isAuthorized(req: NextRequest): boolean {
 
 /**
  * Una postulación es "abandonada" si:
- *   - está en draft (sin status)
- *   - no aceptó los términos legales (form no completado)
- *   - tiene created_at y email
+ *   - está en "Nueva postulación" (status que se asigna al crear el record)
+ *   - no aceptó los términos legales (no sometió el form final)
+ *   - tiene created_at, email y first_name (ya pasó las primeras pantallas)
  *   - aún no se le envió el recordatorio (form_reminder_sent_at vacío)
  */
 function esAbandonada(a: { status?: string; accept_legal_terms?: boolean; created_at?: string; email?: string; first_name?: string; form_reminder_sent_at?: string }): boolean {
   return (
-    !a.status &&
+    a.status === "Nueva postulación" &&
     !a.accept_legal_terms &&
     !!a.created_at &&
     !!a.email &&
