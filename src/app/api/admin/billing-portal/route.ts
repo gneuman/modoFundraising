@@ -5,54 +5,60 @@ import { findFailedSubByEmail, createBillingPortalLink } from "@/lib/stripe";
 import { getAllApplications } from "@/lib/airtable";
 
 /**
- * POST /api/admin/billing-portal
+ * /api/admin/billing-portal
  *
  * Para founders cuya suscripción (creada a mano en Stripe) quedó con la tarjeta
  * fallida. Busca su customer por email, detecta la suscripción past_due/unpaid/
  * incomplete y (opcionalmente) genera un link al Billing Portal de Stripe. Al
- * actualizar la tarjeta ahí, Stripe reintenta automáticamente la factura
- * pendiente.
+ * actualizar la tarjeta ahí, Stripe reintenta automáticamente la factura.
  *
- * Body:
- *   {
- *     scanAll?:  boolean,    // true = revisa TODOS los inscritos de Airtable vs Stripe (solo diagnóstico)
- *     emails?:   string[],   // emails directos
- *     startups?: string[],   // nombres de startup (se resuelven a email vía Airtable)
- *     diagnose?: boolean      // true = solo diagnóstico, NO genera links
- *   }
+ * AUTH: cookie admin (verificarAdmin) O  ?key=<CRON_SECRET> en la URL.
  *
- * Respuesta: { count, con_fallo, con_fallo_inputs, results: Array<{ input, email, ...info, portalUrl }> }
+ * GET  ?key=...&scanAll=1                 → revisa TODOS los inscritos (diagnóstico)
+ * GET  ?key=...&emails=a@x.com,b@y.com    → genera links para esos emails
+ * GET  ?key=...&startups=Maity,Antü       → resuelve por nombre y genera links
+ * GET  ?key=...&diagnose=1&...            → fuerza solo diagnóstico
  *
- * Solo admin (verificarAdmin).
+ * POST { scanAll? , emails?[] , startups?[] , diagnose? }  (mismo comportamiento)
  */
-export async function POST(req: NextRequest) {
-  const denied = await verificarAdmin(req);
-  if (denied) return denied;
 
-  const body = await req.json().catch(() => ({}));
-  const emails: string[] = Array.isArray(body?.emails) ? body.emails.map(String) : [];
-  const startups: string[] = Array.isArray(body?.startups) ? body.startups.map(String) : [];
-  const diagnose: boolean = body?.diagnose === true;
-  // scanAll = revisa TODOS los inscritos en Airtable contra Stripe.
-  const scanAll: boolean = body?.scanAll === true;
+// Token alterno para llamar sin cookie admin. Reusa CRON_SECRET (ya en Vercel).
+function tokenOk(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET ?? "";
+  if (!secret) return false;
+  return (req.nextUrl.searchParams.get("key") ?? "") === secret;
+}
 
+type Opts = {
+  scanAll: boolean;
+  emails: string[];
+  startups: string[];
+  diagnose: boolean;
+};
+
+const EMPTY = {
+  customerId: null,
+  subscriptionId: null,
+  subStatus: null,
+  openInvoiceId: null,
+  amountDue: null,
+  portalUrl: null,
+};
+
+async function run({ scanAll, emails, startups, diagnose }: Opts) {
   if (!scanAll && emails.length === 0 && startups.length === 0) {
     return NextResponse.json(
-      { error: "Envía { scanAll: true } o { emails: [] } y/o { startups: [] }" },
+      { error: "Envía scanAll, emails o startups" },
       { status: 400 }
     );
   }
 
-  // Cargamos Airtable si vamos a resolver startups o a escanear todo.
   const apps = scanAll || startups.length > 0 ? await getAllApplications() : [];
   const norm = (s: string) => s.trim().toLowerCase();
 
-  // Lista de entradas: cada una con el input original (para que sepas qué pediste)
-  // y el email resuelto (o null si no se encontró).
   const inputs: { input: string; email: string | null }[] = [];
 
   if (scanAll) {
-    // Todos los inscritos con email — el cruce real lo hace Stripe.
     for (const a of apps) {
       if (a.status === "Inscrita" && a.email) {
         inputs.push({ input: a.startup_name ?? a.email, email: norm(a.email) });
@@ -80,43 +86,29 @@ export async function POST(req: NextRequest) {
       results.push({
         input,
         email: null,
-        customerId: null,
-        subscriptionId: null,
-        subStatus: null,
-        openInvoiceId: null,
-        amountDue: null,
-        portalUrl: null,
-        note: "No se encontró email para este input (startup no está en Airtable o nombre no coincide)",
+        ...EMPTY,
+        note: "No se encontró email (startup no está en Airtable o nombre no coincide)",
       });
       continue;
     }
 
     try {
       const info = await findFailedSubByEmail(email);
-
       let portalUrl: string | null = null;
-      // En modo diagnose/scanAll NO generamos links — solo reportamos estado.
       if (!onlyDiagnose && info.customerId) {
         portalUrl = await createBillingPortalLink(info.customerId, returnUrl);
       }
-
       results.push({ input, ...info, portalUrl });
     } catch (err) {
       results.push({
         input,
         email,
-        customerId: null,
-        subscriptionId: null,
-        subStatus: null,
-        openInvoiceId: null,
-        amountDue: null,
-        portalUrl: null,
+        ...EMPTY,
         note: `ERROR: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
   }
 
-  // Los que requieren acción: tienen una sub en estado problemático.
   const PROBLEM = ["past_due", "unpaid", "incomplete"];
   const conFallo = results.filter((r) => r.subStatus && PROBLEM.includes(r.subStatus));
 
@@ -127,5 +119,37 @@ export async function POST(req: NextRequest) {
     con_fallo: conFallo.length,
     con_fallo_inputs: conFallo.map((r) => r.input),
     results,
+  });
+}
+
+const truthy = (v: string | null) => v === "1" || v === "true";
+const csv = (v: string | null) =>
+  (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+
+export async function GET(req: NextRequest) {
+  if (!tokenOk(req)) {
+    const denied = await verificarAdmin(req);
+    if (denied) return denied;
+  }
+  const p = req.nextUrl.searchParams;
+  return run({
+    scanAll: truthy(p.get("scanAll")),
+    emails: csv(p.get("emails")),
+    startups: csv(p.get("startups")),
+    diagnose: truthy(p.get("diagnose")),
+  });
+}
+
+export async function POST(req: NextRequest) {
+  if (!tokenOk(req)) {
+    const denied = await verificarAdmin(req);
+    if (denied) return denied;
+  }
+  const body = await req.json().catch(() => ({}));
+  return run({
+    scanAll: body?.scanAll === true,
+    emails: Array.isArray(body?.emails) ? body.emails.map(String) : [],
+    startups: Array.isArray(body?.startups) ? body.startups.map(String) : [],
+    diagnose: body?.diagnose === true,
   });
 }
