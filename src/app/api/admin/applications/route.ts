@@ -129,7 +129,9 @@ export async function PATCH(req: NextRequest) {
         const discountPct = app.discount_percent ? Number(app.discount_percent) : 0;
         console.log(`[admit] recordId=${recordId} email=${app.email} discount=${discountPct}%`);
         if (discountPct === 100) {
-          await updateApplicationStatus(recordId, "Inscrita", { portal_access: true });
+          // Beca 100%: no hay cobro real. Marcamos payment_status propio para que
+          // el campo refleje la realidad (no "Pendiente") y alimente el badge.
+          await updateApplicationStatus(recordId, "Inscrita", { portal_access: true, payment_status: "Beca 100%" });
           const startupId = (app.startup_record as string[] | undefined)?.[0];
           if (startupId) await inviteStartupToCalendar(startupId);
           // Beca 100%: no pasa por el webhook de Stripe (no hay cobro), así que el

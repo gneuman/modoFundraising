@@ -59,6 +59,7 @@ export type PaymentStatus =
   | "Cuota 2 pagada"
   | "Cuota 3 pagada"
   | "Cuota 4 pagada"
+  | "Beca 100%"
   | "Sin respuesta"
   | "Rechazada por founder"
   | "Baja";
