@@ -12,7 +12,7 @@ import { getAllApplications } from "@/lib/airtable";
  * incomplete y (opcionalmente) genera un link al Billing Portal de Stripe. Al
  * actualizar la tarjeta ahí, Stripe reintenta automáticamente la factura.
  *
- * AUTH: cookie admin (verificarAdmin) O  ?key=<CRON_SECRET> en la URL.
+ * AUTH: cookie admin (verificarAdmin) O  ?key=<BILLING_KEY> en la URL.
  *
  * GET  ?key=...&scanAll=1                 → revisa TODOS los inscritos (diagnóstico)
  * GET  ?key=...&emails=a@x.com,b@y.com    → genera links para esos emails
@@ -22,9 +22,9 @@ import { getAllApplications } from "@/lib/airtable";
  * POST { scanAll? , emails?[] , startups?[] , diagnose? }  (mismo comportamiento)
  */
 
-// Token alterno para llamar sin cookie admin. Reusa CRON_SECRET (ya en Vercel).
+// Token alterno para llamar sin cookie admin. Usa su propia env var BILLING_KEY.
 function tokenOk(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET ?? "";
+  const secret = process.env.BILLING_KEY ?? "";
   if (!secret) return false;
   return (req.nextUrl.searchParams.get("key") ?? "") === secret;
 }
