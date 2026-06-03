@@ -19,7 +19,7 @@ function Dot({ level }: { level: HealthLevel }) {
   );
 }
 
-function Badge({ label, variant }: { label: string; variant: "green" | "blue" | "red" | "orange" | "zinc" }) {
+function Badge({ label, variant }: { label: string; variant: "green" | "blue" | "red" | "orange" | "purple" | "zinc" }) {
   return (
     <span
       className={cn(
@@ -28,6 +28,7 @@ function Badge({ label, variant }: { label: string; variant: "green" | "blue" | 
         variant === "blue" && "bg-blue-100 text-blue-700",
         variant === "red" && "bg-red-100 text-red-600",
         variant === "orange" && "bg-orange-100 text-orange-600",
+        variant === "purple" && "bg-purple-100 text-purple-700",
         variant === "zinc" && "bg-zinc-100 text-zinc-500"
       )}
     >
@@ -44,11 +45,20 @@ function progressHealth(done: number, total: number): HealthLevel {
   return "red";
 }
 
-function statusBadge(status: string | undefined) {
-  if (status === "Inscrita") return <Badge label="Inscrita" variant="green" />;
-  if (status === "Invitada institucional") return <Badge label="Institucional" variant="blue" />;
-  if (status === "Churn") return <Badge label="Churn" variant="red" />;
-  return <Badge label={status ?? "—"} variant="zinc" />;
+// Una inscrita por beca 100% no pagó realmente: discount 100% + sin cuota pagada.
+function esBeca100(s: ApplicationRecord): boolean {
+  const pagadas: (string | undefined)[] = ["Cuota 1 pagada", "Cuota 2 pagada", "Cuota 3 pagada"];
+  return Number(s.discount_percent) === 100 && !pagadas.includes(s.payment_status);
+}
+
+function statusBadge(s: ApplicationRecord) {
+  if (s.status === "Inscrita") {
+    if (esBeca100(s)) return <Badge label="Beca 100%" variant="purple" />;
+    return <Badge label="Inscrita" variant="green" />;
+  }
+  if (s.status === "Invitada institucional") return <Badge label="Institucional" variant="blue" />;
+  if (s.status === "Churn") return <Badge label="Churn" variant="red" />;
+  return <Badge label={s.status ?? "—"} variant="zinc" />;
 }
 
 export function HealthCheckTable({
@@ -119,7 +129,7 @@ export function HealthCheckTable({
                     </div>
                   </td>
                   <td className="px-5 py-4 text-center">
-                    {statusBadge(s.status)}
+                    {statusBadge(s)}
                   </td>
                 </tr>
               );

@@ -377,6 +377,8 @@ export interface FounderProfile {
   stripe_promotion_code_id?: string;
   stripe_subscription_id?: string;
   discount_percent?: number;
+  payment_failed_at?: string;
+  payment_resolved_at?: string;
   // from startup
   startup_record_id?: string;
   startup_name?: string;
@@ -419,6 +421,8 @@ export async function getFounderProfile(email: string): Promise<FounderProfile |
     profile.stripe_promotion_code_id = pf.stripe_promotion_code_id as string | undefined;
     profile.stripe_subscription_id = pf.stripe_subscription_id as string | undefined;
     profile.discount_percent = pf.discount_percent as number | undefined;
+    profile.payment_failed_at = pf.payment_failed_at as string | undefined;
+    profile.payment_resolved_at = pf.payment_resolved_at as string | undefined;
 
     const startupIds = pf.startup_record as string[] | undefined;
     if (startupIds?.length) {

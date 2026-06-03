@@ -35,7 +35,9 @@ Guardar el mismo valor para usarlo en n8n. Es un secreto: no commitearlo.
 
 ## Paso 2 — Tres workflows en n8n
 
-Base URL de producción: `https://<dominio-mf26>` (confirmar el dominio real en Vercel).
+Base URL de producción: **`https://portal.modofundraising.com`**
+⚠️ La app vive en el subdominio `portal.`, NO en `modofundraising.com` (raíz = landing
+en otro host detrás de Cloudflare; ahí `/api/*` devuelve HTML/405, no el handler).
 Cada workflow = un nodo **Schedule Trigger** + un nodo **HTTP Request**.
 
 ### Config común del nodo HTTP Request
