@@ -19,6 +19,8 @@ export default async function SuscripcionPage() {
   const portalAccess = (profile?.portal_access || profile?.status === "Inscrita") ?? false;
   const stripeSubscriptionId = profile?.stripe_subscription_id;
   const discountPercent = profile?.discount_percent;
+  // Pago fallido: falló y aún no se resolvió. Habilita el botón de actualizar tarjeta.
+  const pagoFallido = !!profile?.payment_failed_at && !profile?.payment_resolved_at;
 
   return (
     <SuscripcionClient
@@ -26,6 +28,7 @@ export default async function SuscripcionPage() {
       portalAccess={portalAccess}
       stripeSubscriptionId={stripeSubscriptionId}
       discountPercent={discountPercent}
+      pagoFallido={pagoFallido}
     />
   );
 }
