@@ -164,3 +164,104 @@ export async function constructWebhookEvent(payload: string, sig: string) {
 export async function listCoupons() {
   return stripe.coupons.list({ limit: 100 });
 }
+
+// ── Recuperación de pago: actualizar tarjeta de una suscripción existente ──────
+// Para founders cuya suscripción (creada a mano en Stripe) tiene la tarjeta
+// fallida. Genera un link al Billing Portal donde actualizan el método de pago;
+// Stripe reintenta automáticamente la factura past_due con la tarjeta nueva.
+
+export type FailedSubInfo = {
+  email: string;
+  customerId: string | null;
+  subscriptionId: string | null;
+  subStatus: string | null;
+  openInvoiceId: string | null;
+  amountDue: number | null;
+  portalUrl: string | null;
+  note: string;
+};
+
+// Busca el customer por email y su suscripción con cobro pendiente.
+export async function findFailedSubByEmail(email: string): Promise<FailedSubInfo> {
+  const base: FailedSubInfo = {
+    email,
+    customerId: null,
+    subscriptionId: null,
+    subStatus: null,
+    openInvoiceId: null,
+    amountDue: null,
+    portalUrl: null,
+    note: "",
+  };
+
+  const customers = await stripe.customers.list({ email, limit: 10 });
+  if (customers.data.length === 0) {
+    return { ...base, note: "Sin customer en Stripe con ese email" };
+  }
+  // Si hay varios customers con el mismo email, elegir el que tenga una sub problemática.
+  let chosenCustomer = customers.data[0];
+  let problemSub: Stripe.Subscription | null = null;
+
+  for (const customer of customers.data) {
+    const subs = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: "all",
+      limit: 20,
+    });
+    const failing = subs.data.find((s) =>
+      ["past_due", "unpaid", "incomplete"].includes(s.status)
+    );
+    if (failing) {
+      chosenCustomer = customer;
+      problemSub = failing;
+      break;
+    }
+  }
+
+  if (!problemSub) {
+    return {
+      ...base,
+      customerId: chosenCustomer.id,
+      note: "Customer existe pero sin suscripción en estado past_due/unpaid/incomplete",
+    };
+  }
+
+  // Buscar la factura abierta de esa suscripción para mostrar el monto.
+  let openInvoiceId: string | null = null;
+  let amountDue: number | null = null;
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: chosenCustomer.id,
+      status: "open",
+      limit: 5,
+    });
+    const inv = invoices.data.find(
+      (i) => (i as { subscription?: string }).subscription === problemSub!.id
+    ) ?? invoices.data[0];
+    if (inv) {
+      openInvoiceId = inv.id ?? null;
+      amountDue = (inv.amount_due ?? 0) / 100;
+    }
+  } catch {
+    // monto es informativo; no bloquear si falla
+  }
+
+  return {
+    ...base,
+    customerId: chosenCustomer.id,
+    subscriptionId: problemSub.id,
+    subStatus: problemSub.status,
+    openInvoiceId,
+    amountDue,
+    note: "OK",
+  };
+}
+
+// Crea un link al Billing Portal para que el founder actualice su tarjeta.
+export async function createBillingPortalLink(customerId: string, returnUrl: string) {
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+  });
+  return session.url;
+}
