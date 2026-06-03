@@ -265,3 +265,79 @@ export async function createBillingPortalLink(customerId: string, returnUrl: str
   });
   return session.url;
 }
+
+// Historial de cobro de un customer: cómo se le cobró antes (facturas + tarjeta).
+export type InvoiceHistoryItem = {
+  invoiceId: string | null;
+  created: string;
+  status: string | null;
+  amountDue: number;
+  amountPaid: number;
+  billingReason: string | null;
+  attemptCount: number | null;
+  failureMessage: string | null;
+  cardBrand: string | null;
+  cardLast4: string | null;
+  hostedInvoiceUrl: string | null;
+};
+
+export async function getCustomerBillingHistory(customerId: string): Promise<{
+  defaultCard: { brand: string | null; last4: string | null; expMonth: number | null; expYear: number | null } | null;
+  invoices: InvoiceHistoryItem[];
+}> {
+  // Tarjeta por defecto del customer (la que Stripe intenta cobrar).
+  let defaultCard = null;
+  try {
+    const customer = await stripe.customers.retrieve(customerId, {
+      expand: ["invoice_settings.default_payment_method"],
+    });
+    if (!("deleted" in customer)) {
+      const pm = customer.invoice_settings?.default_payment_method;
+      if (pm && typeof pm !== "string" && pm.card) {
+        defaultCard = {
+          brand: pm.card.brand ?? null,
+          last4: pm.card.last4 ?? null,
+          expMonth: pm.card.exp_month ?? null,
+          expYear: pm.card.exp_year ?? null,
+        };
+      }
+    }
+  } catch {
+    // informativo
+  }
+
+  const list = await stripe.invoices.list({
+    customer: customerId,
+    limit: 24,
+    expand: ["data.charge"],
+  });
+
+  const invoices: InvoiceHistoryItem[] = list.data.map((inv) => {
+    const charge = (inv as { charge?: unknown }).charge;
+    let cardBrand: string | null = null;
+    let cardLast4: string | null = null;
+    let failureMessage: string | null = null;
+    if (charge && typeof charge !== "string") {
+      const c = charge as Stripe.Charge;
+      const det = c.payment_method_details?.card;
+      cardBrand = det?.brand ?? null;
+      cardLast4 = det?.last4 ?? null;
+      failureMessage = c.failure_message ?? null;
+    }
+    return {
+      invoiceId: inv.id ?? null,
+      created: new Date(inv.created * 1000).toISOString(),
+      status: inv.status ?? null,
+      amountDue: (inv.amount_due ?? 0) / 100,
+      amountPaid: (inv.amount_paid ?? 0) / 100,
+      billingReason: inv.billing_reason ?? null,
+      attemptCount: inv.attempt_count ?? null,
+      failureMessage,
+      cardBrand,
+      cardLast4,
+      hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
+    };
+  });
+
+  return { defaultCard, invoices };
+}

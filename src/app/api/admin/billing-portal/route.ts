@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { findFailedSubByEmail, createBillingPortalLink } from "@/lib/stripe";
+import { findFailedSubByEmail, createBillingPortalLink, getCustomerBillingHistory } from "@/lib/stripe";
 import { getAllApplications } from "@/lib/airtable";
 
 /**
@@ -34,6 +34,7 @@ type Opts = {
   emails: string[];
   startups: string[];
   diagnose: boolean;
+  history: boolean;
 };
 
 const EMPTY = {
@@ -45,7 +46,7 @@ const EMPTY = {
   portalUrl: null,
 };
 
-async function run({ scanAll, emails, startups, diagnose }: Opts) {
+async function run({ scanAll, emails, startups, diagnose, history }: Opts) {
   if (!scanAll && emails.length === 0 && startups.length === 0) {
     return NextResponse.json(
       { error: "Envía scanAll, emails o startups" },
@@ -98,7 +99,12 @@ async function run({ scanAll, emails, startups, diagnose }: Opts) {
       if (!onlyDiagnose && info.customerId) {
         portalUrl = await createBillingPortalLink(info.customerId, returnUrl);
       }
-      results.push({ input, ...info, portalUrl });
+      // Historial de cobro (cómo se le cobró antes), si se pidió y hay customer.
+      let billingHistory = undefined;
+      if (history && info.customerId) {
+        billingHistory = await getCustomerBillingHistory(info.customerId);
+      }
+      results.push({ input, ...info, portalUrl, ...(billingHistory ? { billingHistory } : {}) });
     } catch (err) {
       results.push({
         input,
@@ -137,6 +143,7 @@ export async function GET(req: NextRequest) {
     emails: csv(p.get("emails")),
     startups: csv(p.get("startups")),
     diagnose: truthy(p.get("diagnose")),
+    history: truthy(p.get("history")),
   });
 }
 
@@ -151,5 +158,6 @@ export async function POST(req: NextRequest) {
     emails: Array.isArray(body?.emails) ? body.emails.map(String) : [],
     startups: Array.isArray(body?.startups) ? body.startups.map(String) : [],
     diagnose: body?.diagnose === true,
+    history: body?.history === true,
   });
 }
