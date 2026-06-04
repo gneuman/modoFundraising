@@ -18,6 +18,7 @@ interface Props {
   portalAccess?: boolean;
   stripeSubscriptionId?: string;
   discountPercent?: number;
+  pagoFallido?: boolean;
 }
 
 type ReasonCode =
@@ -42,12 +43,27 @@ export function SuscripcionClient({
   portalAccess,
   stripeSubscriptionId,
   discountPercent,
+  pagoFallido,
 }: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [reasonCode, setReasonCode] = useState<ReasonCode | null>(null);
   const [detail, setDetail] = useState("");
   const [redirecting, setRedirecting] = useState(false);
+  const [actualizandoTarjeta, setActualizandoTarjeta] = useState(false);
+
+  async function handleActualizarTarjeta() {
+    setActualizandoTarjeta(true);
+    try {
+      const res = await fetch("/api/portal/billing-portal", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Error");
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo abrir el portal de pago");
+      setActualizandoTarjeta(false);
+    }
+  }
 
   const PRICE_MONTHLY = 349;
   const PRICE_ONETIME = 1047;
@@ -117,6 +133,40 @@ export function SuscripcionClient({
           Gestiona tu plan en Modo Fundraising 2026
         </p>
       </div>
+
+      {pagoFallido && (
+        /* ── Alerta: PAGO FALLIDO (tarjeta rechazada) ── */
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-800">Tu último pago no se pudo procesar</h3>
+              <p className="text-sm text-red-700 mt-1">
+                Hubo un problema al cobrar tu tarjeta. Actualiza tu método de pago
+                para no perder el acceso al programa. Stripe reintentará el cobro
+                automáticamente con la nueva tarjeta.
+              </p>
+              <Button
+                onClick={handleActualizarTarjeta}
+                disabled={actualizandoTarjeta}
+                className="mt-4 bg-red-600 hover:bg-red-700 text-white"
+              >
+                {actualizandoTarjeta ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Abriendo portal de pago...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Actualizar tarjeta
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!haPagado ? (
         /* ── Estado: PENDIENTE ── */

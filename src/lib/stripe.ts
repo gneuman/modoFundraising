@@ -164,3 +164,180 @@ export async function constructWebhookEvent(payload: string, sig: string) {
 export async function listCoupons() {
   return stripe.coupons.list({ limit: 100 });
 }
+
+// ── Recuperación de pago: actualizar tarjeta de una suscripción existente ──────
+// Para founders cuya suscripción (creada a mano en Stripe) tiene la tarjeta
+// fallida. Genera un link al Billing Portal donde actualizan el método de pago;
+// Stripe reintenta automáticamente la factura past_due con la tarjeta nueva.
+
+export type FailedSubInfo = {
+  email: string;
+  customerId: string | null;
+  subscriptionId: string | null;
+  subStatus: string | null;
+  openInvoiceId: string | null;
+  amountDue: number | null;
+  portalUrl: string | null;
+  note: string;
+};
+
+// Busca el customer por email y su suscripción con cobro pendiente.
+export async function findFailedSubByEmail(email: string): Promise<FailedSubInfo> {
+  const base: FailedSubInfo = {
+    email,
+    customerId: null,
+    subscriptionId: null,
+    subStatus: null,
+    openInvoiceId: null,
+    amountDue: null,
+    portalUrl: null,
+    note: "",
+  };
+
+  const customers = await stripe.customers.list({ email, limit: 10 });
+  if (customers.data.length === 0) {
+    return { ...base, note: "Sin customer en Stripe con ese email" };
+  }
+  // Si hay varios customers con el mismo email, elegir el que tenga una sub problemática.
+  let chosenCustomer = customers.data[0];
+  let problemSub: Stripe.Subscription | null = null;
+
+  for (const customer of customers.data) {
+    const subs = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: "all",
+      limit: 20,
+    });
+    const failing = subs.data.find((s) =>
+      ["past_due", "unpaid", "incomplete"].includes(s.status)
+    );
+    if (failing) {
+      chosenCustomer = customer;
+      problemSub = failing;
+      break;
+    }
+  }
+
+  if (!problemSub) {
+    return {
+      ...base,
+      customerId: chosenCustomer.id,
+      note: "Customer existe pero sin suscripción en estado past_due/unpaid/incomplete",
+    };
+  }
+
+  // Buscar la factura abierta de esa suscripción para mostrar el monto.
+  let openInvoiceId: string | null = null;
+  let amountDue: number | null = null;
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: chosenCustomer.id,
+      status: "open",
+      limit: 5,
+    });
+    const inv = invoices.data.find(
+      (i) => (i as { subscription?: string }).subscription === problemSub!.id
+    ) ?? invoices.data[0];
+    if (inv) {
+      openInvoiceId = inv.id ?? null;
+      amountDue = (inv.amount_due ?? 0) / 100;
+    }
+  } catch {
+    // monto es informativo; no bloquear si falla
+  }
+
+  return {
+    ...base,
+    customerId: chosenCustomer.id,
+    subscriptionId: problemSub.id,
+    subStatus: problemSub.status,
+    openInvoiceId,
+    amountDue,
+    note: "OK",
+  };
+}
+
+// Crea un link al Billing Portal para que el founder actualice su tarjeta.
+export async function createBillingPortalLink(customerId: string, returnUrl: string) {
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: returnUrl,
+  });
+  return session.url;
+}
+
+// Historial de cobro de un customer: cómo se le cobró antes (facturas + tarjeta).
+export type InvoiceHistoryItem = {
+  invoiceId: string | null;
+  created: string;
+  status: string | null;
+  amountDue: number;
+  amountPaid: number;
+  billingReason: string | null;
+  attemptCount: number | null;
+  failureMessage: string | null;
+  cardBrand: string | null;
+  cardLast4: string | null;
+  hostedInvoiceUrl: string | null;
+};
+
+export async function getCustomerBillingHistory(customerId: string): Promise<{
+  defaultCard: { brand: string | null; last4: string | null; expMonth: number | null; expYear: number | null } | null;
+  invoices: InvoiceHistoryItem[];
+}> {
+  // Tarjeta por defecto del customer (la que Stripe intenta cobrar).
+  let defaultCard = null;
+  try {
+    const customer = await stripe.customers.retrieve(customerId, {
+      expand: ["invoice_settings.default_payment_method"],
+    });
+    if (!("deleted" in customer)) {
+      const pm = customer.invoice_settings?.default_payment_method;
+      if (pm && typeof pm !== "string" && pm.card) {
+        defaultCard = {
+          brand: pm.card.brand ?? null,
+          last4: pm.card.last4 ?? null,
+          expMonth: pm.card.exp_month ?? null,
+          expYear: pm.card.exp_year ?? null,
+        };
+      }
+    }
+  } catch {
+    // informativo
+  }
+
+  const list = await stripe.invoices.list({
+    customer: customerId,
+    limit: 24,
+    expand: ["data.charge"],
+  });
+
+  const invoices: InvoiceHistoryItem[] = list.data.map((inv) => {
+    const charge = (inv as { charge?: unknown }).charge;
+    let cardBrand: string | null = null;
+    let cardLast4: string | null = null;
+    let failureMessage: string | null = null;
+    if (charge && typeof charge !== "string") {
+      const c = charge as Stripe.Charge;
+      const det = c.payment_method_details?.card;
+      cardBrand = det?.brand ?? null;
+      cardLast4 = det?.last4 ?? null;
+      failureMessage = c.failure_message ?? null;
+    }
+    return {
+      invoiceId: inv.id ?? null,
+      created: new Date(inv.created * 1000).toISOString(),
+      status: inv.status ?? null,
+      amountDue: (inv.amount_due ?? 0) / 100,
+      amountPaid: (inv.amount_paid ?? 0) / 100,
+      billingReason: inv.billing_reason ?? null,
+      attemptCount: inv.attempt_count ?? null,
+      failureMessage,
+      cardBrand,
+      cardLast4,
+      hostedInvoiceUrl: inv.hosted_invoice_url ?? null,
+    };
+  });
+
+  return { defaultCard, invoices };
+}
