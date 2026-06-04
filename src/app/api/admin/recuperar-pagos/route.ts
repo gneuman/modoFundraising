@@ -105,8 +105,17 @@ function decidirAccion(
   if (s.subStatus === "incomplete") {
     return { tipo: "billing_portal", detalle: "Suscripción incompleta — actualizar método de pago", pagadasEfectivas: pagadas };
   }
-  if (s.subStatus === "active" && s.facturasAbiertas === 0) {
-    return { tipo: "ok_auto", detalle: `Stripe cobrará la próxima cuota (${pagadas}/${total} pagadas)`, pagadasEfectivas: pagadas };
+  // Sub activa = Stripe la cobra sola en su ciclo. Si hay una factura abierta,
+  // es el cobro en curso (Stripe lo reintenta/finaliza automáticamente), NO un
+  // problema de cobranza manual. No debe aparecer en "Solo con problema".
+  if (s.subStatus === "active") {
+    return {
+      tipo: "ok_auto",
+      detalle: s.facturasAbiertas > 0
+        ? `Stripe está cobrando la cuota en curso (${pagadas}/${total} pagadas · 1 factura en proceso)`
+        : `Stripe cobrará la próxima cuota (${pagadas}/${total} pagadas)`,
+      pagadasEfectivas: pagadas,
+    };
   }
   if (s.subStatus === "canceled") {
     return { tipo: "checkout", detalle: `Sub cancelada con ${pagadas}/${total} cuotas — generar Checkout por cuota faltante`, pagadasEfectivas: pagadas };

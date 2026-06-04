@@ -10,15 +10,51 @@ import {
   getFounderEmailsByStartup,
   getCalendarEventIds,
   type PaymentStatus,
+  type PostulacionRecord,
 } from "@/lib/airtable";
 import {
-  sendOnboardingEmail,
   sendPaymentConfirmation,
   sendPaymentFailedEmail,
   sendChurnEmail,
   sendPortalDeactivatedEmail,
 } from "@/lib/email-engine";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
+
+// Resuelve la postulación de un invoice de Stripe con fallbacks en cascada para
+// que la cobranza por webhook nunca falle en silencio:
+//   1) por stripe_subscription_id (lo normal)
+//   2) por stripe_customer_id  (si la sub no quedó guardada en Airtable)
+//   3) por email del invoice    (último recurso)
+// Si tras los 3 no hay match, loguea para dejar rastro (antes era un break mudo).
+function matchAppForInvoice(
+  apps: PostulacionRecord[],
+  invoice: { subscription?: string; customer?: string; customer_email?: string },
+  context: string,
+): PostulacionRecord | null {
+  let app = invoice.subscription
+    ? apps.find((a) => a.stripe_subscription_id === invoice.subscription)
+    : undefined;
+
+  if (!app && invoice.customer) {
+    app = apps.find((a) => a.stripe_customer_id === invoice.customer);
+    if (app) console.warn(`[webhook] ${context}: match por customer (sub ${invoice.subscription ?? "—"} no encontrada en Airtable)`);
+  }
+
+  if (!app && invoice.customer_email) {
+    const email = invoice.customer_email.toLowerCase().trim();
+    app = apps.find((a) => (a.email ?? "").toLowerCase().trim() === email);
+    if (app) console.warn(`[webhook] ${context}: match por email (sub/customer no encontrados)`);
+  }
+
+  if (!app) {
+    console.error(
+      `[webhook] ${context}: NO se encontró postulación`,
+      { subscription: invoice.subscription, customer: invoice.customer, email: invoice.customer_email },
+    );
+    return null;
+  }
+  return app;
+}
 
 // Activates portal for the main founder + any team members linked to the startup
 async function activatePortalForStartup(
@@ -32,9 +68,11 @@ async function activatePortalForStartup(
   stripeInvoiceId?: string,
   stripeSubscriptionId?: string,
   startup_name?: string,
+  // Cuota a usar SOLO para el correo de confirmación. Para pago completo (una
+  // exhibición) va 1 → manda el correo de "primer pago" (pago_cuota_1) y NADA
+  // más. El registro de pago sí usa `cuota` (3) para reflejar que cubre todo.
+  cuotaParaCorreo?: number,
 ) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
-
   // Activate all founders (main + team members) linked to this postulacion
   await activateAllFoundersForApplication(airtableId, stripeCustomerId);
 
@@ -70,10 +108,11 @@ async function activatePortalForStartup(
     });
   }
 
-  // Send onboarding + confirmation emails
+  // Send payment confirmation only.
+  // El onboarding NO se dispara aquí: es un envío manual desde el admin
+  // (POST /api/admin/send-email type="onboarding"), "solo cuando yo te diga".
   if (email && firstName) {
-    await sendOnboardingEmail(email, firstName, `${appUrl}/portal`);
-    await sendPaymentConfirmation(email, firstName, cuota);
+    await sendPaymentConfirmation(email, firstName, cuotaParaCorreo ?? cuota);
   }
 }
 
@@ -190,6 +229,9 @@ export async function POST(req: NextRequest) {
           isOneTime ? session.payment_intent as string : undefined,
           session.subscription,
           app.startup_name,
+          // Pago completo → correo de primer pago (pago_cuota_1) y nada más.
+          // Pago en cuotas → correo de cuota 1 igual (es la primera).
+          1,
         );
         console.log("[webhook] activatePortalForStartup OK");
       } catch (err) {
@@ -204,6 +246,8 @@ export async function POST(req: NextRequest) {
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as {
         subscription?: string;
+        customer?: string;
+        customer_email?: string;
         billing_reason?: string;
         amount_paid?: number;
         id?: string;
@@ -211,7 +255,7 @@ export async function POST(req: NextRequest) {
       // Skip the first charge (handled by checkout.session.completed)
       if (invoice.billing_reason === "subscription_create") break;
 
-      const app = apps.find((a) => a.stripe_subscription_id === invoice.subscription);
+      const app = matchAppForInvoice(apps, invoice, "invoice.payment_succeeded");
       if (!app) break;
 
       const totalCuotas = app.total_cuotas ?? 3;
@@ -253,8 +297,13 @@ export async function POST(req: NextRequest) {
 
     // ── Subscription payment failed ────────────────────────────────────────────
     case "invoice.payment_failed": {
-      const invoice = event.data.object as { subscription?: string; attempt_count?: number };
-      const app = apps.find((a) => a.stripe_subscription_id === invoice.subscription);
+      const invoice = event.data.object as {
+        subscription?: string;
+        customer?: string;
+        customer_email?: string;
+        attempt_count?: number;
+      };
+      const app = matchAppForInvoice(apps, invoice, "invoice.payment_failed");
       if (!app) break;
 
       const attempt = invoice.attempt_count ?? 1;
@@ -279,6 +328,32 @@ export async function POST(req: NextRequest) {
             `${process.env.NEXT_PUBLIC_APP_URL}/portal`
           );
         }
+      }
+      break;
+    }
+
+    // ── Subscription en problema (red de seguridad de cobranza) ────────────────
+    // invoice.payment_failed es el canal primario (trae attempt_count y manda los
+    // correos). Este evento es respaldo: si la sub cae a past_due/unpaid y por lo
+    // que sea no se estampó payment_failed_at, lo marca aquí para que el founder
+    // entre al flujo de cobranza (cron + portal). NO manda correo → evita duplicar
+    // el que ya envía invoice.payment_failed.
+    case "customer.subscription.updated": {
+      const sub = event.data.object as { id: string; status: string; customer?: string };
+      if (sub.status !== "past_due" && sub.status !== "unpaid") break;
+
+      let app = apps.find((a) => a.stripe_subscription_id === sub.id);
+      if (!app && sub.customer) app = apps.find((a) => a.stripe_customer_id === sub.customer);
+      if (!app) {
+        console.error("[webhook] subscription.updated past_due: NO se encontró postulación", { sub: sub.id, customer: sub.customer });
+        break;
+      }
+
+      if (!app.payment_failed_at) {
+        console.warn(`[webhook] subscription.updated: sub ${sub.id} → ${sub.status}, estampando payment_failed_at (red de seguridad)`);
+        await updateApplicationStatus(app.id!, app.status!, {
+          payment_failed_at: new Date().toISOString(),
+        });
       }
       break;
     }
