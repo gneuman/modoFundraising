@@ -108,15 +108,19 @@ export function RecuperarPagosSection() {
     setTimeout(() => setCopiado((c) => (c === id ? null : c)), 1500);
   }
 
+  // Ocultar SIEMPRE las completadas (3/3, 4/4, pago único pagado): ya no necesitan acción.
+  // Lo único que falta para ellas es cancelar la sub en Stripe — eso se maneja aparte.
+  const visibles = rows.filter((r) => r.accion !== "completado");
+
   const filtered = filter === "problema"
-    ? rows.filter((r) => r.accion === "billing_portal" || r.accion === "checkout" || r.accion === "revisar")
-    : rows;
+    ? visibles.filter((r) => r.accion === "billing_portal" || r.accion === "checkout" || r.accion === "revisar")
+    : visibles;
 
   const counts = {
-    billing_portal: rows.filter((r) => r.accion === "billing_portal").length,
-    checkout: rows.filter((r) => r.accion === "checkout").length,
-    revisar: rows.filter((r) => r.accion === "revisar").length,
-    ok_auto: rows.filter((r) => r.accion === "ok_auto").length,
+    billing_portal: visibles.filter((r) => r.accion === "billing_portal").length,
+    checkout: visibles.filter((r) => r.accion === "checkout").length,
+    revisar: visibles.filter((r) => r.accion === "revisar").length,
+    ok_auto: visibles.filter((r) => r.accion === "ok_auto").length,
     completado: rows.filter((r) => r.accion === "completado").length,
   };
 
@@ -141,7 +145,7 @@ export function RecuperarPagosSection() {
               onClick={() => setFilter("todas")}
               className={`px-3 py-1.5 transition-colors ${filter === "todas" ? "bg-zinc-800 text-white" : "bg-white text-zinc-600 hover:bg-zinc-50"}`}
             >
-              Todas ({rows.length})
+              Todas ({visibles.length})
             </button>
           </div>
           <Button
@@ -157,13 +161,17 @@ export function RecuperarPagosSection() {
       </div>
 
       {/* Resumen rápido */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 px-6 py-3 bg-zinc-50 border-b border-zinc-100 text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 px-6 py-3 bg-zinc-50 border-b border-zinc-100 text-xs">
         <span className="text-orange-700">🟠 Tarjeta falló: <b>{counts.billing_portal}</b></span>
         <span className="text-purple-700">🛒 Checkout: <b>{counts.checkout}</b></span>
         <span className="text-yellow-700">❓ Revisar: <b>{counts.revisar}</b></span>
         <span className="text-green-700">✅ Auto: <b>{counts.ok_auto}</b></span>
-        <span className="text-zinc-600">✓ Completado: <b>{counts.completado}</b></span>
       </div>
+      {counts.completado > 0 && (
+        <div className="px-6 py-2 bg-zinc-50/60 border-b border-zinc-100 text-[11px] text-zinc-500">
+          {counts.completado} startup{counts.completado === 1 ? "" : "s"} con todas las cuotas pagadas (ocultas — no requieren acción).
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
