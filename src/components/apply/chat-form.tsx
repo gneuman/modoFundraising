@@ -129,7 +129,7 @@ export const QUESTIONS: Question[] = [
 
   // S7 — Recomendadores
   { id: "referral_code", text: "¿Tienes un código de referido? (opcional)", type: "text", optional: true, help: "Puedes saltarlo si no tienes." },
-  { id: "has_referrals", text: "¿Quieres sumar recomendadores a tu postulación? Suma puntos al perfil.", type: "radio", options: ["Sí", "No"] },
+  { id: "has_referrals", text: "¿Quieres sumar recomendadores a tu postulación? Suma puntos al perfil.", type: "radio", options: ["Sí", "No"], help: "Agrega a alguien que pueda hablarnos de ti y tu startup — un mentor, inversor, amigo del ecosistema o cualquier persona que conozca tu trabajo. No es obligatorio, pero una buena referencia suma." },
 
   // Referral 1
   { id: "referral_1_name", text: "Nombre y apellido del primer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" },
