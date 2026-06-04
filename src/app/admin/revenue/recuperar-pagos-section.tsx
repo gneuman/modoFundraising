@@ -14,6 +14,8 @@ type Row = {
   portal_access: boolean;
   airtable_customer_id: string | null;
   airtable_sub_id: string | null;
+  pagadas_airtable: number;
+  pagadas_efectivas: number;
   stripe: {
     customerId: string | null;
     subId: string | null;
@@ -24,7 +26,7 @@ type Row = {
     cardBrand: string | null;
     cardLast4: string | null;
   } | null;
-  accion: "ok_auto" | "billing_portal" | "checkout" | "completado" | "sin_email" | "revisar";
+  accion: "ok_auto" | "billing_portal" | "checkout" | "completado" | "sin_email" | "revisar" | "beca";
   accion_detalle: string;
 };
 
@@ -34,6 +36,7 @@ const ACCION_LABEL: Record<Row["accion"], { label: string; color: string }> = {
   revisar: { label: "Revisar", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
   ok_auto: { label: "Stripe cobra solo", color: "bg-green-100 text-green-700 border-green-200" },
   completado: { label: "Completado", color: "bg-zinc-100 text-zinc-600 border-zinc-200" },
+  beca: { label: "Beca 100%", color: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200" },
   sin_email: { label: "Sin email", color: "bg-red-100 text-red-700 border-red-200" },
 };
 
@@ -108,9 +111,10 @@ export function RecuperarPagosSection() {
     setTimeout(() => setCopiado((c) => (c === id ? null : c)), 1500);
   }
 
-  // Ocultar SIEMPRE las completadas (3/3, 4/4, pago único pagado): ya no necesitan acción.
-  // Lo único que falta para ellas es cancelar la sub en Stripe — eso se maneja aparte.
-  const visibles = rows.filter((r) => r.accion !== "completado");
+  // Ocultar SIEMPRE las que no requieren acción de cobranza:
+  // - completadas (3/3, 4/4, pago único pagado)
+  // - becas 100% (no pagan nada)
+  const visibles = rows.filter((r) => r.accion !== "completado" && r.accion !== "beca");
 
   const filtered = filter === "problema"
     ? visibles.filter((r) => r.accion === "billing_portal" || r.accion === "checkout" || r.accion === "revisar")
@@ -122,6 +126,7 @@ export function RecuperarPagosSection() {
     revisar: visibles.filter((r) => r.accion === "revisar").length,
     ok_auto: visibles.filter((r) => r.accion === "ok_auto").length,
     completado: rows.filter((r) => r.accion === "completado").length,
+    beca: rows.filter((r) => r.accion === "beca").length,
   };
 
   return (
@@ -167,9 +172,11 @@ export function RecuperarPagosSection() {
         <span className="text-yellow-700">❓ Revisar: <b>{counts.revisar}</b></span>
         <span className="text-green-700">✅ Auto: <b>{counts.ok_auto}</b></span>
       </div>
-      {counts.completado > 0 && (
+      {(counts.completado > 0 || counts.beca > 0) && (
         <div className="px-6 py-2 bg-zinc-50/60 border-b border-zinc-100 text-[11px] text-zinc-500">
-          {counts.completado} startup{counts.completado === 1 ? "" : "s"} con todas las cuotas pagadas (ocultas — no requieren acción).
+          Ocultas: {counts.completado} con cuotas completas
+          {counts.beca > 0 && <> · {counts.beca} con beca 100%</>}
+          {" "}— no requieren acción.
         </div>
       )}
 
@@ -200,13 +207,19 @@ export function RecuperarPagosSection() {
               const acc = ACCION_LABEL[r.accion];
               const link = generated[r.airtableId];
               const total = r.total_cuotas ?? 3;
-              const pagadas = r.stripe?.facturasPagadas ?? 0;
+              const pagadas = r.pagadas_efectivas;
+              const fuera = r.pagadas_airtable > (r.stripe?.facturasPagadas ?? 0);
               return (
                 <tr key={r.airtableId} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-zinc-800">{r.startup_name || "—"}</td>
                   <td className="px-4 py-3 text-zinc-500 text-xs">{r.email || "—"}</td>
                   <td className="px-4 py-3 text-zinc-600 text-xs">
                     <span className="font-mono">{pagadas}/{total}</span>
+                    {fuera && (
+                      <span className="block text-zinc-400 mt-0.5" title="Algunos pagos están registrados en Airtable pero no en Stripe (transferencia, manual, etc.)">
+                        ({r.pagadas_airtable} AT · {r.stripe?.facturasPagadas ?? 0} ST)
+                      </span>
+                    )}
                     {r.stripe?.montoPendienteUsd ? (
                       <span className="block text-red-600 mt-0.5">US${r.stripe.montoPendienteUsd.toFixed(2)} debe</span>
                     ) : null}

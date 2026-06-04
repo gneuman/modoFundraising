@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { stripe, createBillingPortalLink } from "@/lib/stripe";
-import { getAllApplications, type PostulacionRecord } from "@/lib/airtable";
+import { getAllApplications, getAllPagos, type PostulacionRecord, type PagoRecord } from "@/lib/airtable";
 import Stripe from "stripe";
 
 /**
@@ -67,50 +67,94 @@ async function diagnosticarStripe(app: PostulacionRecord): Promise<StripeDiag> {
   return out;
 }
 
-function decidirAccion(app: PostulacionRecord, s: StripeDiag): {
-  tipo: "ok_auto" | "billing_portal" | "checkout" | "completado" | "sin_email" | "revisar";
+function decidirAccion(
+  app: PostulacionRecord,
+  s: StripeDiag,
+  pagadasAirtable: number,
+): {
+  tipo: "ok_auto" | "billing_portal" | "checkout" | "completado" | "sin_email" | "revisar" | "beca";
   detalle: string;
+  pagadasEfectivas: number;
 } {
-  if (!app.email) return { tipo: "sin_email", detalle: "Postulación sin email" };
+  if (!app.email) return { tipo: "sin_email", detalle: "Postulación sin email", pagadasEfectivas: 0 };
+
+  // Beca 100% no requiere acción de cobranza nunca.
+  if (app.payment_status === "Beca 100%" || app.discount_percent === 100) {
+    return { tipo: "beca", detalle: "Beca 100% — no requiere pago", pagadasEfectivas: 0 };
+  }
+
   const total = app.total_cuotas ?? 3;
+  // Fuente de verdad: lo que sea mayor entre Stripe y Airtable Pagos (algunos
+  // pagos se hicieron por transferencia/manual y solo están en Airtable).
+  const pagadas = Math.max(s.facturasPagadas, pagadasAirtable);
+
+  // Si ya pagó todo (por cualquier vía), no hay nada que recuperar.
+  if (pagadas >= total) {
+    return {
+      tipo: "completado",
+      detalle: pagadas > total
+        ? `Plan completado (${pagadas}/${total} — hay más pagos que cuotas, revisar)`
+        : `Plan completado (${pagadas}/${total})`,
+      pagadasEfectivas: pagadas,
+    };
+  }
+
   if (s.subStatus === "past_due" || s.subStatus === "unpaid") {
-    return { tipo: "billing_portal", detalle: `Tarjeta falló — US$${s.montoPendienteUsd.toFixed(2)} pendiente` };
+    return { tipo: "billing_portal", detalle: `Tarjeta falló — US$${s.montoPendienteUsd.toFixed(2)} pendiente`, pagadasEfectivas: pagadas };
   }
   if (s.subStatus === "incomplete") {
-    return { tipo: "billing_portal", detalle: "Suscripción incompleta — actualizar método de pago" };
+    return { tipo: "billing_portal", detalle: "Suscripción incompleta — actualizar método de pago", pagadasEfectivas: pagadas };
   }
   if (s.subStatus === "active" && s.facturasAbiertas === 0) {
-    return { tipo: "ok_auto", detalle: `Stripe cobrará la próxima cuota (${s.facturasPagadas}/${total} pagadas)` };
+    return { tipo: "ok_auto", detalle: `Stripe cobrará la próxima cuota (${pagadas}/${total} pagadas)`, pagadasEfectivas: pagadas };
   }
-  if (s.subStatus === "canceled" && s.facturasPagadas >= total) {
-    return { tipo: "completado", detalle: `Plan completado (${s.facturasPagadas}/${total})` };
+  if (s.subStatus === "canceled") {
+    return { tipo: "checkout", detalle: `Sub cancelada con ${pagadas}/${total} cuotas — generar Checkout por cuota faltante`, pagadasEfectivas: pagadas };
   }
-  if (s.subStatus === "canceled" && s.facturasPagadas < total) {
-    return { tipo: "checkout", detalle: `Sub cancelada con ${s.facturasPagadas}/${total} cuotas — generar Checkout por cuota faltante` };
+  if (!s.subId && pagadas === 0) {
+    return { tipo: "checkout", detalle: "Sin suscripción ni pagos — generar Checkout", pagadasEfectivas: pagadas };
   }
-  if (!s.subId && s.facturasPagadas === 0) {
-    return { tipo: "checkout", detalle: "Sin suscripción ni pagos en Stripe — generar Checkout" };
+  if (!s.subId && pagadas > 0) {
+    // Pagos en Airtable pero sin sub en Stripe → cobrar cuotas restantes
+    return { tipo: "checkout", detalle: `${pagadas}/${total} pagadas por fuera de Stripe — generar Checkout por las faltantes`, pagadasEfectivas: pagadas };
   }
-  if (!s.subId && s.facturasPagadas >= total) {
-    return { tipo: "completado", detalle: `Pago único completado (${s.facturasPagadas} facturas)` };
-  }
-  return { tipo: "revisar", detalle: `status=${s.subStatus ?? "ninguna"} pagadas=${s.facturasPagadas}/${total} abiertas=${s.facturasAbiertas}` };
+  return { tipo: "revisar", detalle: `status=${s.subStatus ?? "ninguna"} pagadas=${pagadas}/${total} abiertas=${s.facturasAbiertas}`, pagadasEfectivas: pagadas };
 }
 
 export async function GET(req: NextRequest) {
   const denied = await verificarAdmin(req);
   if (denied) return denied;
 
-  const apps = await getAllApplications();
+  const [apps, pagos] = await Promise.all([getAllApplications(), getAllPagos()]);
+
+  // Cuotas registradas en Airtable por postulación (fuente de verdad para pagos
+  // que se hicieron por fuera de Stripe: transferencia, MercadoPago, etc.).
+  // Pagos MF26 no linkea directo a postulacion_id; matcheamos por email + startup.
+  function pagosDePostulacion(app: PostulacionRecord): PagoRecord[] {
+    const norm = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+    const startupNorm = norm(app.startup_name ?? "");
+    const emailNorm = (app.email ?? "").toLowerCase().trim();
+    return pagos.filter((p) =>
+      (p.email && p.email.toLowerCase().trim() === emailNorm)
+      || (p.startup_name && norm(p.startup_name) === startupNorm && startupNorm.length > 0)
+    );
+  }
+
+  // Target: inscritas, invitadas institucionales, o cualquiera con pagos registrados.
+  // Becas 100% se incluyen pero decidirAccion las marca como "beca" (informativas).
   const target = apps.filter((a) =>
-    a.status === "Inscrita" || a.status === "Invitada institucional"
-    || (a.payment_status && a.payment_status !== "Pendiente" && a.payment_status !== "Beca 100%")
+    a.status === "Inscrita"
+    || a.status === "Invitada institucional"
+    || (a.payment_status && a.payment_status !== "Pendiente")
   );
 
   const rows = await Promise.all(target.map(async (app) => {
     try {
       const s = await diagnosticarStripe(app);
-      const a = decidirAccion(app, s);
+      const pagosAt = pagosDePostulacion(app);
+      const pagadasAirtable = pagosAt.length;
+      const a = decidirAccion(app, s, pagadasAirtable);
       return {
         airtableId: app.id!,
         startup_name: app.startup_name ?? "",
@@ -120,6 +164,8 @@ export async function GET(req: NextRequest) {
         portal_access: app.portal_access ?? false,
         airtable_customer_id: app.stripe_customer_id ?? null,
         airtable_sub_id: app.stripe_subscription_id ?? null,
+        pagadas_airtable: pagadasAirtable,
+        pagadas_efectivas: a.pagadasEfectivas,
         stripe: s,
         accion: a.tipo,
         accion_detalle: a.detalle,
@@ -134,6 +180,8 @@ export async function GET(req: NextRequest) {
         portal_access: app.portal_access ?? false,
         airtable_customer_id: app.stripe_customer_id ?? null,
         airtable_sub_id: app.stripe_subscription_id ?? null,
+        pagadas_airtable: 0,
+        pagadas_efectivas: 0,
         stripe: null,
         accion: "revisar" as const,
         accion_detalle: `Error Stripe: ${err instanceof Error ? err.message : String(err)}`,
@@ -142,7 +190,7 @@ export async function GET(req: NextRequest) {
   }));
 
   rows.sort((a, b) => {
-    const order = { billing_portal: 0, checkout: 1, revisar: 2, ok_auto: 3, completado: 4, sin_email: 5 } as const;
+    const order = { billing_portal: 0, checkout: 1, revisar: 2, ok_auto: 3, completado: 4, beca: 5, sin_email: 6 } as const;
     return order[a.accion] - order[b.accion] || a.startup_name.localeCompare(b.startup_name);
   });
 
