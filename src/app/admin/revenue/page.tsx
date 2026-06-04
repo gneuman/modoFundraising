@@ -1,5 +1,6 @@
 import { getAllApplications, getAllPagos } from "@/lib/airtable";
 import { TrendingUp, AlertCircle } from "lucide-react";
+import { RecuperarPagosSection } from "./recuperar-pagos-section";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,9 @@ export default async function RevenuePage() {
           ))}
         </div>
       </div>
+
+      {/* Recuperar pagos pendientes (Billing Portal + Checkout) */}
+      <RecuperarPagosSection />
 
       {/* Historial de pagos */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
