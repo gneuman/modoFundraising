@@ -83,7 +83,18 @@ function decidirAccion(
     return { tipo: "beca", detalle: "Beca 100% — no requiere pago", pagadasEfectivas: 0 };
   }
 
-  const total = app.total_cuotas ?? 3;
+  // Auto-detección de pago único cuando total_cuotas está vacío en Airtable:
+  // si solo hay 1 pago registrado y NO hay suscripción Stripe (o está cancelada),
+  // asumir que fue pago único (total=1). Evita marcar como "faltantes" a quienes
+  // pagaron 1 sola vez sin que alguien haya seteado total_cuotas a mano.
+  let total: number;
+  if (typeof app.total_cuotas === "number" && app.total_cuotas > 0) {
+    total = app.total_cuotas;
+  } else {
+    const sinSubActiva = !s.subId || s.subStatus === "canceled";
+    const unicoPago = (pagadasAirtable === 1 || s.facturasPagadas === 1);
+    total = sinSubActiva && unicoPago ? 1 : 3;
+  }
   // Fuente de verdad: lo que sea mayor entre Stripe y Airtable Pagos (algunos
   // pagos se hicieron por transferencia/manual y solo están en Airtable).
   const pagadas = Math.max(s.facturasPagadas, pagadasAirtable);
