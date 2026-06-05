@@ -118,7 +118,17 @@ async function procesarApp(app: PostulacionRecord, dryRun: boolean): Promise<Res
   }
 
   // 2. Facturas open con attempts=0 (caso send_invoice) → intentar cobrar
-  const openSinCobro = invs.data.find((i) => i.status === "open" && (i.attempt_count ?? 0) === 0);
+  // SOLO si ya vencieron (due_date pasada). Una factura emitida hoy con
+  // due_date en +10 días NO debe cobrarse anticipadamente: el founder tiene
+  // ese plazo para pagarla él mismo desde el link de Stripe.
+  const ahora = Math.floor(Date.now() / 1000);
+  const openSinCobro = invs.data.find((i) => {
+    if (i.status !== "open" || (i.attempt_count ?? 0) !== 0) return false;
+    const due = (i as { due_date?: number | null }).due_date;
+    // Sin due_date → cobrar (probablemente charge_automatically que quedó atascada)
+    // Con due_date → solo cobrar si ya pasó
+    return !due || due <= ahora;
+  });
   if (openSinCobro) {
     const cardId = await getDefaultCard(customerId);
     if (!cardId) {

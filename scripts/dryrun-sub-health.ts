@@ -73,7 +73,12 @@ async function main() {
       acciones.push(`→ marcaría payment_failed_at (sub.status=${sub.status})`);
       counts.marcado_failed = (counts.marcado_failed ?? 0) + 1;
     } else {
-      const openSinCobro = invs.data.find((i) => i.status === "open" && (i.attempt_count ?? 0) === 0);
+      const ahora = Math.floor(Date.now() / 1000);
+      const openSinCobro = invs.data.find((i) => {
+        if (i.status !== "open" || (i.attempt_count ?? 0) !== 0) return false;
+        const due = (i as { due_date?: number | null }).due_date;
+        return !due || due <= ahora;
+      });
       if (openSinCobro) {
         const card = await getDefaultCard(customerId);
         if (card.id) {
