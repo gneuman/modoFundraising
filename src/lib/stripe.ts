@@ -281,6 +281,76 @@ export type InvoiceHistoryItem = {
   hostedInvoiceUrl: string | null;
 };
 
+// ── Reembolsos ────────────────────────────────────────────────────────────────
+// Lista los refunds más recientes de Stripe, con email del customer asociado.
+// El admin necesita ver quién pidió reembolso para dar seguimiento.
+
+export type RefundItem = {
+  refundId: string;
+  amount: number;
+  currency: string;
+  status: string | null;
+  reason: string | null;
+  created: string;
+  email: string | null;
+  customerId: string | null;
+  chargeId: string | null;
+  receiptUrl: string | null;
+};
+
+export async function listRecentRefunds(limit = 50): Promise<RefundItem[]> {
+  const refunds = await stripe.refunds.list({
+    limit,
+    expand: ["data.charge"],
+  });
+
+  const items: RefundItem[] = [];
+  for (const r of refunds.data) {
+    const charge = r.charge;
+    let email: string | null = null;
+    let customerId: string | null = null;
+    let chargeId: string | null = null;
+    let receiptUrl: string | null = null;
+
+    if (charge && typeof charge !== "string") {
+      const c = charge as Stripe.Charge;
+      chargeId = c.id;
+      email = c.billing_details?.email ?? c.receipt_email ?? null;
+      customerId = typeof c.customer === "string" ? c.customer : c.customer?.id ?? null;
+      receiptUrl = c.receipt_url ?? null;
+
+      // Fallback: si no hay email en el charge pero sí customer, leerlo del customer.
+      if (!email && customerId) {
+        try {
+          const cust = await stripe.customers.retrieve(customerId);
+          if (!("deleted" in cust)) {
+            email = cust.email ?? null;
+          }
+        } catch {
+          // informativo
+        }
+      }
+    } else if (typeof charge === "string") {
+      chargeId = charge;
+    }
+
+    items.push({
+      refundId: r.id,
+      amount: (r.amount ?? 0) / 100,
+      currency: (r.currency ?? "usd").toUpperCase(),
+      status: r.status ?? null,
+      reason: r.reason ?? null,
+      created: new Date(r.created * 1000).toISOString(),
+      email,
+      customerId,
+      chargeId,
+      receiptUrl,
+    });
+  }
+
+  return items;
+}
+
 export async function getCustomerBillingHistory(customerId: string): Promise<{
   defaultCard: { brand: string | null; last4: string | null; expMonth: number | null; expYear: number | null } | null;
   invoices: InvoiceHistoryItem[];

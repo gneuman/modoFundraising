@@ -204,6 +204,8 @@ export interface PostulacionRecord {
   payment_reminder_3_at?: string;
   // Recordatorio de form abandonado (sensor de recuperación)
   form_reminder_sent_at?: string;
+  // Marca la postulación como prueba: se excluye de TODO el portal/admin.
+  test?: boolean;
 }
 
 export type ApplicationRecord = PostulacionRecord;
@@ -754,7 +756,9 @@ export async function createApplication(
   return { postulacionId, founderRecordId, startupRecordId };
 }
 
-// Returns postulaciones enriched with founder+startup data for admin/portal use
+// Returns postulaciones enriched with founder+startup data for admin/portal use.
+// Las postulaciones marcadas como `test = true` se excluyen para que NO aparezcan
+// en ninguna vista del portal/admin (dashboard, kanban, revenue, empresas, etc).
 export async function getAllApplications(): Promise<PostulacionRecord[]> {
   const [postulaciones, founders, startups] = await Promise.all([
     base(Tables.POSTULACIONES)
@@ -767,7 +771,10 @@ export async function getAllApplications(): Promise<PostulacionRecord[]> {
   const founderMap = new Map(founders.map((f) => [f.id, f.fields]));
   const startupMap = new Map(startups.map((s) => [s.id, s.fields]));
 
-  return postulaciones.map((p) => {
+  return postulaciones.filter((p) => {
+    const fields = p.fields as Record<string, unknown>;
+    return fields.test !== true;
+  }).map((p) => {
     const fields = p.fields as Record<string, unknown>;
     const founderIds = (fields.founder_record as string[]) ?? [];
     const startupIds = (fields.startup_record as string[]) ?? [];
@@ -777,6 +784,7 @@ export async function getAllApplications(): Promise<PostulacionRecord[]> {
     return {
       id: p.id,
       ...fields,
+      test: fields.test === true,
       // Denormalized de Founders
       email: founder?.email as string ?? "",
       first_name: founder?.first_name as string ?? "",
@@ -825,10 +833,11 @@ export async function getAllPagos(): Promise<PagoRecord[]> {
 }
 
 export async function getApplicationByEmail(email: string): Promise<PostulacionRecord | null> {
-  // Buscar postulaciones con status definido (no drafts) usando lookup directo del email
+  // Buscar postulaciones con status definido (no drafts) usando lookup directo del email.
+  // Excluye las marcadas como `test` para que no bloqueen una postulación real ni aparezcan.
   const postulaciones = await base(Tables.POSTULACIONES)
     .select({
-      filterByFormula: `AND({status}, {email (from founder_record)} = "${email}")`,
+      filterByFormula: `AND({status}, {email (from founder_record)} = "${email}", NOT({test}))`,
       fields: ["status", "created_at", "startup_record", "first_name (from founder_record)", "last_name (from founder_record)"],
       maxRecords: 1,
     })
