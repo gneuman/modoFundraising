@@ -298,14 +298,28 @@ export type RefundItem = {
   receiptUrl: string | null;
 };
 
-export async function listRecentRefunds(limit = 50): Promise<RefundItem[]> {
-  const refunds = await stripe.refunds.list({
-    limit,
+export async function listRecentRefunds(
+  options: { limit?: number; createdGte?: number; createdLt?: number } = {},
+): Promise<RefundItem[]> {
+  const { limit, createdGte, createdLt } = options;
+  const pageSize = Math.min(limit ?? 100, 100);
+
+  const created: Stripe.RangeQueryParam = {};
+  if (createdGte !== undefined) created.gte = createdGte;
+  if (createdLt !== undefined) created.lt = createdLt;
+
+  const raw: Stripe.Refund[] = [];
+  for await (const r of stripe.refunds.list({
+    limit: pageSize,
     expand: ["data.charge"],
-  });
+    ...(createdGte !== undefined || createdLt !== undefined ? { created } : {}),
+  })) {
+    raw.push(r);
+    if (limit !== undefined && raw.length >= limit) break;
+  }
 
   const items: RefundItem[] = [];
-  for (const r of refunds.data) {
+  for (const r of raw) {
     const charge = r.charge;
     let email: string | null = null;
     let customerId: string | null = null;

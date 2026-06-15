@@ -2,6 +2,7 @@ import { getAllApplications, getAllPagos } from "@/lib/airtable";
 import { listRecentRefunds } from "@/lib/stripe";
 import { TrendingUp, AlertCircle, Undo2 } from "lucide-react";
 import { RecuperarPagosSection } from "./recuperar-pagos-section";
+import { RefundsYearFilter } from "./refunds-year-filter";
 
 export const dynamic = "force-dynamic";
 
@@ -18,13 +19,32 @@ const REFUND_REASON_LABEL: Record<string, string> = {
   expired_uncaptured_charge: "Charge expirado",
 };
 
-export default async function RevenuePage() {
+const REFUNDS_START_YEAR = 2026;
+
+export default async function RevenuePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ refundsYear?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const currentYear = new Date().getUTCFullYear();
+  const parsedYear = Number(params.refundsYear);
+  const refundsYear =
+    Number.isInteger(parsedYear) && parsedYear >= REFUNDS_START_YEAR && parsedYear <= currentYear
+      ? parsedYear
+      : currentYear;
+
+  const yearStart = Math.floor(Date.UTC(refundsYear, 0, 1) / 1000);
+  const yearEnd = Math.floor(Date.UTC(refundsYear + 1, 0, 1) / 1000);
+
   const [apps, pagos, refunds] = await Promise.all([
     getAllApplications(),
     getAllPagos(),
-    listRecentRefunds(50).catch(() => []),
+    listRecentRefunds({ createdGte: yearStart, createdLt: yearEnd }).catch(() => []),
   ]);
   const totalReembolsado = refunds.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const refundsYearOptions: number[] = [];
+  for (let y = currentYear; y >= REFUNDS_START_YEAR; y--) refundsYearOptions.push(y);
 
   const totalCuotasByStartup = new Map<string, number>();
   apps.forEach((a) => {
@@ -99,18 +119,21 @@ export default async function RevenuePage() {
       <RecuperarPagosSection />
 
       {/* Reembolsos Stripe */}
-      <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+      <div id="reembolsos" className="bg-white rounded-xl border border-zinc-200 overflow-hidden scroll-mt-6">
+        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <Undo2 className="h-4 w-4 text-rose-500" />
             <h2 className="text-sm font-semibold text-zinc-700">Reembolsos Stripe</h2>
           </div>
-          <div className="text-xs text-zinc-500">
-            {refunds.length} reembolso{refunds.length !== 1 ? "s" : ""} ·{" "}
-            <span className="font-semibold text-rose-600">
-              US${totalReembolsado.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            </span>{" "}
-            devueltos
+          <div className="flex items-center gap-3 text-xs text-zinc-500">
+            <RefundsYearFilter current={refundsYear} options={refundsYearOptions} />
+            <span>
+              {refunds.length} reembolso{refunds.length !== 1 ? "s" : ""} ·{" "}
+              <span className="font-semibold text-rose-600">
+                US${totalReembolsado.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>{" "}
+              devueltos en {refundsYear}
+            </span>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -129,7 +152,7 @@ export default async function RevenuePage() {
               {refunds.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-zinc-400">
-                    No hay reembolsos registrados en Stripe
+                    No hay reembolsos registrados en Stripe en {refundsYear}
                   </td>
                 </tr>
               )}
