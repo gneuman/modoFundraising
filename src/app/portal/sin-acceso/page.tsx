@@ -41,9 +41,11 @@ export default async function SinAccesoPage() {
     const hasDiscount =
       app?.discount_percent && Number(app.discount_percent) > 0;
     const discountPct = hasDiscount ? Number(app!.discount_percent) : 0;
-    const ONETIME_FIXED = 20; // 20% off SIEMPRE en pago único; cupones NO aplican
+    const TOTAL = 349 * 3;
+    const ONETIME_FULL_PRICE = 837; // Precio fijo del pago único (US$210 menos que $1,047)
     const precioMensual = Math.round(349 * (1 - discountPct / 100));
-    const precioUnico = Math.round(349 * 3 * (1 - ONETIME_FIXED / 100));
+    const precioUnico = ONETIME_FULL_PRICE;
+    const ONETIME_FIXED = Math.round(((TOTAL - precioUnico) / TOTAL) * 100);
 
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50">

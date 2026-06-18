@@ -26,8 +26,8 @@ export const stripe = new Stripe(stripeSecretKey, {
 
 export const PROGRAM_PRICE_USD = 349;
 
-// Descuento fijo aplicado SIEMPRE al pago único (independiente del código de cupón)
-export const ONETIME_FIXED_DISCOUNT = 20;
+// Pago único: $1,047 - $210 = $837 (no usamos percent_off porque 20% de $1,047 = $837.60).
+export const ONETIME_DISCOUNT_USD = 210;
 
 // Descuentos permitidos (%)
 export const ALLOWED_DISCOUNTS = [10, 15, 20, 25, 50, 100] as const;
@@ -120,14 +120,14 @@ export async function createOneTimeCheckout({
   metadata?: Record<string, string>;
 }) {
   const dynamicCoupon = await stripe.coupons.create({
-    name: `Pago único ${ONETIME_FIXED_DISCOUNT}%`,
-    percent_off: ONETIME_FIXED_DISCOUNT,
+    name: `Pago único -US$${ONETIME_DISCOUNT_USD}`,
+    amount_off: ONETIME_DISCOUNT_USD * 100,
+    currency: "usd",
     duration: "once",
     max_redemptions: 1,
-    currency: "usd",
     metadata: {
       ...(metadata ?? {}),
-      fixed_pct: String(ONETIME_FIXED_DISCOUNT),
+      fixed_amount_usd: String(ONETIME_DISCOUNT_USD),
     },
   });
 

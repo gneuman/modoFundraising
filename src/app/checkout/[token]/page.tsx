@@ -11,14 +11,14 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
   const { firstName, startupName, discountPercent } = payload;
   const BASE = 349;
   const TOTAL = BASE * 3; // $1,047
-  const ONETIME_FIXED = 20; // 20% off SIEMPRE en pago único
+  // Pago único: precio fijo $837 (US$210 de ahorro sobre $1,047 ≈ 20% off).
+  const ONETIME_FULL_PRICE = 837;
   const couponDiscount = discountPercent ?? 0;
   // Cuotas: solo aplica el descuento del cupón.
   const monthlyPrice = Math.round(BASE * (1 - couponDiscount / 100));
-  // Pago único: siempre 20% fijo, cupones NO aplican.
-  const onetimeDiscount = ONETIME_FIXED;
-  const fullPrice = Math.round(TOTAL * (1 - onetimeDiscount / 100));
+  const fullPrice = ONETIME_FULL_PRICE;
   const fullSaving = TOTAL - fullPrice;
+  const onetimeDiscount = Math.round((fullSaving / TOTAL) * 100);
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">

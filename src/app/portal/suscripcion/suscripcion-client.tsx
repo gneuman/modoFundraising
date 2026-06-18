@@ -67,14 +67,14 @@ export function SuscripcionClient({
 
   const PRICE_MONTHLY = 349;
   const PRICE_ONETIME = 1047;
-  const ONETIME_FIXED = 20; // 20% off SIEMPRE en pago único
+  const ONETIME_FULL_PRICE = 837; // Precio fijo del pago único (US$210 menos que $1,047)
   // Cuotas: solo descuento del cupón.
   const discountedMonthly = discountPercent
     ? Math.round(PRICE_MONTHLY * (1 - discountPercent / 100))
     : null;
-  // Pago único: siempre 20% fijo. Cupones NO aplican.
-  const onetimeDiscount = ONETIME_FIXED;
-  const discountedOnetime = Math.round(PRICE_ONETIME * (1 - onetimeDiscount / 100));
+  // Pago único: precio fijo, cupones NO aplican.
+  const discountedOnetime = ONETIME_FULL_PRICE;
+  const onetimeDiscount = Math.round(((PRICE_ONETIME - discountedOnetime) / PRICE_ONETIME) * 100);
 
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
   const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
