@@ -120,8 +120,8 @@ export function DashboardStats({
           />
           <KpiCard
             label="Revenue cobrado"
-            value={`US$${revenue.toLocaleString()}`}
-            sub="total acumulado"
+            value={`US$${revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            sub="total cobrado · vía Stripe"
             icon={DollarSign}
             accent="bg-green-50 text-green-600"
           />

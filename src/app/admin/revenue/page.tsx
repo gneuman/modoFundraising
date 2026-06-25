@@ -1,5 +1,5 @@
-import { getAllApplications, getAllPagos } from "@/lib/airtable";
-import { listRecentRefunds } from "@/lib/stripe";
+import { getAllApplications } from "@/lib/airtable";
+import { listRecentRefunds, listAllPagosFromStripe } from "@/lib/stripe";
 import { TrendingUp, AlertCircle, Undo2 } from "lucide-react";
 import { RecuperarPagosSection } from "./recuperar-pagos-section";
 import { RefundsYearFilter } from "./refunds-year-filter";
@@ -7,10 +7,6 @@ import { RefundsYearFilter } from "./refunds-year-filter";
 export const dynamic = "force-dynamic";
 
 const PRECIO_CUOTA = 349;
-
-function normalizeStartupName(name?: string) {
-  return (name ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
-}
 
 const REFUND_REASON_LABEL: Record<string, string> = {
   requested_by_customer: "Pedido por el cliente",
@@ -39,22 +35,25 @@ export default async function RevenuePage({
 
   const [apps, pagos, refunds] = await Promise.all([
     getAllApplications(),
-    getAllPagos(),
+    listAllPagosFromStripe().catch(() => []),
     listRecentRefunds({ createdGte: yearStart, createdLt: yearEnd }).catch(() => []),
   ]);
   const totalReembolsado = refunds.reduce((sum, r) => sum + (r.amount || 0), 0);
   const refundsYearOptions: number[] = [];
   for (let y = currentYear; y >= REFUNDS_START_YEAR; y--) refundsYearOptions.push(y);
 
-  const totalCuotasByStartup = new Map<string, number>();
+  // Mapa de email → startup_name para resolver el nombre desde el customer de Stripe.
+  const startupNameByEmail = new Map<string, string>();
   apps.forEach((a) => {
-    if (a.startup_name) {
-      totalCuotasByStartup.set(normalizeStartupName(a.startup_name), a.total_cuotas ?? 3);
+    if (a.startup_name && a.email) {
+      startupNameByEmail.set(a.email.toLowerCase(), a.startup_name);
     }
   });
 
   const inscritas = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional");
-  const pagosTotales = pagos.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  // Revenue bruto (suma de charges succeeded) desde Stripe. Los reembolsos
+  // tienen su propia sección abajo y se muestran aparte.
+  const pagosTotales = pagos.reduce((sum, p) => sum + p.amount, 0);
   const pagosConFallo = apps.filter((a) => a.payment_status === "Baja").length;
 
   const cuota1 = apps.filter((a) => a.payment_status === "Cuota 1 pagada").length;
@@ -75,8 +74,10 @@ export default async function RevenuePage({
             <TrendingUp className="h-4 w-4 text-blue-500" />
             <p className="text-xs text-zinc-500 uppercase tracking-wide">Revenue total</p>
           </div>
-          <p className="text-2xl font-bold text-blue-600">US${pagosTotales.toLocaleString()}</p>
-          <p className="text-xs text-zinc-400 mt-1">{pagos.length} pagos registrados · {inscritas.length} startups inscritas</p>
+          <p className="text-2xl font-bold text-blue-600">
+            US${pagosTotales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs text-zinc-400 mt-1">{pagos.length} pagos en Stripe · {inscritas.length} startups inscritas</p>
         </div>
 
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
@@ -198,10 +199,11 @@ export default async function RevenuePage({
         </div>
       </div>
 
-      {/* Historial de pagos */}
+      {/* Historial de pagos — fuente: Stripe charges */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100">
+        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-zinc-700">Historial de pagos</h2>
+          <span className="text-xs text-zinc-400">desde Stripe</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -209,42 +211,63 @@ export default async function RevenuePage({
               <tr className="bg-zinc-50 border-b border-zinc-100">
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Startup</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Email</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Cuota</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Monto</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Reembolsado</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Estado</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Fecha</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Recibo</th>
               </tr>
             </thead>
             <tbody>
               {pagos.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-zinc-400">
-                    No hay pagos registrados aún
+                  <td colSpan={7} className="px-4 py-12 text-center text-zinc-400">
+                    No hay pagos registrados en Stripe
                   </td>
                 </tr>
               )}
-              {pagos.map((p) => (
-                <tr key={p.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-zinc-800">{p.startup_name || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-500 text-xs">{p.email || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-600">
-                    {p.cuota ? `${p.cuota}/${totalCuotasByStartup.get(normalizeStartupName(p.startup_name)) ?? 3}` : "—"}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-zinc-700">
-                    {p.amount ? `US$${Number(p.amount).toLocaleString()}` : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      p.status === "Pagado" || p.status === "paid" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                    }`}>
-                      {p.status === "paid" ? "Pagado" : p.status || "—"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-zinc-400">
-                    {p.paid_at ? new Date(p.paid_at).toLocaleDateString("es") : "—"}
-                  </td>
-                </tr>
-              ))}
+              {pagos.map((p) => {
+                const startupName = p.startupName ?? (p.email ? startupNameByEmail.get(p.email.toLowerCase()) : null) ?? null;
+                const isRefunded = p.refunded || p.amountRefunded > 0;
+                return (
+                  <tr key={p.chargeId} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-zinc-800">{startupName || "—"}</td>
+                    <td className="px-4 py-3 text-zinc-500 text-xs">{p.email || "—"}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-700">
+                      US${p.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-rose-600 text-xs">
+                      {p.amountRefunded > 0
+                        ? `−US$${p.amountRefunded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        isRefunded
+                          ? "bg-rose-100 text-rose-700"
+                          : "bg-green-100 text-green-700"
+                      }`}>
+                        {isRefunded ? (p.amountRefunded >= p.amount ? "Reembolsado" : "Reemb. parcial") : "Pagado"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-zinc-400">
+                      {new Date(p.created).toLocaleDateString("es")}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {p.receiptUrl ? (
+                        <a
+                          href={p.receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          Ver
+                        </a>
+                      ) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

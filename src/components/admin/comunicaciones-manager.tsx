@@ -28,6 +28,7 @@ import {
   Italic,
   Link,
   List,
+  Send,
 } from "lucide-react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -660,6 +661,31 @@ function TemplatesTab({
   const [editing, setEditing] = useState<Record<string, EmailTemplate>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [testEmail, setTestEmail] = useState<Record<string, string>>({});
+  const [sendingTest, setSendingTest] = useState<string | null>(null);
+
+  async function sendTest(id: string) {
+    const to = testEmail[id]?.trim();
+    if (!to) {
+      toast.error("Escribe un email para enviar la prueba");
+      return;
+    }
+    setSendingTest(id);
+    try {
+      const res = await fetch("/api/admin/comunicaciones/templates/test-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, email: to }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Error al enviar");
+      toast.success(`Correo de prueba enviado a ${to}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al enviar prueba");
+    } finally {
+      setSendingTest(null);
+    }
+  }
 
   function startEdit(t: EmailTemplate) {
     setEditing((prev) => ({ ...prev, [t.id!]: { ...t } }));
@@ -818,6 +844,42 @@ function TemplatesTab({
                       onChange={(html) => updateField(t.id!, "body_html", html)}
                     />
                   )}
+                </div>
+
+                {/* Enviar correo de prueba */}
+                <div className="bg-zinc-50 rounded-xl px-4 py-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Send className="h-3.5 w-3.5 text-zinc-500" />
+                    <p className="text-xs font-semibold text-zinc-700">Enviar correo de prueba</p>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Renderiza con datos dummy y manda este template al email indicado. El asunto se prefija con [PRUEBA].
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={testEmail[t.id!] ?? ""}
+                      onChange={(e) =>
+                        setTestEmail((prev) => ({ ...prev, [t.id!]: e.target.value }))
+                      }
+                      className="text-sm flex-1"
+                    />
+                    <Button
+                      onClick={() => sendTest(t.id!)}
+                      disabled={sendingTest === t.id}
+                      size="sm"
+                      variant="outline"
+                      className="gap-2 shrink-0"
+                    >
+                      {sendingTest === t.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      Enviar prueba
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex justify-end">

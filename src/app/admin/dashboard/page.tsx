@@ -1,20 +1,32 @@
-import { getAllApplications, getAllPagos, getProximaClase, getEmpresasStats } from "@/lib/airtable";
-import { STRIPE_MODE } from "@/lib/stripe";
+import { getAllApplications, getProximaClase, getEmpresasStats } from "@/lib/airtable";
+import { STRIPE_MODE, listAllPagosFromStripe } from "@/lib/stripe";
 import { DashboardStats } from "@/components/admin/dashboard-stats";
 import { HealthCheckTable } from "@/components/admin/health-check-table";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [apps, pagos, proximaClase] = await Promise.all([
+  const [apps, stripePagos, proximaClase] = await Promise.all([
     getAllApplications(),
-    getAllPagos(),
+    listAllPagosFromStripe().catch(() => []),
     getProximaClase(),
   ]);
   const empresasStats = await getEmpresasStats(apps);
 
-  const completas = apps.filter((a) => a.accept_legal_terms === true);
-  const incompletas = apps.length - completas.length;
+  // "Incompletas" en el dashboard se alinea con la lista de Postulaciones:
+  // solo cuenta apps en flujo activo (Nueva, sin status) que no aceptaron términos.
+  // Excluye estados terminales (Rechazada, Rechazada por founder, Churn, Inscrita,
+  // Invitada institucional) para no inflar el conteo con histórico.
+  const TERMINAL_STATUSES = new Set([
+    "Inscrita",
+    "Invitada institucional",
+    "Rechazada",
+    "Rechazada por founder",
+    "Churn",
+  ]);
+  const enFlujo = apps.filter((a) => !a.status || !TERMINAL_STATUSES.has(a.status));
+  const completas = enFlujo.filter((a) => a.accept_legal_terms === true);
+  const incompletas = enFlujo.filter((a) => !a.accept_legal_terms).length;
   const recibidas = completas.length;
   const nuevas = completas.filter((a) => a.status === "Nueva postulación").length;
   const admitidas = apps.filter((a) => a.status === "Admitida").length;
@@ -22,7 +34,9 @@ export default async function DashboardPage() {
   const rechazadas = apps.filter((a) => a.status === "Rechazada").length;
   const rechazadasPorFounder = apps.filter((a) => a.status === "Rechazada por founder").length;
   const churn = apps.filter((a) => a.status === "Churn").length;
-  const revenue = pagos.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  // Revenue bruto desde Stripe (suma de charges succeeded, sin restar refunds).
+  // Los reembolsos se muestran en /admin/revenue como sección aparte.
+  const revenue = stripePagos.reduce((sum, p) => sum + p.amount, 0);
 
   const inscritasList = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional");
 

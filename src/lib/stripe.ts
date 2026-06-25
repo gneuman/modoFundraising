@@ -33,8 +33,13 @@ export const ONETIME_DISCOUNT_USD = 210;
 export const ALLOWED_DISCOUNTS = [10, 15, 20, 25, 50, 100] as const;
 export type DiscountPercent = (typeof ALLOWED_DISCOUNTS)[number];
 
+// Marca de origen para distinguir pagos creados por la app vs creados a mano en el dashboard.
+// Si un Customer/Checkout/Subscription en Stripe NO tiene `source: "app_checkout"`,
+// fue creado manualmente en el dashboard.
+export const APP_SOURCE_TAG = { source: "app_checkout" } as const;
+
 export async function createStripeCustomer(email: string, name: string) {
-  return stripe.customers.create({ email, name });
+  return stripe.customers.create({ email, name, metadata: { ...APP_SOURCE_TAG } });
 }
 
 export async function createSubscriptionCheckout({
@@ -54,15 +59,16 @@ export async function createSubscriptionCheckout({
   cancelUrl: string;
   metadata?: Record<string, string>;
 }) {
+  const taggedMetadata = { ...APP_SOURCE_TAG, ...(metadata ?? {}) };
   const params: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
-    metadata,
+    metadata: taggedMetadata,
     subscription_data: {
-      metadata: metadata ?? {},
+      metadata: taggedMetadata,
     },
     payment_method_types: ["card"],
   };
@@ -119,6 +125,7 @@ export async function createOneTimeCheckout({
   cancelUrl: string;
   metadata?: Record<string, string>;
 }) {
+  const taggedMetadata = { ...APP_SOURCE_TAG, ...(metadata ?? {}) };
   const dynamicCoupon = await stripe.coupons.create({
     name: `Pago único -US$${ONETIME_DISCOUNT_USD}`,
     amount_off: ONETIME_DISCOUNT_USD * 100,
@@ -126,7 +133,7 @@ export async function createOneTimeCheckout({
     duration: "once",
     max_redemptions: 1,
     metadata: {
-      ...(metadata ?? {}),
+      ...taggedMetadata,
       fixed_amount_usd: String(ONETIME_DISCOUNT_USD),
     },
   });
@@ -137,9 +144,12 @@ export async function createOneTimeCheckout({
     line_items: [{ price: STRIPE_PRICE_ID_ONETIME, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
-    metadata,
+    metadata: taggedMetadata,
     payment_method_types: ["card"],
     discounts: [{ coupon: dynamicCoupon.id }],
+    payment_intent_data: {
+      metadata: taggedMetadata,
+    },
   };
 
   return stripe.checkout.sessions.create(params);
@@ -359,6 +369,80 @@ export async function listRecentRefunds(
       customerId,
       chargeId,
       receiptUrl,
+    });
+  }
+
+  return items;
+}
+
+// ── Pagos (charges) — fuente oficial de revenue ───────────────────────────────
+// Lee todos los charges exitosos de Stripe directo, sin pasar por Airtable.
+// Necesario porque los registros viejos en Airtable redondearon US$837.60 a
+// US$837 y el revenue ya no cuadra. Stripe es la fuente de verdad.
+
+export type StripePagoItem = {
+  chargeId: string;
+  paymentIntentId: string | null;
+  customerId: string | null;
+  email: string | null;
+  startupName: string | null;
+  amount: number;
+  amountRefunded: number;
+  amountNet: number;
+  currency: string;
+  status: string;
+  paid: boolean;
+  refunded: boolean;
+  created: string;
+  receiptUrl: string | null;
+};
+
+export async function listAllPagosFromStripe(
+  options: { createdGte?: number; createdLt?: number } = {},
+): Promise<StripePagoItem[]> {
+  const { createdGte, createdLt } = options;
+  const created: Stripe.RangeQueryParam = {};
+  if (createdGte !== undefined) created.gte = createdGte;
+  if (createdLt !== undefined) created.lt = createdLt;
+
+  const items: StripePagoItem[] = [];
+  for await (const c of stripe.charges.list({
+    limit: 100,
+    expand: ["data.customer"],
+    ...(createdGte !== undefined || createdLt !== undefined ? { created } : {}),
+  })) {
+    if (c.status !== "succeeded") continue;
+
+    const customer = c.customer;
+    let customerId: string | null = null;
+    let email: string | null = c.billing_details?.email ?? c.receipt_email ?? null;
+    if (customer && typeof customer !== "string") {
+      if (!("deleted" in customer)) {
+        customerId = customer.id;
+        if (!email) email = customer.email ?? null;
+      }
+    } else if (typeof customer === "string") {
+      customerId = customer;
+    }
+
+    const amount = (c.amount ?? 0) / 100;
+    const amountRefunded = (c.amount_refunded ?? 0) / 100;
+
+    items.push({
+      chargeId: c.id,
+      paymentIntentId: typeof c.payment_intent === "string" ? c.payment_intent : c.payment_intent?.id ?? null,
+      customerId,
+      email,
+      startupName: c.metadata?.startupName ?? c.metadata?.startup_name ?? null,
+      amount,
+      amountRefunded,
+      amountNet: amount - amountRefunded,
+      currency: (c.currency ?? "usd").toUpperCase(),
+      status: c.status,
+      paid: c.paid,
+      refunded: c.refunded,
+      created: new Date(c.created * 1000).toISOString(),
+      receiptUrl: c.receipt_url ?? null,
     });
   }
 

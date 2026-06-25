@@ -321,6 +321,31 @@ export async function sendPortalDeactivatedEmail(
  * Si una regla tiene delay_hours > 0, el envío se difiere usando setTimeout.
  * Para delays >1h en producción se recomienda usar un job queue externo.
  */
+// Renderiza un template (con datos dummy si no se pasan), lo envuelve en el
+// layout y lo manda al email indicado. Bypassea AutomationRules: útil para
+// que el admin pruebe cómo se ve un correo sin tener que disparar el evento.
+export async function sendTestTemplateEmail(
+  template: { subject: string; body_html: string },
+  toEmail: string,
+  ctx?: TemplateContext,
+): Promise<void> {
+  const defaultCtx: TemplateContext = {
+    nombre: "Gabriel",
+    email: toEmail,
+    startup: "Startup de prueba",
+    checkout_url: `${APP_URL}/checkout/dummy-token`,
+    portal_url: `${APP_URL}/portal`,
+    cuota_num: "1",
+    apply_url: `${POSTULA_URL}/apply`,
+  };
+  const finalCtx = { ...defaultCtx, ...(ctx ?? {}) };
+
+  const subject = `[PRUEBA] ${renderTemplate(template.subject, finalCtx)}`;
+  const bodyHtml = renderTemplate(template.body_html, finalCtx);
+  const html = wrapInBaseLayout(bodyHtml);
+  await sendViaGmail(toEmail, subject, html);
+}
+
 export async function sendAutomationEmail(
   trigger: TriggerEvent,
   toEmail: string,
