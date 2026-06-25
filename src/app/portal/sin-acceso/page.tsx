@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { obtenerSesion } from "@/lib/auth";
 import { getFounderProfile, getAllApplications } from "@/lib/airtable";
 import { createCheckoutToken } from "@/lib/checkout-token";
@@ -15,7 +16,14 @@ export default async function SinAccesoPage() {
     : null;
   const status = profile?.status;
 
-  if (status === "Admitida" || status === "Inscrita") {
+  // Inscritas e Invitadas institucionales ya tienen acceso completo; si caen
+  // aquí es por un dato inconsistente — mandarlas al portal en vez del muro de
+  // pago. Solo Admitida ve el muro de "completar pago".
+  if (status === "Inscrita" || status === "Invitada institucional") {
+    redirect("/portal");
+  }
+
+  if (status === "Admitida") {
     // Generate checkout token to show direct payment buttons
     const apps = await getAllApplications();
     const app = apps.find(

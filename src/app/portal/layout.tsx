@@ -23,16 +23,17 @@ export default async function PortalLayout({ children }: { children: React.React
   if (!esAdmin(session.email)) {
     const profile = await getFounderProfile(session.email);
 
-    // Sin perfil o acceso revocado (Churn, rechazada, etc.) → muro
+    // Status que dan acceso al portal aunque el founder no tenga portal_access=true
+    // (ej. inscrita por invitación institucional, o ya pagada pero el founder se
+    // agregó al equipo después y nunca se le marcó portal_access en Airtable).
+    const isInscrita = profile?.status === "Inscrita" || profile?.status === "Invitada institucional";
     const isAdmitida = profile?.status === "Admitida";
-    const hasAccess = profile?.portal_access || isAdmitida;
+    const hasAccess = profile?.portal_access || isAdmitida || isInscrita;
     if (!hasAccess) redirect("/portal/sin-acceso");
 
-    // Rutas bloqueadas para Admitida sin pago
-    const LOCKED_PATHS = ["/portal/clases", "/portal/misiones"];
-    if (isAdmitida && !profile?.portal_access && LOCKED_PATHS.some((p) => pathname.startsWith(p))) {
-      redirect("/portal/sin-acceso");
-    }
+    // Admitida sin pago tiene acceso completo al portal (clases y misiones
+    // incluidas). El banner amarillo arriba sigue recordando el pago pendiente
+    // para no perder la fricción de cobro.
 
     return (
       <div className="flex h-screen bg-zinc-50">
