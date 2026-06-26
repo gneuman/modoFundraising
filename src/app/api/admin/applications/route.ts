@@ -132,13 +132,14 @@ export async function PATCH(req: NextRequest) {
           // Beca 100%: no hay cobro real. Marcamos payment_status propio para que
           // el campo refleje la realidad (no "Pendiente") y alimente el badge.
           await updateApplicationStatus(recordId, "Inscrita", { portal_access: true, payment_status: "Beca 100%" });
-          const startupId = (app.startup_record as string[] | undefined)?.[0];
-          if (startupId) await inviteStartupToCalendar(startupId);
-          // Beca 100%: no pasa por el webhook de Stripe (no hay cobro), así que el
-          // correo de inscripción confirmada se dispara acá manualmente.
+          // Mandar el correo de confirmación PRIMERO para pre-warmear Gmail
+          // con `admin@impacta.vc` y evitar el warning "remitente desconocido"
+          // en la invitación de Calendar que viene a continuación.
           if (app.email && app.first_name) {
             await sendPaymentConfirmation(app.email, app.first_name, 1);
           }
+          const startupId = (app.startup_record as string[] | undefined)?.[0];
+          if (startupId) await inviteStartupToCalendar(startupId);
           return NextResponse.json({ success: true, inscrita_directa: true });
         }
         const checkoutUrl = await buildCheckoutUrl(recordId, app);

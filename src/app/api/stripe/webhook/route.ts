@@ -79,7 +79,16 @@ async function activatePortalForStartup(
   // Update startup status
   if (startupRecordId) await updateStartupStatus(startupRecordId, "Inscrita");
 
-  // Invitar todos los founders al Google Calendar
+  // Send payment confirmation PRIMERO — pre-warmea Gmail con `admin@impacta.vc`
+  // como remitente conocido para evitar el warning "Invitación de un remitente
+  // desconocido" en la invitación de Calendar que va inmediatamente después.
+  // El onboarding NO se dispara aquí: es un envío manual desde el admin
+  // (POST /api/admin/send-email type="onboarding"), "solo cuando yo te diga".
+  if (email && firstName) {
+    await sendPaymentConfirmation(email, firstName, cuotaParaCorreo ?? cuota);
+  }
+
+  // Invitar todos los founders al Google Calendar — después del correo de pago
   if (startupRecordId) {
     try {
       const [emails, eventIds] = await Promise.all([
@@ -106,13 +115,6 @@ async function activatePortalForStartup(
       stripe_invoice_id: stripeInvoiceId,
       stripe_subscription_id: stripeSubscriptionId,
     });
-  }
-
-  // Send payment confirmation only.
-  // El onboarding NO se dispara aquí: es un envío manual desde el admin
-  // (POST /api/admin/send-email type="onboarding"), "solo cuando yo te diga".
-  if (email && firstName) {
-    await sendPaymentConfirmation(email, firstName, cuotaParaCorreo ?? cuota);
   }
 }
 

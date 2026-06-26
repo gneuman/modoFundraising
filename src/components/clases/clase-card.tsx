@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -857,17 +857,19 @@ export function ClaseCard({
     }
   }
 
-  const recursosVisibles = useMemo(() => {
+  // Calcular "ahora" una sola vez al montar (estable a lo largo de re-renders).
+  // El initializer de useState no se considera "during render" para fines de pureza
+  // y evita inestabilidad entre renders. La lista de recursos se deriva de eso.
+  const [ahoraTs] = useState<number>(() => Date.now());
+  const recursosVisibles = (() => {
     if (mode === "admin") return clase.recursosData;
-    const ahora = Date.now();
     const clasePaso =
-      isGrabada || (clase.fecha ? new Date(clase.fecha).getTime() <= ahora : false);
-    const filtered = clase.recursosData.filter(
-      (r) => !r.fecha_disponible || new Date(r.fecha_disponible).getTime() <= ahora,
+      isGrabada || (clase.fecha ? new Date(clase.fecha).getTime() <= ahoraTs : false);
+    if (!clasePaso) return [] as RecursoRecord[];
+    return clase.recursosData.filter(
+      (r) => !r.fecha_disponible || new Date(r.fecha_disponible).getTime() <= ahoraTs,
     );
-    if (!clasePaso) return [];
-    return filtered;
-  }, [mode, clase.recursosData, clase.fecha, isGrabada]);
+  })();
 
   // El wrapper del header: en view es un Link al detalle; en admin es un div sin Link
   // (igualmente cada parte editable detiene la propagación).
