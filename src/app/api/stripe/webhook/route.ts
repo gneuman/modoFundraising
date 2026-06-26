@@ -3,12 +3,11 @@ import { constructWebhookEvent } from "@/lib/stripe";
 import {
   getAllApplications,
   updateApplicationStatus,
-  updateStartupStatus,
   createPagoRecord,
-  activateAllFoundersForApplication,
   deactivateAllFoundersForApplication,
   getFounderEmailsByStartup,
   getCalendarEventIds,
+  updateStartupStatus,
   type PaymentStatus,
   type PostulacionRecord,
 } from "@/lib/airtable";
@@ -18,7 +17,8 @@ import {
   sendChurnEmail,
   sendPortalDeactivatedEmail,
 } from "@/lib/email-engine";
-import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
+import { removeAttendeeFromAllEvents } from "@/lib/calendar";
+import { activatePortalForStartup } from "@/lib/inscripcion";
 
 // Resuelve la postulación de un invoice de Stripe con fallbacks en cascada para
 // que la cobranza por webhook nunca falle en silencio:
@@ -54,68 +54,6 @@ function matchAppForInvoice(
     return null;
   }
   return app;
-}
-
-// Activates portal for the main founder + any team members linked to the startup
-async function activatePortalForStartup(
-  airtableId: string,
-  email: string | undefined,
-  firstName: string | undefined,
-  stripeCustomerId: string | undefined,
-  startupRecordId: string | undefined,
-  amount: number,
-  cuota: number,
-  stripeInvoiceId?: string,
-  stripeSubscriptionId?: string,
-  startup_name?: string,
-  // Cuota a usar SOLO para el correo de confirmación. Para pago completo (una
-  // exhibición) va 1 → manda el correo de "primer pago" (pago_cuota_1) y NADA
-  // más. El registro de pago sí usa `cuota` (3) para reflejar que cubre todo.
-  cuotaParaCorreo?: number,
-) {
-  // Activate all founders (main + team members) linked to this postulacion
-  await activateAllFoundersForApplication(airtableId, stripeCustomerId);
-
-  // Update startup status
-  if (startupRecordId) await updateStartupStatus(startupRecordId, "Inscrita");
-
-  // Send payment confirmation PRIMERO — pre-warmea Gmail con `admin@impacta.vc`
-  // como remitente conocido para evitar el warning "Invitación de un remitente
-  // desconocido" en la invitación de Calendar que va inmediatamente después.
-  // El onboarding NO se dispara aquí: es un envío manual desde el admin
-  // (POST /api/admin/send-email type="onboarding"), "solo cuando yo te diga".
-  if (email && firstName) {
-    await sendPaymentConfirmation(email, firstName, cuotaParaCorreo ?? cuota);
-  }
-
-  // Invitar todos los founders al Google Calendar — después del correo de pago
-  if (startupRecordId) {
-    try {
-      const [emails, eventIds] = await Promise.all([
-        getFounderEmailsByStartup(startupRecordId),
-        getCalendarEventIds(),
-      ]);
-      if (emails.length && eventIds.length) {
-        await addAttendeesToAllEvents(eventIds, emails);
-      }
-    } catch (err) {
-      console.error("Calendar invite error (non-blocking):", err instanceof Error ? err.message : err);
-    }
-  }
-
-  // Register payment record
-  if (startupRecordId && email) {
-    await createPagoRecord({
-      postulacionId: airtableId,
-      startupRecordId,
-      email,
-      startup_name: startup_name ?? "",
-      cuota,
-      amount,
-      stripe_invoice_id: stripeInvoiceId,
-      stripe_subscription_id: stripeSubscriptionId,
-    });
-  }
 }
 
 async function deactivatePortalForStartup(
@@ -220,21 +158,21 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        await activatePortalForStartup(
+        await activatePortalForStartup({
           airtableId,
-          app.email,
-          app.first_name,
-          session.customer as string,
+          email: app.email,
+          firstName: app.first_name,
+          stripeCustomerId: session.customer as string,
           startupRecordId,
           amount,
           cuota,
-          isOneTime ? session.payment_intent as string : undefined,
-          session.subscription,
-          app.startup_name,
+          stripeInvoiceId: isOneTime ? session.payment_intent as string : undefined,
+          stripeSubscriptionId: session.subscription,
+          startup_name: app.startup_name,
           // Pago completo → correo de primer pago (pago_cuota_1) y nada más.
           // Pago en cuotas → correo de cuota 1 igual (es la primera).
-          1,
-        );
+          cuotaParaCorreo: 1,
+        });
         console.log("[webhook] activatePortalForStartup OK");
       } catch (err) {
         console.error("[webhook] activatePortalForStartup failed:", err);

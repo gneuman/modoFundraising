@@ -1,10 +1,11 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus } from "@/lib/airtable";
+import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink, sendPaymentConfirmation } from "@/lib/email-engine";
 import { createCheckoutToken } from "@/lib/checkout-token";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
+import { activatePortalForStartup } from "@/lib/inscripcion";
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 
@@ -72,6 +73,93 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true, url: checkoutUrl });
     } catch (err) {
       console.error(`[resend_checkout] error recordId=${recordId}`, err);
+      return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    }
+  }
+
+  // ── Marcar pago manual (transferencia) ───────────────────────────────────────
+  // El admin lo usa cuando entra plata por fuera de Stripe (ej: transferencia
+  // bancaria a la cuenta Chile). Hace lo mismo que el webhook de Stripe pero
+  // sin tocar Stripe: marca Inscrita, activa portal, manda correo de pago,
+  // invita a Calendar y crea el registro de pago. El amount SIEMPRE se guarda
+  // en USD (convertido desde la moneda original con el TC declarado).
+  if (body.action === "mark_paid_manual") {
+    try {
+      const {
+        cuota,            // 1 | 2 | 3 (default 3 = pago completo)
+        metodo,           // string libre
+        montoOriginal,    // número en moneda original
+        moneda,           // "USD" | "CLP" | "MXN" | "ARS" | "Otro"
+        tipoCambio,       // 1 si USD; en otra moneda, cuántas unidades = 1 USD
+        nota,             // opcional, queda en stripe_invoice_id sintético
+      } = body as {
+        cuota?: number; metodo?: string; montoOriginal?: number;
+        moneda?: string; tipoCambio?: number; nota?: string;
+      };
+
+      const c = cuota ?? 3;
+      if (c < 1 || c > 4) {
+        return NextResponse.json({ error: "cuota inválida (1-4)" }, { status: 400 });
+      }
+      if (!metodo || !moneda || !montoOriginal || montoOriginal <= 0) {
+        return NextResponse.json({ error: "Faltan datos: metodo, moneda, montoOriginal" }, { status: 400 });
+      }
+      const tc = moneda === "USD" ? 1 : tipoCambio;
+      if (!tc || tc <= 0) {
+        return NextResponse.json({ error: "tipoCambio requerido cuando la moneda no es USD" }, { status: 400 });
+      }
+
+      const apps = await getAllApplications();
+      const app = apps.find((a) => a.id === recordId);
+      if (!app) return NextResponse.json({ error: "Postulación no encontrada" }, { status: 404 });
+
+      // Idempotencia: no permitir doble-marca si ya está Inscrita
+      if (app.status === "Inscrita" && (app.payment_status ?? "Pendiente") !== "Pendiente") {
+        return NextResponse.json({
+          error: `Ya está Inscrita con estado de pago "${app.payment_status}". Si necesitás registrar otra cuota, ajustá payment_status en Airtable primero.`,
+        }, { status: 409 });
+      }
+
+      const amountUSD = Math.round((montoOriginal / tc) * 100) / 100;
+      const paymentStatus = `Cuota ${c} pagada` as PaymentStatus;
+
+      // Slug de nota para que sobreviva al string del invoice_id sintético
+      const notaSlug = (nota ?? "").trim().toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+      const stripeInvoiceId = [
+        "manual",
+        metodo.toLowerCase().replace(/\s+/g, "-").slice(0, 30),
+        moneda,
+        Math.round(montoOriginal),
+        `tc${tc}`,
+        Date.now(),
+        notaSlug,
+      ].filter(Boolean).join("-");
+
+      console.log(`[mark_paid_manual] recordId=${recordId} email=${app.email} metodo=${metodo} moneda=${moneda} monto=${montoOriginal} tc=${tc} → USD ${amountUSD} cuota=${c}`);
+
+      await updateApplicationStatus(recordId, "Inscrita", {
+        payment_status: paymentStatus,
+        portal_access: true,
+      });
+
+      const startupRecordId = (app.startup_record as string[] | undefined)?.[0];
+      await activatePortalForStartup({
+        airtableId: recordId,
+        email: app.email,
+        firstName: app.first_name,
+        startupRecordId,
+        amount: amountUSD,
+        cuota: c,
+        stripeInvoiceId,
+        startup_name: app.startup_name,
+        // Mismo criterio que el webhook: siempre mandar correo de primer pago
+        cuotaParaCorreo: 1,
+      });
+
+      return NextResponse.json({ success: true, amountUSD, stripeInvoiceId });
+    } catch (err) {
+      console.error(`[mark_paid_manual] error recordId=${recordId}`, err);
       return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }
   }

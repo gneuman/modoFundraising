@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   X, ExternalLink, CheckCircle, XCircle, Send, Loader2,
-  Building2, Globe, Phone, Mail, Tag, CreditCard,
+  Building2, Globe, Phone, Mail, Tag, CreditCard, Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,14 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
   const [rejecting, setRejecting] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState(app.coupon_code as string ?? "");
   const [assigningCoupon, setAssigningCoupon] = useState(false);
+  const [manualPayOpen, setManualPayOpen] = useState(false);
+  const [manualPaying, setManualPaying] = useState(false);
+  const [mpCuota, setMpCuota] = useState(3);
+  const [mpMetodo, setMpMetodo] = useState("Transferencia Chile");
+  const [mpMoneda, setMpMoneda] = useState("USD");
+  const [mpMonto, setMpMonto] = useState("349");
+  const [mpTC, setMpTC] = useState("");
+  const [mpNota, setMpNota] = useState("");
 
   async function handleAdmit() {
     setAdmitting(true);
@@ -134,6 +142,40 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
       toast.error(`Error al enviar link: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSendingLink(false);
+    }
+  }
+
+  async function handleManualPay() {
+    const monto = Number(mpMonto);
+    const tc = mpMoneda === "USD" ? 1 : Number(mpTC);
+    if (!monto || monto <= 0) { toast.error("Monto inválido"); return; }
+    if (mpMoneda !== "USD" && (!tc || tc <= 0)) { toast.error("Tipo de cambio requerido"); return; }
+    setManualPaying(true);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: app.id,
+          action: "mark_paid_manual",
+          cuota: mpCuota,
+          metodo: mpMetodo,
+          montoOriginal: monto,
+          moneda: mpMoneda,
+          tipoCambio: tc,
+          nota: mpNota || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      onStatusChange(app.id!, "Inscrita");
+      toast.success(`✅ Pago manual registrado (US$ ${data.amountUSD}) — ${app.startup_name} Inscrita`);
+      setManualPayOpen(false);
+      onClose();
+    } catch (err) {
+      toast.error(`Error al marcar pago: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setManualPaying(false);
     }
   }
 
@@ -255,14 +297,24 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
             </>
           )}
           {canSendLink && (
-            <Button
-              onClick={handleSendLink}
-              disabled={sendingLink}
-              className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 h-9 text-sm"
-            >
-              {sendingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              Reenviar link de pago
-            </Button>
+            <>
+              <Button
+                onClick={handleSendLink}
+                disabled={sendingLink}
+                className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 h-9 text-sm"
+              >
+                {sendingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Reenviar link de pago
+              </Button>
+              <Button
+                onClick={() => setManualPayOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-9 text-sm"
+                title="Marcar pago manual cuando entra plata por transferencia (fuera de Stripe)"
+              >
+                <Banknote className="h-4 w-4" />
+                Marcar pago manual
+              </Button>
+            </>
           )}
           {app.deck_url && (
             <a
@@ -480,6 +532,157 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
 
         </div>
       </div>
+
+      {/* Modal: Marcar pago manual ────────────────────────────────────────── */}
+      {manualPayOpen && (() => {
+        const monto = Number(mpMonto) || 0;
+        const tc = mpMoneda === "USD" ? 1 : Number(mpTC) || 0;
+        const equivalenteUSD = tc > 0 ? Math.round((monto / tc) * 100) / 100 : 0;
+        const canConfirm = monto > 0 && (mpMoneda === "USD" || tc > 0) && !manualPaying;
+
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => !manualPaying && setManualPayOpen(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-zinc-800">Marcar pago manual</h3>
+                  <p className="text-sm text-zinc-500 mt-0.5">{app.startup_name} — {app.first_name} {app.last_name}</p>
+                </div>
+                <button onClick={() => !manualPaying && setManualPayOpen(false)} className="text-zinc-400 hover:text-zinc-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Cuota */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Cuota</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setMpCuota(n)}
+                      className={cn(
+                        "flex-1 h-9 rounded-lg border text-sm font-medium transition-colors",
+                        mpCuota === n
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+                      )}
+                    >
+                      {n}{n === 3 ? " (completo)" : ""}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Método */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Método</label>
+                <select
+                  value={mpMetodo}
+                  onChange={(e) => setMpMetodo(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                >
+                  <option>Transferencia Chile</option>
+                  <option>Transferencia USA</option>
+                  <option>Transferencia México</option>
+                  <option>Transferencia Argentina</option>
+                  <option>Efectivo</option>
+                  <option>Otro</option>
+                </select>
+              </div>
+
+              {/* Monto + Moneda */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Monto pagado</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={mpMonto}
+                    onChange={(e) => setMpMonto(e.target.value)}
+                    placeholder="349"
+                    className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Moneda</label>
+                  <select
+                    value={mpMoneda}
+                    onChange={(e) => setMpMoneda(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  >
+                    <option>USD</option>
+                    <option>CLP</option>
+                    <option>MXN</option>
+                    <option>ARS</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tipo de cambio + equivalente */}
+              {mpMoneda !== "USD" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+                    Tipo de cambio (1 USD = N {mpMoneda})
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={mpTC}
+                    onChange={(e) => setMpTC(e.target.value)}
+                    placeholder="1018"
+                    className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              )}
+
+              {/* Equivalente USD */}
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-700">Equivalente en USD:</span>
+                  <span className="font-bold text-emerald-800 font-mono">
+                    {equivalenteUSD > 0 ? `US$ ${equivalenteUSD.toLocaleString()}` : "—"}
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-600/80 mt-1">Este es el monto que se guardará en el historial de pagos.</p>
+              </div>
+
+              {/* Nota */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Nota interna (opcional)</label>
+                <textarea
+                  value={mpNota}
+                  onChange={(e) => setMpNota(e.target.value)}
+                  placeholder="Ref banco, fecha de transferencia, etc."
+                  rows={2}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                />
+              </div>
+
+              {/* Aviso */}
+              <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-blue-700">
+                Al confirmar: postulación → <strong>Inscrita</strong>, portal habilitado, correo de pago enviado, invitación a Calendar.
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleManualPay}
+                  disabled={!canConfirm}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  {manualPaying ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Procesando...</> : "Confirmar pago"}
+                </Button>
+                <Button variant="outline" onClick={() => setManualPayOpen(false)} disabled={manualPaying} className="flex-1">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }
