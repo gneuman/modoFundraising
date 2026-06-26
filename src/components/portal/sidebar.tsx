@@ -6,27 +6,29 @@ import { LayoutDashboard, BookOpen, Target, Users, CreditCard, LogOut, Rocket, L
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-const showClasesMisiones = process.env.NEXT_PUBLIC_SHOW_CLASES_MISIONES === "true";
-
-const NAV = [
-  { href: "/portal", label: "Mi portal", icon: LayoutDashboard, exact: true, locked: false, hidden: false },
-  { href: "/portal/startup", label: "Mi Startup", icon: Rocket, locked: false, hidden: false },
-  { href: "/portal/clases", label: "Clases", icon: BookOpen, locked: true, hidden: !showClasesMisiones },
-  { href: "/portal/misiones", label: "Misiones", icon: Target, locked: true, hidden: !showClasesMisiones },
-  { href: "/portal/equipo", label: "Equipo", icon: Users, locked: false, hidden: false },
-  { href: "/portal/suscripcion", label: "Suscripción", icon: CreditCard, locked: false, hidden: false },
-];
-
 export function PortalSidebar({
   email,
   startupName,
   needsPayment = false,
+  showClases = false,
+  showMisiones = false,
 }: {
   email: string;
   startupName?: string;
   needsPayment?: boolean;
+  showClases?: boolean;
+  showMisiones?: boolean;
 }) {
   const pathname = usePathname();
+
+  const NAV = [
+    { href: "/portal", label: "Mi portal", icon: LayoutDashboard, exact: true, locked: false, hidden: false },
+    { href: "/portal/startup", label: "Mi Startup", icon: Rocket, locked: false, hidden: false },
+    { href: "/portal/clases", label: "Clases", icon: BookOpen, locked: true, hidden: !showClases },
+    { href: "/portal/misiones", label: "Misiones", icon: Target, locked: true, hidden: !showMisiones },
+    { href: "/portal/equipo", label: "Equipo", icon: Users, locked: false, hidden: false },
+    { href: "/portal/suscripcion", label: "Suscripción", icon: CreditCard, locked: false, hidden: false },
+  ];
 
   return (
     <aside className="w-60 bg-white border-r border-zinc-100 flex flex-col shrink-0">

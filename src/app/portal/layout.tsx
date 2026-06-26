@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { obtenerSesion, esAdmin } from "@/lib/auth";
-import { getFounderProfile } from "@/lib/airtable";
+import { getFounderProfileCached, getClasesWithContentCached } from "@/lib/airtable";
 import { PortalSidebar } from "@/components/portal/sidebar";
 import Link from "next/link";
 import { CreditCard } from "lucide-react";
@@ -20,8 +20,14 @@ export default async function PortalLayout({ children }: { children: React.React
     return <div className="min-h-screen bg-zinc-50">{children}</div>;
   }
 
+  const clases = await getClasesWithContentCached();
+  const showClases = clases.length > 0;
+  const showMisiones = clases.some((c) =>
+    c.misionesData.some((m) => m.status === "Activa")
+  );
+
   if (!esAdmin(session.email)) {
-    const profile = await getFounderProfile(session.email);
+    const profile = await getFounderProfileCached(session.email);
 
     // Status que dan acceso al portal aunque el founder no tenga portal_access=true
     // (ej. inscrita por invitación institucional, o ya pagada pero el founder se
@@ -37,7 +43,13 @@ export default async function PortalLayout({ children }: { children: React.React
 
     return (
       <div className="flex h-screen bg-zinc-50">
-        <PortalSidebar email={session.email} startupName={profile?.startup_name} needsPayment={isAdmitida && !profile?.portal_access} />
+        <PortalSidebar
+          email={session.email}
+          startupName={profile?.startup_name}
+          needsPayment={isAdmitida && !profile?.portal_access}
+          showClases={showClases}
+          showMisiones={showMisiones}
+        />
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Banner de pago: solo cuando está admitida pero no ha pagado */}
           {isAdmitida && !profile?.portal_access && (
@@ -64,7 +76,11 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="flex h-screen bg-zinc-50">
-      <PortalSidebar email={session.email} />
+      <PortalSidebar
+        email={session.email}
+        showClases={showClases}
+        showMisiones={showMisiones}
+      />
       <main className="flex-1 overflow-y-auto">
         <div className="p-8 max-w-5xl mx-auto">{children}</div>
       </main>

@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
 import { obtenerSesion } from "@/lib/auth";
 import {
-  getClasesWithContent,
+  getClasesWithContentCached,
   getAllApplications,
   getAllFeedback,
   type MisionRecord,
@@ -184,10 +183,9 @@ function MisionCard({
 }
 
 export default async function MisionesPage() {
-  if (process.env.NEXT_PUBLIC_SHOW_CLASES_MISIONES !== "true") redirect("/portal");
   const session = await obtenerSesion();
   const [clases, allFeedback, apps] = await Promise.all([
-    getClasesWithContent(),
+    getClasesWithContentCached(),
     getAllFeedback(),
     getAllApplications(),
   ]);
