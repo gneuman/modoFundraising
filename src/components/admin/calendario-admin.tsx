@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   CalendarDays, Video, Users, ExternalLink, RefreshCw, Loader2,
   AlertCircle, Copy, Check, UserPlus, ChevronLeft, ChevronRight, X, List,
+  FlaskConical, Mail, UserMinus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatHora, formatFechaSinHora as formatFechaLarga } from "@/lib/timezone";
@@ -216,6 +217,97 @@ function AgendaView({ events, onSelectEvent }: { events: CalEvent[]; onSelectEve
   );
 }
 
+// ─── Panel de prueba (invitar / quitar / onboarding a un email arbitrario) ────
+
+function TestPanel() {
+  const [email, setEmail] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [audience, setAudience] = useState<"founders" | "team" | "both">("founders");
+  const [busy, setBusy] = useState<null | "invite" | "remove" | "onboarding">(null);
+
+  async function run(action: "invite" | "remove" | "onboarding") {
+    if (!email.trim()) return toast.error("Pegá un email primero");
+    setBusy(action);
+    try {
+      const res = await fetch("/api/admin/calendar/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), nombre: nombre.trim() || undefined, action, audience }),
+      });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      if (action === "invite") toast.success(`Invitado a ${data.events} evento${data.events !== 1 ? "s" : ""}`);
+      else if (action === "remove") toast.success(`Quitado de ${data.events} evento${data.events !== 1 ? "s" : ""}`);
+      else toast.success(`Onboarding enviado a ${data.to}`);
+    } catch {
+      toast.error("Error en la acción de prueba");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <FlaskConical className="h-4 w-4 text-purple-600" />
+        <p className="text-sm font-semibold text-purple-800">Modo prueba</p>
+        <span className="text-xs text-purple-600">— bypasea Airtable, no toca portal_access</span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <input
+          type="email"
+          placeholder="email@prueba.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="text-sm border border-purple-200 bg-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+        />
+        <input
+          type="text"
+          placeholder="Nombre (para onboarding)"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          className="text-sm border border-purple-200 bg-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+        />
+        <select
+          value={audience}
+          onChange={(e) => setAudience(e.target.value as "founders" | "team" | "both")}
+          className="text-sm border border-purple-200 bg-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+        >
+          <option value="founders">Eventos founders</option>
+          <option value="team">Eventos equipo</option>
+          <option value="both">Ambos</option>
+        </select>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => run("invite")}
+          disabled={!!busy}
+          className="flex items-center gap-1.5 text-sm font-semibold bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+        >
+          {busy === "invite" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          Invitar a Calendar
+        </button>
+        <button
+          onClick={() => run("remove")}
+          disabled={!!busy}
+          className="flex items-center gap-1.5 text-sm font-semibold bg-white hover:bg-purple-100 text-purple-700 border border-purple-300 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+        >
+          {busy === "remove" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
+          Quitar de Calendar
+        </button>
+        <button
+          onClick={() => run("onboarding")}
+          disabled={!!busy}
+          className="flex items-center gap-1.5 text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+        >
+          {busy === "onboarding" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+          Enviar correo de onboarding
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function CalendarioAdmin({ calendarId }: { calendarId?: string }) {
@@ -310,6 +402,9 @@ export function CalendarioAdmin({ calendarId }: { calendarId?: string }) {
           )}
         </div>
       )}
+
+      {/* Modo prueba */}
+      <TestPanel />
 
       {/* iCal */}
       {icalUrl && (
