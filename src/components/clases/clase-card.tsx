@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -20,7 +20,6 @@ import {
   Loader2,
   Plus,
   Upload,
-  Trash2,
 } from "lucide-react";
 
 import { formatFecha, formatFechaCorta, toSantiagoInput, santiagoInputToISO } from "@/lib/timezone";
@@ -844,7 +843,6 @@ export function ClaseCard({
 
   const isGrabada = clase.status === "Grabada";
   const isLive = clase.status === "En vivo";
-  const isProxima = !isGrabada && !isLive;
 
   async function patchClase(field: string, value: unknown) {
     try {
@@ -859,7 +857,7 @@ export function ClaseCard({
     }
   }
 
-  const recursosVisibles = (() => {
+  const recursosVisibles = useMemo(() => {
     if (mode === "admin") return clase.recursosData;
     const ahora = Date.now();
     const clasePaso =
@@ -869,7 +867,7 @@ export function ClaseCard({
     );
     if (!clasePaso) return [];
     return filtered;
-  })();
+  }, [mode, clase.recursosData, clase.fecha, isGrabada]);
 
   // El wrapper del header: en view es un Link al detalle; en admin es un div sin Link
   // (igualmente cada parte editable detiene la propagación).
