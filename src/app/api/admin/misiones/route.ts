@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { verificarAdmin } from "@/lib/admin-auth";
 import { createMision, updateMision } from "@/lib/airtable";
 
@@ -8,6 +9,7 @@ export async function POST(req: NextRequest) {
   if (denied) return denied;
   const body = await req.json();
   const id = await createMision(body);
+  revalidateTag("clases-content", { expire: 0 });
   return NextResponse.json({ id });
 }
 
@@ -16,5 +18,6 @@ export async function PATCH(req: NextRequest) {
   if (denied) return denied;
   const { id, ...data } = await req.json();
   await updateMision(id, data);
+  revalidateTag("clases-content", { expire: 0 });
   return NextResponse.json({ success: true });
 }

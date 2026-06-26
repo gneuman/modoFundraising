@@ -1,4 +1,6 @@
 import Airtable from "airtable";
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 // Lazy: el cliente se crea solo cuando se llama, no al importar el módulo.
 // Esto evita el error "API key is required" durante el build de Next.js.
@@ -336,6 +338,16 @@ export async function getCalendarEventIds(): Promise<string[]> {
     .all();
   return records
     .map((r) => (r.fields as Record<string, unknown>).calendar_event_id as string)
+    .filter(Boolean);
+}
+
+// Devuelve todos los calendar_event_id_team (eventos de equipo) que existen
+export async function getTeamCalendarEventIds(): Promise<string[]> {
+  const records = await base(Tables.CLASES)
+    .select({ fields: ["calendar_event_id_team"], filterByFormula: `{calendar_event_id_team} != ""` })
+    .all();
+  return records
+    .map((r) => (r.fields as Record<string, unknown>).calendar_event_id_team as string)
     .filter(Boolean);
 }
 
@@ -965,9 +977,12 @@ export interface ClaseRecord {
   semana?: number;
   fecha?: string;
   url_live?: string;
+  url_live_team?: string;
   url_grabacion?: string;
   meet_link?: string;
+  meet_link_team?: string;
   calendar_event_id?: string;
+  calendar_event_id_team?: string;
   status?: "Próxima" | "En vivo" | "Grabada";
   Portada?: { url: string; thumbnails?: { large?: { url: string } } }[];
   // Inverse linked fields (auto-created by Airtable)
@@ -981,9 +996,12 @@ export interface ClaseInput {
   semana?: number;
   fecha?: string;
   url_live?: string;
+  url_live_team?: string;
   url_grabacion?: string;
   meet_link?: string;
+  meet_link_team?: string;
   calendar_event_id?: string;
+  calendar_event_id_team?: string;
   status?: string;
 }
 
@@ -1040,6 +1058,7 @@ export async function createClase(data: ClaseInput): Promise<string> {
   if (data.semana) fields.semana = data.semana;
   if (data.fecha) fields.fecha = data.fecha;
   if (data.url_live) fields.url_live = data.url_live;
+  if (data.url_live_team) fields.url_live_team = data.url_live_team;
   if (data.url_grabacion) fields.url_grabacion = data.url_grabacion;
   const record = await base(Tables.CLASES).create(fields as never);
   return record.id;
@@ -1083,6 +1102,7 @@ export async function getAllMisiones(): Promise<MisionRecord[]> {
   return records.map((r) => ({ id: r.id, ...r.fields }) as MisionRecord);
 }
 
+
 export async function getAllRecursos(): Promise<RecursoRecord[]> {
   const records = await base(Tables.RECURSOS).select().all();
   return records.map((r) => ({ id: r.id, ...r.fields }) as RecursoRecord);
@@ -1125,7 +1145,7 @@ export async function getClaseById(id: string): Promise<(ClaseRecord & {
   misionesData: MisionRecord[];
   recursosData: RecursoRecord[];
 }) | null> {
-  const all = await getClasesWithContent();
+  const all = await getClasesWithContentCached();
   return all.find((c) => c.id === id) ?? null;
 }
 
@@ -1443,6 +1463,19 @@ export async function getClasesWithContent(): Promise<(ClaseRecord & {
     recursosData: recursosByClase.get(c.id) ?? [],
   }));
 }
+
+// Versión cacheada para uso en el portal del founder.
+// TTL 60s + tag para revalidación on-demand desde el admin cuando se edita
+// una clase, misión, tarea o recurso.
+export const getClasesWithContentCached = unstable_cache(
+  getClasesWithContent,
+  ["clases-with-content"],
+  { tags: ["clases-content"], revalidate: 60 }
+);
+
+// Versión deduplicada per-request: si layout y page la llaman dentro del mismo
+// render, Airtable se golpea una sola vez.
+export const getFounderProfileCached = cache(getFounderProfile);
 
 // ─── CMS Público ──────────────────────────────────────────────────────────────
 // Todas las tablas de contenido del sitio público viven en Airtable.
