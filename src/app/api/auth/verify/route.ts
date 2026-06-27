@@ -37,6 +37,16 @@ export async function GET(req: NextRequest) {
   const rol = esAdmin(email) ? "admin" : "founder";
   await crearSesion({ email, role: rol });
 
+  // Registrar último ingreso al portal (solo founders, no-bloqueante)
+  if (rol === "founder") {
+    try {
+      const { registrarIngresoPortal } = await import("@/lib/airtable");
+      await registrarIngresoPortal(email);
+    } catch {
+      // No bloquear el login si falla el registro
+    }
+  }
+
   const destino = rol === "admin" ? "/admin/dashboard" : "/portal";
   return NextResponse.redirect(new URL(destino, req.url));
 }

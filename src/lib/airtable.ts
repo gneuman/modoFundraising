@@ -359,6 +359,18 @@ export async function getFounderByEmail(email: string): Promise<FounderRecord | 
   return { id: records[0].id, ...records[0].fields } as FounderRecord;
 }
 
+// Registra la fecha/hora del último ingreso al portal en el Founder.
+// No-bloqueante: si falla, no debe interrumpir el login.
+export async function registrarIngresoPortal(email: string): Promise<void> {
+  const records = await base(Tables.FOUNDERS)
+    .select({ filterByFormula: `{email} = "${email}"`, maxRecords: 1 })
+    .firstPage();
+  if (!records.length) return;
+  await base(Tables.FOUNDERS).update(records[0].id, {
+    "Último Ingreso Portal": new Date().toISOString(),
+  } as never);
+}
+
 export interface TeamMember {
   id: string;
   email: string;
