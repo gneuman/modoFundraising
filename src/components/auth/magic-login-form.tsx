@@ -12,6 +12,7 @@ type Props = {
   placeholder?: string;
   ctaLabel?: string;
   ctaPostular?: { label: string; href: string } | null;
+  aviso?: string | null;
 };
 
 export function MagicLoginForm({
@@ -20,6 +21,7 @@ export function MagicLoginForm({
   placeholder = "tu@correo.com",
   ctaLabel = "Enviar enlace",
   ctaPostular = null,
+  aviso = null,
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -80,6 +82,13 @@ export function MagicLoginForm({
             <>
               <h1 className="text-xl font-bold text-white mb-2">{titulo}</h1>
               <p className="text-sm text-white/40 mb-6">{subtitulo}</p>
+
+              {aviso && (
+                <p className="text-sm text-white/80 bg-white/10 border border-white/20 rounded-lg px-3 py-2 mb-4 flex items-start gap-2">
+                  <Mail className="h-4 w-4 mt-0.5 shrink-0 text-white/60" />
+                  <span>{aviso}</span>
+                </p>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input

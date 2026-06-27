@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion } from "@/lib/auth";
-import { crearTokenMagic } from "@/lib/auth";
+import { crearTokenMagic, TTL_MAGIC_ONBOARDING } from "@/lib/auth";
 import { getAllApplications, getCalendarEventIds } from "@/lib/airtable";
 import Airtable from "airtable";
 import { sendMagicLink } from "@/lib/email-engine";
@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
     founder_record: [...founderIds, founderRecord.id],
   } as never);
 
-  // Enviar magic link por Gmail
-  const token = await crearTokenMagic(email);
-  await sendMagicLink(email, token, "founder");
+  // Enviar magic link por Gmail (onboarding: 72h para que no dependa de cuándo abran el correo)
+  const token = await crearTokenMagic(email, TTL_MAGIC_ONBOARDING);
+  await sendMagicLink(email, token, "founder", "72 horas");
 
   // Agregar al nuevo founder a todos los eventos de Calendar
   try {

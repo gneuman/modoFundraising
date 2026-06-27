@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT, jwtVerify, decodeJwt } from "jose";
 import { cookies } from "next/headers";
 
 const getSecretoSesion = () => new TextEncoder().encode(process.env.JWT_SECRET!);
@@ -10,11 +10,15 @@ export type PayloadSesion = {
   recordId?: string;
 };
 
-// ── Token de magic link (15 min) ─────────────────────────────────────────────
-export async function crearTokenMagic(email: string) {
+// ── Token de magic link ──────────────────────────────────────────────────────
+// TTL por defecto 15 min (login recurrente). Onboarding/invitación pasa "72h".
+export const TTL_MAGIC_LOGIN = "15m";
+export const TTL_MAGIC_ONBOARDING = "72h";
+
+export async function crearTokenMagic(email: string, ttl: string = TTL_MAGIC_LOGIN) {
   return new SignJWT({ email })
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("15m")
+    .setExpirationTime(ttl)
     .setIssuedAt()
     .sign(getSecretoMagic());
 }
@@ -23,6 +27,19 @@ export async function verificarTokenMagic(token: string): Promise<string | null>
   try {
     const { payload } = await jwtVerify(token, getSecretoMagic());
     return payload.email as string;
+  } catch {
+    return null;
+  }
+}
+
+// Lee el email de un token (vencido o no) SIN validar la firma.
+// Úsalo solo para decidir a qué correo auto-reenviar un link nuevo cuando expiró.
+// No confíes en este valor para autenticar.
+export function decodificarEmailToken(token: string): string | null {
+  try {
+    const payload = decodeJwt(token);
+    const email = payload.email;
+    return typeof email === "string" ? email : null;
   } catch {
     return null;
   }
