@@ -8,6 +8,7 @@ import {
   Video, ExternalLink, Clock, AlertCircle, CheckCircle2, Circle, Wrench, BookOpen,
 } from "lucide-react";
 import { VideoPlayer } from "@/components/portal/video-player";
+import { Markdown } from "@/components/portal/markdown";
 import { formatFechaConAnio as formatFecha } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +86,9 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
                 {mision.titulo}
               </h3>
               {mision.descripcion && (
-                <p className="text-sm text-zinc-500 mt-1 leading-relaxed">{mision.descripcion}</p>
+                <div className="mt-1 text-zinc-500">
+                  <Markdown>{mision.descripcion}</Markdown>
+                </div>
               )}
             </div>
           </div>
@@ -99,9 +102,9 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
         </div>
 
         {mision.instrucciones && (
-          <div className="bg-white border border-amber-200 rounded-xl p-4 space-y-1">
+          <div className="bg-white border border-amber-200 rounded-xl p-4 space-y-2">
             <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">Instrucciones</p>
-            <p className="text-sm text-zinc-700 leading-relaxed whitespace-pre-line">{mision.instrucciones}</p>
+            <Markdown>{mision.instrucciones}</Markdown>
           </div>
         )}
 
@@ -185,7 +188,9 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {clase.descripcion && (
-          <p className="text-zinc-600 leading-relaxed">{clase.descripcion}</p>
+          <div className="text-zinc-600">
+            <Markdown>{clase.descripcion}</Markdown>
+          </div>
         )}
 
         {/* CTA buttons */}

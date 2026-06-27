@@ -5,6 +5,12 @@ import { ClaseCard } from "@/components/clases/clase-card";
 
 export const dynamic = "force-dynamic";
 
+// Quita "Sx — " del titulo para mostrar al founder en mobile sin cortar texto.
+function stripSemanaPrefix(titulo?: string): string | undefined {
+  if (!titulo) return titulo;
+  return titulo.replace(/^S\d+\s*[—–-]\s*/, "");
+}
+
 export default async function ClasesPage() {
   await obtenerSesion();
   const clases = await getClasesWithContentCached();
@@ -47,7 +53,7 @@ export default async function ClasesPage() {
         <div className="bg-white rounded-xl border border-zinc-200 p-3">
           <p className="text-xs text-zinc-500">Próxima</p>
           <p className="text-xs font-semibold text-blue-600 mt-0.5 leading-tight">
-            {proxima ? proxima.titulo : "Por definir"}
+            {proxima ? stripSemanaPrefix(proxima.titulo) : "Por definir"}
           </p>
         </div>
       </div>

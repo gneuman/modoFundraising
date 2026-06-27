@@ -955,7 +955,7 @@ export function ClaseCard({
         {/* Title + date */}
         <div className="flex-1 min-w-0">
           <p
-            className={`font-semibold text-zinc-800 ${mode === "view" ? "group-hover:text-blue-600" : ""} transition-colors leading-tight ${mode === "view" ? "truncate" : ""}`}
+            className={`font-semibold text-zinc-800 ${mode === "view" ? "group-hover:text-blue-600" : ""} transition-colors leading-tight`}
           >
             {mode === "admin" ? (
               <InlineText
