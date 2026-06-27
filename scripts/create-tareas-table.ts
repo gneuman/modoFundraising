@@ -125,7 +125,7 @@ const misionesData = [
     clase_nro_teoria: 1,  // Program Launch
     clase_nro_rockstar: 2, // Rockstar Launch
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Checklist", titulo: "Completar perfil en el portal", descripcion: "Subir foto, bio, LinkedIn y rol dentro de la startup." },
       { orden: 3, tipo: "Checklist", titulo: "Presentarse en la comunidad", descripcion: "Publicar tu presentación en el grupo de WhatsApp/Slack del programa." },
       { orden: 4, tipo: "Entrega", titulo: "Agendar 1:1 de bienvenida", descripcion: "Coordinar y realizar el 1:1 de onboarding con el equipo de Modo Fundraising." },
@@ -136,7 +136,7 @@ const misionesData = [
     clase_nro_teoria: 3,
     clase_nro_rockstar: 4,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Configurar CRM de inversores", descripcion: "Elegir y configurar tu CRM (Notion, Airtable, HubSpot u otro) con las etapas del pipeline definidas en clase." },
       { orden: 3, tipo: "Entrega", titulo: "Crear pipeline de seguimiento", descripcion: "Definir y documentar las etapas: Identificado → Contactado → Respondió → Reunión → En proceso → Cerrado." },
       { orden: 4, tipo: "Entrega", titulo: "Documentar elecciones de techstack", descripcion: "Registrar qué herramientas elegiste y por qué. Compartir en la sesión Rockstar." },
@@ -147,7 +147,7 @@ const misionesData = [
     clase_nro_teoria: 5,
     clase_nro_rockstar: 6,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Definir tesis de inversión", descripcion: "Redactar en 1 párrafo la tesis de tu ronda: por qué ahora, para qué, y quién es tu inversor ideal." },
       { orden: 3, tipo: "Entrega", titulo: "Calcular unit economics clave", descripcion: "Documentar CAC, LTV, MRR, runway y cualquier métrica relevante para tu modelo." },
       { orden: 4, tipo: "Entrega", titulo: "Documentar uso de fondos", descripcion: "Breakdown detallado de en qué se gastará el capital recaudado (% por área o iniciativa)." },
@@ -158,7 +158,7 @@ const misionesData = [
     clase_nro_teoria: 7,
     clase_nro_rockstar: 8,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Escribir la historia del fundador", descripcion: "Redactar en 200 palabras: por qué fundaste esto, qué problema viviste en carne propia, qué te hace la persona correcta." },
       { orden: 3, tipo: "Entrega", titulo: "Definir la visión en una frase", descripcion: "Una frase que capture el futuro que tu startup está construyendo. Debe resonar con un inversor en 10 segundos." },
       { orden: 4, tipo: "Entrega", titulo: "Grabar elevator pitch de 60 segundos", descripcion: "Video selfie: historia + visión + qué estás levantando. Compartir el link en la sesión Rockstar." },
@@ -169,7 +169,7 @@ const misionesData = [
     clase_nro_teoria: 9,
     clase_nro_rockstar: 10,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Entregar pitch deck completo", descripcion: "Slides mínimas: Problema, Solución, Mercado, Modelo de negocio, Tracción, Equipo, Financieros, Uso de fondos, Ask." },
       { orden: 3, tipo: "Entrega", titulo: "Armar Data Room base", descripcion: "Carpeta con: deck, financieros, cap table, documentos legales básicos, y cualquier material de soporte." },
       { orden: 4, tipo: "Checklist", titulo: "Peer review: dar feedback a otro deck", descripcion: "Revisar el deck de un compañero del programa y enviarle feedback estructurado antes de la sesión." },
@@ -180,7 +180,7 @@ const misionesData = [
     clase_nro_teoria: 11,
     clase_nro_rockstar: 12,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Identificar 50 fondos relevantes", descripcion: "Investigar fondos que invierten en tu tesis, etapa y geografía. Fuentes: Crunchbase, Dealroom, LinkedIn." },
       { orden: 3, tipo: "Entrega", titulo: "Calificar y priorizar top 20", descripcion: "Rankear los 20 más relevantes por fit de tesis, tamaño de ticket, actividad reciente y accesibilidad." },
       { orden: 4, tipo: "Entrega", titulo: "Cargar lista en el CRM", descripcion: "Subir los 50 fondos al CRM con nombre, URL, partner objetivo, y fuente de donde lo sacaste." },
@@ -191,9 +191,9 @@ const misionesData = [
     clase_nro_teoria: 13,
     clase_nro_rockstar: 14,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Redactar 3 templates de cold outreach", descripcion: "Variantes A (directo), B (con gancho de tracción), C (con referencia a portfolio del fondo). Máx 5 líneas cada uno." },
-      { orden: 3, tipo: "Entrega", titulo: "Definir secuencia de follow-up", descripcion: "Documentar: cuándo mandas el primer follow-up, qué decís, cuántas veces, cuándo paras." },
+      { orden: 3, tipo: "Entrega", titulo: "Definir secuencia de follow-up", descripcion: "Documentar: cuándo mandas el primer follow-up, qué dices, cuántas veces, cuándo paras." },
       { orden: 4, tipo: "Entrega", titulo: "Enviar un outreach real y documentar", descripcion: "Mandar al menos 1 cold email real esta semana. Registrar: a quién, cuándo, qué template, resultado." },
     ],
   },
@@ -202,7 +202,7 @@ const misionesData = [
     clase_nro_teoria: 15,
     clase_nro_rockstar: 16,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Mapear red de contactos de confianza", descripcion: "Listar advisors, mentores, ex-jefes, inversores ángel conocidos, y alumni que puedan conectar con fondos." },
       { orden: 3, tipo: "Entrega", titulo: "Identificar 5 nodos de alto valor", descripcion: "De tu lista, seleccionar los 5 con mayor probabilidad de hacer intros a fondos de tu target list." },
       { orden: 4, tipo: "Entrega", titulo: "Enviar al menos 3 solicitudes de intro", descripcion: "Contactar a 3 nodos esta semana con un mensaje claro pidiendo una intro específica a un fondo específico." },
@@ -213,7 +213,7 @@ const misionesData = [
     clase_nro_teoria: 17,
     clase_nro_rockstar: 18,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Enviar 10 intro requests formales", descripcion: "Combinar warm intros (via red) y cold outreach directo para llegar a 10 fondos de tu lista." },
       { orden: 3, tipo: "Entrega", titulo: "Registrar respuestas en el CRM", descripcion: "Para cada envío: fecha, canal, respuesta (sí / no / silencio), y siguiente paso." },
       { orden: 4, tipo: "Entrega", titulo: "Documentar objeciones y cómo las manejaste", descripcion: "Anotar las 3 objeciones más comunes que recibiste y cómo respondiste (o cómo responderías)." },
@@ -224,7 +224,7 @@ const misionesData = [
     clase_nro_teoria: 19,
     clase_nro_rockstar: 20,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Definir 3 hitos de tracción para los próximos 30 días", descripcion: "Hitos medibles que puedas comunicar a inversores: MRR, usuarios, contratos, partnerships, etc." },
       { orden: 3, tipo: "Entrega", titulo: "Crear timeline de cierre", descripcion: "Fechas objetivo para: primer term sheet, due diligence, firma, wire. Trabajar hacia atrás desde una fecha de cierre." },
       { orden: 4, tipo: "Entrega", titulo: "Actualizar pipeline con estado real", descripcion: "Revisar cada inversor en el CRM y actualizar su estado, último contacto, y próximo paso concreto." },
@@ -235,7 +235,7 @@ const misionesData = [
     clase_nro_teoria: 21,
     clase_nro_rockstar: 22,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Identificar y calificar al lead investor potencial", descripcion: "De tu pipeline actual, seleccionar al candidato más fuerte para liderar la ronda y documentar por qué." },
       { orden: 3, tipo: "Entrega", titulo: "Preparar propuesta de valuación", descripcion: "Definir tu valuation pretérmino con justificación: comparables, múltiplos, tracción, mercado." },
       { orden: 4, tipo: "Checklist", titulo: "Revisar y anotar un term sheet modelo", descripcion: "Usar el template de la clase para identificar los 5 términos más importantes y tu posición en cada uno." },
@@ -246,7 +246,7 @@ const misionesData = [
     clase_nro_teoria: 23,
     clase_nro_rockstar: 24,
     tareas: [
-      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Calificá las clases de esta semana del 1 al 10 y dejá un comentario opcional." },
+      { orden: 1, tipo: "NPS", titulo: "Feedback de las clases de la semana", descripcion: "Califica las clases de esta semana del 1 al 10 y deja un comentario opcional." },
       { orden: 2, tipo: "Entrega", titulo: "Diseñar estrategia de urgencia y escasez", descripcion: "Definir: cuándo anuncias que la ronda está 'casi cerrada', qué hitos usas, cómo lo comunicas." },
       { orden: 3, tipo: "Entrega", titulo: "Preparar investor update de tracción", descripcion: "Redactar un update de 1 página con los hitos de los últimos 30 días para enviar a todo el pipeline." },
       { orden: 4, tipo: "Entrega", titulo: "Simular conversación de cierre", descripcion: "Hacer roleplay con un compañero del programa: uno es el founder, el otro el inversor escéptico. Grabarlo." },
@@ -326,7 +326,7 @@ async function main() {
   await agregarLinkedFields(tableId);
   await seedTareas(tableId);
 
-  log("\n✅ Todo listo. Revisá Airtable.");
+  log("\n✅ Todo listo. Revisa Airtable.");
 }
 
 main().catch((err) => {

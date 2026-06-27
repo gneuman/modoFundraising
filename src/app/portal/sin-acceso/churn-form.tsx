@@ -59,7 +59,7 @@ export function ChurnForm() {
         <textarea
           value={detalle}
           onChange={(e) => setDetalle(e.target.value)}
-          placeholder="Contanos más..."
+          placeholder="Cuéntanos más..."
           rows={3}
           className="w-full text-sm border border-zinc-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
         />

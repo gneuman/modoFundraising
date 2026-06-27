@@ -93,7 +93,7 @@ const houseRules = [
     nro: 10,
     categoria: "Inversores",
     titulo: "Ser honesto sobre el estado de tu ronda",
-    descripcion: "No hay que inflar números ni fingir más tracción de la que tenés. Los inversores son muy buenos detectando esto — y cuando lo detectan, el daño es irreparable. La honestidad es la base de cualquier relación de inversión duradera.",
+    descripcion: "No hay que inflar números ni fingir más tracción de la que tienes. Los inversores son muy buenos detectando esto — y cuando lo detectan, el daño es irreparable. La honestidad es la base de cualquier relación de inversión duradera.",
     icon: "🎯",
     obligatoria: true,
   },
@@ -141,7 +141,7 @@ async function main() {
     log(`  ✓ Regla ${rule.nro}: ${rule.titulo}`);
   }
 
-  log("\n✅ Seed completado. Revisá Airtable.");
+  log("\n✅ Seed completado. Revisa Airtable.");
 }
 
 main().catch((err) => {
