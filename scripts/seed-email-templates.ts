@@ -185,7 +185,7 @@ const TEMPLATES = [
 <ol style="margin:0 0 16px;padding-left:20px;font-size:15px;color:#52525b;line-height:2;">
   <li><strong>Regístrense en el Portal de Founders</strong> — <a href="{{portal_url}}" style="color:#2563eb;">{{portal_url}}</a> — su espacio central durante todo el programa.</li>
   <li><strong>Inviten a su equipo</strong> — dentro del portal encontrarán la sección para sumar a los miembros de su startup.</li>
-  <li><strong>Agreguen las sesiones a su calendario</strong> 📆 — en la sección de clases encontrarán un botón para agregar cada sesión directamente.</li>
+  <li><strong>No se asusten con su calendario</strong> 📆 — vamos a agregar las sesiones automáticamente, así que prepárense para recibir como 27 invitaciones de golpe. Sí, leyeron bien. Cada una es un paso más cerca de cerrar su ronda. Respiren. 😅</li>
   <li><strong>Vengan con todo</strong> 💪 — los founders que más aprovechan el programa son los que llegan comprometidos, hacen las misiones y participan activamente.</li>
 </ol>
 <table cellpadding="0" cellspacing="0" style="margin:24px 0;">
