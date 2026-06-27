@@ -125,7 +125,7 @@ export const QUESTIONS: Question[] = [
   { id: "runway", text: "¿Cuántos meses de runway tienen actualmente?", type: "number", help: "Meses que pueden operar con la caja actual" },
 
   // S6 — Deck
-  { id: "deck_url", text: "Sube tu deck acá:", type: "url", help: "Google Drive, Dropbox, Notion. Asegúrate de que el link sea público." },
+  { id: "deck_url", text: "Sube tu deck aquí:", type: "url", help: "Google Drive, Dropbox, Notion. Asegúrate de que el link sea público." },
 
   // S7 — Recomendadores
   { id: "referral_code", text: "¿Tienes un código de referido? (opcional)", type: "text", optional: true, help: "Puedes saltarlo si no tienes." },

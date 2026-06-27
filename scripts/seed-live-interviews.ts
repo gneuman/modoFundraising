@@ -207,7 +207,7 @@ async function main() {
     log(`  ✓ LI${li.nro}: ${li.titulo} (${li.fecha})`);
   }
 
-  log("\n✅ Seed completado. Revisá Airtable.");
+  log("\n✅ Seed completado. Revisa Airtable.");
 }
 
 main().catch((err) => {

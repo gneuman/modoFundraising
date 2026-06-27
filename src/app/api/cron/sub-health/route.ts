@@ -175,7 +175,7 @@ function buildAlertHtml(rows: ResultadoFila[]): string {
   }).join("");
   return `
     <h2>⚠ Sobre-cobro detectado en Stripe</h2>
-    <p>Las siguientes suscripciones tienen más facturas pagadas que cuotas configuradas. Revisá si hay error en total_cuotas o si hay que cancelar la sub para evitar más cobros.</p>
+    <p>Las siguientes suscripciones tienen más facturas pagadas que cuotas configuradas. Revisa si hay error en total_cuotas o si hay que cancelar la sub para evitar más cobros.</p>
     <ul>${items}</ul>
     <p><a href="${(process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/admin/revenue">Abrir admin/revenue</a></p>
   `;

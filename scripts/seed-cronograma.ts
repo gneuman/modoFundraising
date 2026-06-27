@@ -439,7 +439,7 @@ Completar el formulario de feedback para las clases de la semana 7 (Investor App
 Variantes A (directo), B (con gancho de tracción), C (con referencia a portfolio del fondo). Máx 5 líneas cada uno.
 
 **Tarea 3 — Definir secuencia de follow-up**
-Documentar: cuándo mandas el primer follow-up, qué decís, cuántas veces, cuándo paras.
+Documentar: cuándo mandas el primer follow-up, qué dices, cuántas veces, cuándo paras.
 
 **Tarea 4 — Enviar un outreach real y documentar**
 Mandar al menos 1 cold email real esta semana. Registrar: a quién, cuándo, qué template, resultado.`,
@@ -590,7 +590,7 @@ async function main() {
     log(`  ✓ Misión ${mision.nro}: ${mision.titulo} → vence ${mision.fecha_limite}`);
   }
 
-  log("\n✅ Seed completado. Revisá Airtable.");
+  log("\n✅ Seed completado. Revisa Airtable.");
 }
 
 main().catch((err) => {

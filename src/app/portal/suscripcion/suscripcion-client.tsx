@@ -310,7 +310,7 @@ export function SuscripcionClient({
             {puedeCancel && (
               <>
                 <p className="text-sm text-zinc-500 mb-4">
-                  Si cancelás tu suscripción, tu acceso al portal permanecerá
+                  Si cancelas tu suscripción, tu acceso al portal permanecerá
                   activo hasta el final del período de facturación actual.
                 </p>
                 {!showConfirm ? (

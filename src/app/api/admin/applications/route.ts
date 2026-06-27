@@ -116,7 +116,7 @@ export async function PATCH(req: NextRequest) {
       // Idempotencia: no permitir doble-marca si ya está Inscrita
       if (app.status === "Inscrita" && (app.payment_status ?? "Pendiente") !== "Pendiente") {
         return NextResponse.json({
-          error: `Ya está Inscrita con estado de pago "${app.payment_status}". Si necesitás registrar otra cuota, ajustá payment_status en Airtable primero.`,
+          error: `Ya está Inscrita con estado de pago "${app.payment_status}". Si necesitas registrar otra cuota, ajusta payment_status en Airtable primero.`,
         }, { status: 409 });
       }
 
