@@ -23,7 +23,7 @@ const TEMPLATES = [
     subject: "¡Ya estás dentro de Modo Fundraising 2026! 🚀",
     body_html: `<h2 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#18181b;">Hola {{nombre}},</h2>
 <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">¡Tu inscripción está confirmada y estamos muy emocionados de acompañarte en este camino! 💸</p>
-<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Las startups que logran levantar capital saben que el fundraising no es algo que se hace en paralelo — es un modo que se activa, se trabaja con foco y se ejecuta con estrategia. Ese momento es ahora, y estamos acá para acompañarte.</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Las startups que logran levantar capital saben que el fundraising no es algo que se hace en paralelo — es un modo que se activa, se trabaja con foco y se ejecuta con estrategia. Ese momento es ahora, y estamos aquí para acompañarte.</p>
 <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Muy pronto, antes del inicio el 30 de junio, recibirás todo el onboarding con acceso al portal, el cronograma completo y todo lo que necesitas para llegar listo/a al día uno 💪</p>
 <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Cualquier duda antes de eso, responde este mail y te respondemos.</p>
 <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">¡Nos vemos el 30! 🙌</p>
@@ -46,7 +46,7 @@ const TEMPLATES = [
     subject: "Último pago recibido — esto ya es tuyo 🎉",
     body_html: `<h2 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#18181b;">Hola {{nombre}},</h2>
 <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Confirmamos tu último pago. Ya tienes el programa completo por delante 🙌</p>
-<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Ahora es momento de enfocarte en lo que importa: ejecutar, conectar y cerrar tu ronda. Estamos acá para acompañarte hasta el final.</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Ahora es momento de enfocarte en lo que importa: ejecutar, conectar y cerrar tu ronda. Estamos aquí para acompañarte hasta el final.</p>
 <p style="margin:0;font-size:14px;color:#71717a;">El equipo de Modo Fundraising — Impacta VC</p>`,
     active: true,
   },
@@ -180,7 +180,7 @@ const TEMPLATES = [
     label: "Onboarding Portal",
     subject: "¡Llegó el momento! El programa arranca el 30 de junio 🚀",
     body_html: `<h2 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#18181b;">Hola {{nombre}},</h2>
-<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">¡Esto es real! En pocos días comienzan las semanas que van a transformar la forma en que llevan su fundraising. Estamos muy emocionados de tenerlos acá 🎉</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">¡Esto es real! En pocos días comienzan las semanas que van a transformar la forma en que llevan su fundraising. Estamos muy emocionados de tenerlos aquí 🎉</p>
 <p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#18181b;">Antes del 30 de junio, hay cuatro cosas que necesitan hacer para llegar listos al día uno:</p>
 <ol style="margin:0 0 16px;padding-left:20px;font-size:15px;color:#52525b;line-height:2;">
   <li><strong>Regístrense en el Portal de Founders</strong> — <a href="{{portal_url}}" style="color:#2563eb;">{{portal_url}}</a> — su espacio central durante todo el programa.</li>
@@ -205,7 +205,7 @@ const TEMPLATES = [
     body_html: `<h2 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#18181b;">¡Gracias, {{nombre}}!</h2>
 <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Tu postulación a <strong>Modo Fundraising 2026</strong> fue recibida. Nuestro equipo la revisará y te contactará en los próximos días.</p>
 <hr style="border:none;border-top:1px solid #f4f4f5;margin:24px 0;" />
-<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Mientras tanto, seguinos en nuestras redes para estar al tanto de novedades:</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#52525b;">Mientras tanto, síguenos en nuestras redes para estar al tanto de novedades:</p>
 <table cellpadding="0" cellspacing="0"><tr>
   <td style="padding-right:12px;"><a href="https://www.linkedin.com/company/impacta-vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">LinkedIn →</a></td>
   <td><a href="https://www.instagram.com/impacta.vc" style="font-size:14px;color:#2563eb;font-weight:500;text-decoration:none;">Instagram →</a></td>

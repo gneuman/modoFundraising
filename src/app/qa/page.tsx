@@ -64,8 +64,8 @@ export default async function QAPage() {
                 Q<span className="text-(--brand-teal)">&</span>A
               </h1>
               <p className="text-white/60 text-lg leading-relaxed">
-                Todo lo que necesitás saber antes de postular. Si tu pregunta no
-                está acá, escribinos a{" "}
+                Todo lo que necesitas saber antes de postular. Si tu pregunta no
+                está aquí, escríbenos a{" "}
                 <a
                   href="mailto:admin@impacta.vc"
                   className="text-(--brand-teal) hover:underline"
@@ -118,7 +118,7 @@ export default async function QAPage() {
               ¿No encontraste lo que buscabas?
             </h2>
             <p className="text-white/60 text-lg mb-8">
-              Escribinos directo. Respondemos en menos de 24 horas.
+              Escríbenos directo. Respondemos en menos de 24 horas.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a

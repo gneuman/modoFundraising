@@ -35,7 +35,7 @@ export default async function HouseRulesPage() {
             </h1>
             <p className="text-white/60 text-lg leading-relaxed">
               Modo Fundraising funciona porque todos juegan con las mismas reglas.
-              Estas no son restricciones — son los acuerdos que hacen que valga la pena estar acá.
+              Estas no son restricciones — son los acuerdos que hacen que valga la pena estar aquí.
             </p>
           </div>
         </div>
@@ -81,7 +81,7 @@ export default async function HouseRulesPage() {
           <h2 className="text-3xl font-black mb-4">El trato</h2>
           <p className="text-white/60 leading-relaxed font-[var(--font-questrial)">
             Nosotros ponemos el contenido, la red y los inversores.
-            Vos ponés el trabajo, la honestidad y el respeto.
+            Tú pones el trabajo, la honestidad y el respeto.
             Así funciona esto.
           </p>
         </div>

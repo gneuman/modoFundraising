@@ -117,7 +117,7 @@ export default async function AdvisoryPage() {
           <div className="grid md:grid-cols-3 gap-6 mt-12">
             {[
               { icon: "🎯", titulo: "Founder-to-founder", desc: "Cada instructor levantó su propia ronda o lideró inversiones reales. Sin teoría vacía." },
-              { icon: "🌎", titulo: "100% LatAm", desc: "El contexto importa. Todos entienden los mercados donde operás y los fondos que invierten en la región." },
+              { icon: "🌎", titulo: "100% LatAm", desc: "El contexto importa. Todos entienden los mercados donde operas y los fondos que invierten en la región." },
               { icon: "🤝", titulo: "Red viva", desc: "No un directorio. Una red de personas que se conocen, se referencian y mueven deals activamente." },
             ].map(({ icon, titulo, desc }) => (
               <div key={titulo} className="bg-(--brand-navy) border border-white/10 rounded-2xl p-6 text-center hover:border-(--brand-teal)/30 transition-all">
@@ -132,8 +132,8 @@ export default async function AdvisoryPage() {
 
       {/* CTA */}
       <section className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <h2 className="text-4xl font-black mb-4">¿Querés acceder a esta red?</h2>
-        <p className="text-white/50 mb-8">Postulá al programa y conectá directamente con el advisory board.</p>
+        <h2 className="text-4xl font-black mb-4">¿Quieres acceder a esta red?</h2>
+        <p className="text-white/50 mb-8">Postula al programa y conecta directamente con el advisory board.</p>
         <Link
           href="/"
           className="inline-flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-black text-lg px-10 py-4 rounded-xl transition-all shadow-[0_0_40px_#00e5c030]"

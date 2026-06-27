@@ -191,7 +191,7 @@ export default async function HomePage() {
     {
       pregunta: "¿Cómo funciona la garantía de 14 días?",
       respuesta:
-        "Desde el primer pago tenés 14 días para solicitar el reembolso, sin necesidad de justificar asistencia ni completar ninguna tarea. El reembolso es neto (descontando las comisiones de Stripe). Aplica para ambas modalidades de pago.",
+        "Desde el primer pago tienes 14 días para solicitar el reembolso, sin necesidad de justificar asistencia ni completar ninguna tarea. El reembolso es neto (descontando las comisiones de Stripe). Aplica para ambas modalidades de pago.",
     },
     {
       pregunta: "¿Es 100% online? ¿Hay clases en vivo?",
@@ -211,7 +211,7 @@ export default async function HomePage() {
     {
       pregunta: "¿Puedo postular en cualquier etapa de ronda?",
       respuesta:
-        "El programa está optimizado para pre-seed, seed y post-seed entre US$500K y US$5M. Si estás levantando montos distintos, escribinos y te orientamos.",
+        "El programa está optimizado para pre-seed, seed y post-seed entre US$500K y US$5M. Si estás levantando montos distintos, escríbenos y te orientamos.",
     },
     {
       pregunta: "¿Cómo funciona el derecho de inversión de Impacta VC?",
@@ -507,10 +507,10 @@ export default async function HomePage() {
                 Cada semana combinamos clases en vivo, masterclasses con
                 expertos, live interviews con inversores reales y{" "}
                 <strong className="text-white">misiones prácticas</strong> que
-                aplicás directo a tu proceso.
+                aplicas directo a tu proceso.
               </p>
               <p>
-                Al terminar, tenés una estrategia de ronda completa, una
+                Al terminar, tienes una estrategia de ronda completa, una
                 narrativa afinada y acceso a una{" "}
                 <strong className="text-white">red de inversores LatAm</strong>{" "}
                 que realmente invierten.
@@ -630,7 +630,7 @@ export default async function HomePage() {
             Precio del programa
           </h2>
           <p className="text-center text-white/50 mb-12 text-lg">
-            Elegí la modalidad que mejor se adapta a tu situación.
+            Elige la modalidad que mejor se adapta a tu situación.
           </p>
           <PricingToggle />
         </section>
@@ -803,7 +803,7 @@ export default async function HomePage() {
             Preguntas frecuentes
           </h2>
           <p className="text-center text-white/50 mb-12">
-            Si no encontras la respuesta, escribinos al WhatsApp.
+            Si no encuentras la respuesta, escríbenos al WhatsApp.
           </p>
           <FAQAccordion items={FAQ_ITEMS} />
         </section>
@@ -832,7 +832,7 @@ export default async function HomePage() {
             </Link>
             <div className="mt-10 border-t border-white/10 pt-10">
               <p className="text-white/50 mb-4 text-sm">
-                O recibí contenido de fundraising directamente en tu inbox
+                O recibe contenido de fundraising directamente en tu inbox
               </p>
               <NewsletterForm />
             </div>
