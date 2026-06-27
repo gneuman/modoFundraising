@@ -142,7 +142,7 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
                     : <Users className="h-4 w-4 text-zinc-500" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-zinc-800">{m.first_name} {m.last_name}</p>
+                  <p className="font-medium text-zinc-800 truncate">{m.first_name} {m.last_name}</p>
                   <p className="text-sm text-zinc-500 truncate">{m.email}</p>
                   {(m.whatsapp || m.linkedin_founder) && (
                     <div className="flex gap-3 mt-0.5">
@@ -157,7 +157,7 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {m.founder_role && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
+                    <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600 max-w-30 truncate">
                       {m.founder_role}
                     </span>
                   )}
@@ -174,7 +174,7 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
 
               {editingId === m.id && (
                 <div className="px-5 pb-4 bg-zinc-50 border-t border-zinc-100">
-                  <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                     <div>
                       <label className="block text-xs font-medium text-zinc-600 mb-1">Nombre</label>
                       <Input value={editForm.first_name ?? ""} onChange={(e) => setEditForm((p) => ({ ...p, first_name: e.target.value }))} />
