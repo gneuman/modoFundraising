@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   if (code) {
     const { tokens } = await auth.getToken(code);
     return NextResponse.json({
-      message: "Guardá este valor en Vercel como GMAIL_REFRESH_TOKEN",
+      message: "Guarda este valor en Vercel como GMAIL_REFRESH_TOKEN",
       refresh_token: tokens.refresh_token,
     });
   }
