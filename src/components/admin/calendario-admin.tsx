@@ -71,7 +71,7 @@ function EventModal({ event, onClose }: { event: CalEvent; onClose: () => void }
           {event.meetLink && (
             <a href={event.meetLink} target="_blank" rel="noreferrer"
               className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-              <Video className="h-4 w-4" /> Entrar a Meet
+              <Video className="h-4 w-4" /> Entrar al streaming
             </a>
           )}
           <a href={event.htmlLink} target="_blank" rel="noreferrer"
@@ -315,7 +315,16 @@ export function CalendarioAdmin({ calendarId }: { calendarId?: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
-  const [inviteResult, setInviteResult] = useState<{ invited: number; events: number; founders: { name: string; email: string }[] } | null>(null);
+  const [inviteResult, setInviteResult] = useState<{
+    invited: number;
+    events: number;
+    eventsOk: number;
+    eventsFailed: number;
+    eventsSkipped: number;
+    failures: { eventId: string; error: string }[];
+    invitedBy: string;
+    founders: { name: string; email: string }[];
+  } | null>(null);
   const [selected, setSelected] = useState<CalEvent | null>(null);
   const [view, setView] = useState<"month" | "agenda">("month");
 
@@ -331,15 +340,29 @@ export function CalendarioAdmin({ calendarId }: { calendarId?: string }) {
     finally { setLoading(false); }
   }
 
-  async function inviteAll() {
+  async function inviteAll(force = false) {
     setInviting(true);
     setInviteResult(null);
     try {
-      const res = await fetch("/api/admin/calendar/invite-all", { method: "POST" });
+      const url = force ? "/api/admin/calendar/invite-all?force=1" : "/api/admin/calendar/invite-all";
+      const res = await fetch(url, { method: "POST" });
       const data = await res.json();
       if (data.error) { toast.error(data.error); return; }
-      setInviteResult({ invited: data.invited, events: data.events, founders: data.founders ?? [] });
-      toast.success(`${data.invited} founders invitados a ${data.events} eventos`);
+      setInviteResult({
+        invited: data.invited,
+        events: data.events,
+        eventsOk: data.eventsOk ?? data.events,
+        eventsFailed: data.eventsFailed ?? 0,
+        eventsSkipped: data.eventsSkipped ?? 0,
+        failures: data.failures ?? [],
+        invitedBy: data.invitedBy ?? "",
+        founders: data.founders ?? [],
+      });
+      if (data.eventsFailed > 0) {
+        toast.error(`${data.invited} founders invitados a ${data.eventsOk}/${data.events} eventos. ${data.eventsFailed} fallaron.`);
+      } else {
+        toast.success(`${data.invited} founders invitados a ${data.eventsOk} eventos`);
+      }
       load();
     } catch { toast.error("Error al invitar founders"); }
     finally { setInviting(false); }
@@ -365,10 +388,21 @@ export function CalendarioAdmin({ calendarId }: { calendarId?: string }) {
           <p className="text-sm text-zinc-500 mt-1">Agenda de clases desde Google Calendar</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <button onClick={inviteAll} disabled={inviting}
-            className="flex items-center gap-1.5 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50">
+          <button onClick={() => inviteAll(false)} disabled={inviting}
+            className="flex items-center gap-1.5 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
+            title="Solo invita a los que aún no fueron invitados (campo invitado_calendar_at vacío)">
             {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-            Invitar todos los inscritos
+            Invitar a los nuevos
+          </button>
+          <button onClick={() => {
+              if (confirm("¿Reinvitar a TODOS los founders, incluso a los que ya fueron invitados? Google les manda email otra vez.")) {
+                inviteAll(true);
+              }
+            }} disabled={inviting}
+            className="flex items-center gap-1.5 text-sm font-medium bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+            title="Reinvita a todos (force). Usalo solo si hubo problemas o se borraron eventos.">
+            <RefreshCw className="h-4 w-4" />
+            Forzar reinvitación
           </button>
           <button onClick={load} disabled={loading}
             className="flex items-center gap-1.5 text-sm text-zinc-600 hover:text-zinc-800 border border-zinc-200 px-3 py-2 rounded-xl hover:bg-zinc-50 transition-colors">
@@ -384,18 +418,48 @@ export function CalendarioAdmin({ calendarId }: { calendarId?: string }) {
 
       {/* Resultado invitación */}
       {inviteResult && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-2">
+        <div className={`border rounded-xl p-4 space-y-2 ${
+          inviteResult.eventsFailed > 0
+            ? "bg-amber-50 border-amber-200"
+            : "bg-green-50 border-green-200"
+        }`}>
           <div className="flex items-center gap-2">
-            <Check className="h-5 w-5 text-green-600 shrink-0" />
-            <p className="text-sm font-semibold text-green-800">
-              {inviteResult.invited} founders invitados a {inviteResult.events} clases
+            {inviteResult.eventsFailed > 0 ? (
+              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+            ) : (
+              <Check className="h-5 w-5 text-green-600 shrink-0" />
+            )}
+            <p className={`text-sm font-semibold ${inviteResult.eventsFailed > 0 ? "text-amber-800" : "text-green-800"}`}>
+              {inviteResult.invited} founders invitados a {inviteResult.eventsOk}/{inviteResult.events} eventos
+              {inviteResult.eventsSkipped > 0 && ` · ${inviteResult.eventsSkipped} ya estaban`}
+              {inviteResult.eventsFailed > 0 && ` · ${inviteResult.eventsFailed} fallaron`}
             </p>
           </div>
+          {inviteResult.invitedBy && (
+            <p className="text-xs text-zinc-500 pl-7">Apretado por <strong>{inviteResult.invitedBy}</strong></p>
+          )}
+          {inviteResult.failures.length > 0 && (
+            <div className="pl-7 space-y-1">
+              <p className="text-xs font-semibold text-amber-700">Eventos que fallaron:</p>
+              {inviteResult.failures.slice(0, 5).map((f) => (
+                <p key={f.eventId} className="text-xs text-amber-600 font-mono">
+                  {f.eventId}: {f.error}
+                </p>
+              ))}
+              {inviteResult.failures.length > 5 && (
+                <p className="text-xs text-amber-600">... y {inviteResult.failures.length - 5} más</p>
+              )}
+            </div>
+          )}
           {inviteResult.founders.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pl-7">
               {inviteResult.founders.map((f) => (
-                <span key={f.email} className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                  {f.name}
+                <span key={f.email} className={`text-xs px-2 py-0.5 rounded-full ${
+                  inviteResult.eventsFailed > 0
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-green-100 text-green-800"
+                }`}>
+                  {f.name || f.email}
                 </span>
               ))}
             </div>

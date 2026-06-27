@@ -100,7 +100,7 @@ export default async function ClasesPage() {
 
       <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4">
         <p className="text-sm text-zinc-600">
-          Las clases son en vivo por Google Meet. ¿Preguntas?{" "}
+          Las clases son en vivo por Streamyard. ¿Preguntas?{" "}
           <a
             href="mailto:admin@impacta.vc"
             className="underline font-medium text-zinc-700"

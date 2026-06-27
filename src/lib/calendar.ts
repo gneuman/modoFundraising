@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { TZ } from "@/lib/timezone";
 
 const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID ?? "primary";
 
@@ -35,8 +36,8 @@ export async function createCalendarEvent(data: {
     requestBody: {
       summary: data.titulo,
       description: data.descripcion ?? "",
-      start: { dateTime: start.toISOString(), timeZone: "America/Mexico_City" },
-      end: { dateTime: end.toISOString(), timeZone: "America/Mexico_City" },
+      start: { dateTime: start.toISOString(), timeZone: TZ },
+      end: { dateTime: end.toISOString(), timeZone: TZ },
       // Genera Google Meet automáticamente
       conferenceData: {
         createRequest: {
@@ -90,30 +91,56 @@ export async function addAttendeeToEvents(eventIds: string[], email: string): Pr
   await Promise.allSettled(eventIds.map((id) => addAttendeeToEvent(id, email)));
 }
 
-// Agrega múltiples emails a múltiples eventos (inscripción completa de startup)
+// Agrega múltiples emails a múltiples eventos (inscripción completa de startup).
+// Paraleliza por evento porque 26 patches secuenciales con sendUpdates="all"
+// se demoran ~60s y Vercel timeout-ea el handler. Devuelve el desglose para
+// que el admin sepa cuáles eventos quedaron pendientes si algo falla.
 export async function addAttendeesToAllEvents(
   eventIds: string[],
   emails: string[]
-): Promise<void> {
-  for (const eventId of eventIds) {
-    const calendar = google.calendar({ version: "v3", auth: getAuth() });
-    const res = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
-    const existing = res.data.attendees ?? [];
-    const existingEmails = new Set(existing.map((a) => a.email));
-    const nuevos = emails.filter((e) => !existingEmails.has(e));
-    if (!nuevos.length) continue;
+): Promise<{ ok: string[]; failed: { eventId: string; error: string }[]; skipped: string[] }> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
 
-    await calendar.events.patch({
-      calendarId: CALENDAR_ID,
-      eventId,
-      sendUpdates: "all",
-      requestBody: {
-        attendees: [...existing, ...nuevos.map((email) => ({ email }))],
-        guestsCanSeeOtherGuests: false,
-        guestsCanInviteOthers: false,
-      },
-    });
-  }
+  const results = await Promise.allSettled(
+    eventIds.map(async (eventId) => {
+      const res = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
+      const existing = res.data.attendees ?? [];
+      const existingEmails = new Set(existing.map((a) => a.email));
+      const nuevos = emails.filter((e) => !existingEmails.has(e));
+      if (!nuevos.length) return { eventId, status: "skipped" as const };
+
+      await calendar.events.patch({
+        calendarId: CALENDAR_ID,
+        eventId,
+        sendUpdates: "all",
+        requestBody: {
+          attendees: [...existing, ...nuevos.map((email) => ({ email }))],
+          guestsCanSeeOtherGuests: false,
+          guestsCanInviteOthers: false,
+        },
+      });
+      return { eventId, status: "ok" as const };
+    }),
+  );
+
+  const ok: string[] = [];
+  const failed: { eventId: string; error: string }[] = [];
+  const skipped: string[] = [];
+
+  results.forEach((r, i) => {
+    const eventId = eventIds[i];
+    if (r.status === "fulfilled") {
+      if (r.value.status === "ok") ok.push(eventId);
+      else skipped.push(eventId);
+    } else {
+      failed.push({
+        eventId,
+        error: r.reason instanceof Error ? r.reason.message : String(r.reason),
+      });
+    }
+  });
+
+  return { ok, failed, skipped };
 }
 
 // Elimina un attendee de todos los eventos del programa
@@ -149,8 +176,8 @@ export async function updateCalendarEvent(eventId: string, data: {
   if (data.fecha) {
     const start = new Date(data.fecha);
     const end = new Date(start.getTime() + (data.duracionMinutos ?? 90) * 60_000);
-    patch.start = { dateTime: start.toISOString(), timeZone: "America/Mexico_City" };
-    patch.end = { dateTime: end.toISOString(), timeZone: "America/Mexico_City" };
+    patch.start = { dateTime: start.toISOString(), timeZone: TZ };
+    patch.end = { dateTime: end.toISOString(), timeZone: TZ };
   }
 
   await calendar.events.patch({
@@ -165,7 +192,7 @@ export async function updateCalendarEvent(eventId: string, data: {
 export async function createProgramCalendar(name: string): Promise<string> {
   const calendar = google.calendar({ version: "v3", auth: getAuth() });
   const res = await calendar.calendars.insert({
-    requestBody: { summary: name, timeZone: "America/Mexico_City" },
+    requestBody: { summary: name, timeZone: TZ },
   });
   return res.data.id!;
 }

@@ -12,6 +12,12 @@ import { formatFechaConAnio as formatFecha } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
+// Quita "Sx — " del título para mostrar al founder (UX mobile).
+function stripSemanaPrefix(titulo?: string): string | undefined {
+  if (!titulo) return titulo;
+  return titulo.replace(/^S\d+\s*[—–-]\s*/, "");
+}
+
 function daysLeft(iso?: string) {
   if (!iso) return null;
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
@@ -169,7 +175,7 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
                 {isLive ? "🔴 En vivo" : clase.status ?? "Próxima"}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-zinc-800 leading-tight">{clase.titulo}</h1>
+            <h1 className="text-2xl font-bold text-zinc-800 leading-tight">{stripSemanaPrefix(clase.titulo)}</h1>
             {clase.fecha && (
               <p className="text-sm text-zinc-400 mt-1 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" /> {formatFecha(clase.fecha)}
@@ -222,17 +228,21 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Misiones */}
-      {clase.misionesData.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2">
-            <Target className="h-5 w-5 text-amber-500" /> Misión de esta clase
-          </h2>
-          {clase.misionesData.map((m) => (
-            <MisionBlock key={m.id} mision={m} />
-          ))}
-        </div>
-      )}
+      {/* Misiones: en el portal del founder solo mostramos las Activas */}
+      {(() => {
+        const visibles = clase.misionesData.filter((m) => m.status === "Activa");
+        if (!visibles.length) return null;
+        return (
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2">
+              <Target className="h-5 w-5 text-amber-500" /> Misión de esta clase
+            </h2>
+            {visibles.map((m) => (
+              <MisionBlock key={m.id} mision={m} />
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Recursos — solo cuando la clase ya pasó o fue grabada */}
       {(() => {

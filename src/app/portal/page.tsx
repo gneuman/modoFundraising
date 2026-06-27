@@ -9,6 +9,13 @@ import { EnterMeetButton } from "@/components/portal/enter-meet-button";
 
 export const dynamic = "force-dynamic";
 
+// Quita el prefijo "S1 — ", "S12 — ", "S26 — " del título para mostrar al founder.
+// En admin se conserva el prefijo para mantener el orden visual.
+function stripSemanaPrefix(titulo?: string): string | undefined {
+  if (!titulo) return titulo;
+  return titulo.replace(/^S\d+\s*[—–-]\s*/, "");
+}
+
 function groupByDay(clases: ClaseRecord[]) {
   const groups = new Map<string, { label: string; clases: ClaseRecord[] }>();
   const fmtKey = new Intl.DateTimeFormat("en-CA", {
@@ -198,8 +205,8 @@ function ClaseCard({ clase }: { clase: ClaseRecord }) {
               </span>
             )}
           </div>
-          <p className="font-semibold text-zinc-800 group-hover:text-blue-600 transition-colors leading-tight mt-1.5 line-clamp-2">
-            {clase.titulo ?? "Clase sin título"}
+          <p className="font-semibold text-zinc-800 group-hover:text-blue-600 transition-colors leading-tight mt-1.5">
+            {stripSemanaPrefix(clase.titulo) ?? "Clase sin título"}
           </p>
           {clase.descripcion && (
             <p className="text-xs text-zinc-500 mt-1 line-clamp-2">

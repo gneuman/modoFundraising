@@ -302,10 +302,17 @@ export async function createFounderRecord(data: Pick<ApplicationFormData, 'email
   return record.id;
 }
 
-// Devuelve todos los founders que tienen acceso al portal (incluyendo co-founders invitados)
-export async function getAllFoundersWithAccess(): Promise<{ id: string; email: string; first_name: string; last_name: string }[]> {
+// Devuelve todos los founders que tienen acceso al portal (incluyendo co-founders invitados).
+// Si `excludeAlreadyInvited` es true, omite los que ya tienen `invitado_calendar_at` lleno.
+// Usado por el botón "Invitar todos los inscritos" para no reinvitar y evitar spam de emails.
+export async function getAllFoundersWithAccess(
+  opts: { excludeAlreadyInvited?: boolean } = {},
+): Promise<{ id: string; email: string; first_name: string; last_name: string; invitado_calendar_at?: string }[]> {
+  const filter = opts.excludeAlreadyInvited
+    ? `AND({portal_access} = 1, {invitado_calendar_at} = "")`
+    : `{portal_access} = 1`;
   const records = await base(Tables.FOUNDERS)
-    .select({ filterByFormula: `{portal_access} = 1`, fields: ["email", "first_name", "last_name"] })
+    .select({ filterByFormula: filter, fields: ["email", "first_name", "last_name", "invitado_calendar_at"] })
     .all();
   return records
     .map((r) => {
@@ -315,9 +322,31 @@ export async function getAllFoundersWithAccess(): Promise<{ id: string; email: s
         email: (f.email as string) ?? "",
         first_name: (f.first_name as string) ?? "",
         last_name: (f.last_name as string) ?? "",
+        invitado_calendar_at: (f.invitado_calendar_at as string) ?? undefined,
       };
     })
     .filter((f) => f.email);
+}
+
+// Marca founders como invitados a Calendar para no reinvitarlos despues.
+// Guarda timestamp + email del admin que apretó el botón.
+export async function markFoundersAsInvited(
+  founderIds: string[],
+  adminEmail: string,
+): Promise<void> {
+  if (!founderIds.length) return;
+  const now = new Date().toISOString();
+  // Airtable update acepta máximo 10 records por request
+  for (let i = 0; i < founderIds.length; i += 10) {
+    const batch = founderIds.slice(i, i + 10).map((id) => ({
+      id,
+      fields: {
+        invitado_calendar_at: now,
+        invitado_calendar_by: adminEmail,
+      } as never,
+    }));
+    await base(Tables.FOUNDERS).update(batch);
+  }
 }
 
 // Devuelve los emails de todos los founders activos de una startup dada

@@ -41,6 +41,13 @@ const TIPOS_RECURSO = ["PDF", "Video", "Artículo", "Template", "Herramienta", "
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Quita "Sx — " del título para mostrar al founder en modo view.
+// En admin se conserva para mantener el orden visual.
+function stripSemanaPrefix(titulo?: string): string | undefined {
+  if (!titulo) return titulo;
+  return titulo.replace(/^S\d+\s*[—–-]\s*/, "");
+}
+
 function daysLeft(iso?: string) {
   if (!iso) return null;
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
@@ -957,7 +964,7 @@ export function ClaseCard({
                 placeholder="Clase sin título"
               />
             ) : (
-              clase.titulo ?? "Clase sin título"
+              stripSemanaPrefix(clase.titulo) ?? "Clase sin título"
             )}
           </p>
           <div className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1 flex-wrap">
@@ -1017,11 +1024,11 @@ export function ClaseCard({
         <div className="border-t border-zinc-100 bg-zinc-50/50 px-5 py-3 grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
           <div className="flex items-center gap-2">
             <Video className="h-3 w-3 text-zinc-400 shrink-0" />
-            <span className="text-zinc-400 font-medium">Meet founders:</span>
+            <span className="text-zinc-400 font-medium">Streaming founders:</span>
             <InlineText
               value={clase.url_live}
               onSave={(v) => patchClase("url_live", v)}
-              placeholder="https://meet.google.com/..."
+              placeholder="https://streamyard.com/watch/..."
               className="truncate max-w-[260px]"
             />
             {clase.url_live && (
@@ -1037,11 +1044,11 @@ export function ClaseCard({
           </div>
           <div className="flex items-center gap-2">
             <Video className="h-3 w-3 text-zinc-400 shrink-0" />
-            <span className="text-zinc-400 font-medium">Meet equipo:</span>
+            <span className="text-zinc-400 font-medium">Streaming equipo:</span>
             <InlineText
               value={clase.url_live_team}
               onSave={(v) => patchClase("url_live_team", v)}
-              placeholder="https://meet.google.com/..."
+              placeholder="https://streamyard.com/watch/..."
               className="truncate max-w-[260px]"
             />
             {clase.url_live_team && (
@@ -1050,7 +1057,7 @@ export function ClaseCard({
                 target="_blank"
                 rel="noreferrer"
                 className="text-blue-500 hover:text-blue-700"
-                title="Ver Meet equipo"
+                title="Ver streaming equipo"
               >
                 <ExternalLink className="h-3 w-3" />
               </a>
@@ -1091,20 +1098,23 @@ export function ClaseCard({
         </div>
       )}
 
-      {/* Misiones inline */}
-      {clase.misionesData.map((mision) => (
-        <MisionRow
-          key={mision.id}
-          mision={mision}
-          mode={mode}
-          onUpdate={(m) =>
-            update({
-              ...clase,
-              misionesData: clase.misionesData.map((x) => (x.id === m.id ? m : x)),
-            })
-          }
-        />
-      ))}
+      {/* Misiones inline. En view solo mostramos las Activas (las Próxima/Cerrada
+          se ocultan al founder para no llenar la card de items inactivos). */}
+      {clase.misionesData
+        .filter((m) => mode === "admin" || m.status === "Activa")
+        .map((mision) => (
+          <MisionRow
+            key={mision.id}
+            mision={mision}
+            mode={mode}
+            onUpdate={(m) =>
+              update({
+                ...clase,
+                misionesData: clase.misionesData.map((x) => (x.id === m.id ? m : x)),
+              })
+            }
+          />
+        ))}
 
       {mode === "admin" && clase.id && (
         <div className="border-t border-amber-100 bg-amber-50/30 px-5 py-3">
