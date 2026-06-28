@@ -3,10 +3,15 @@ import {
   createPagoRecord,
   activateAllFoundersForApplication,
   getFounderEmailsByStartup,
+  getFoundersForOnboardingByStartup,
+  markFounderOnboardingSent,
   getCalendarEventIds,
 } from "@/lib/airtable";
-import { sendPaymentConfirmation } from "@/lib/email-engine";
+import { sendPaymentConfirmation, sendOnboardingEmail } from "@/lib/email-engine";
 import { addAttendeesToAllEvents } from "@/lib/calendar";
+
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com").replace(/\/$/, "");
+const PORTAL_URL = `${APP_URL}/portal`;
 
 // Activa el portal para todos los founders de una postulación, manda el correo
 // de confirmación de pago, invita a Calendar y registra el pago en Airtable.
@@ -55,6 +60,22 @@ export async function activatePortalForStartup(opts: {
       }
     } catch (err) {
       console.error("Calendar invite error (non-blocking):", err instanceof Error ? err.message : err);
+    }
+
+    // Onboarding: solo a founders que aun no lo recibieron (idempotente).
+    // No bloqueante: si falla el correo de uno, seguimos con el resto.
+    try {
+      const founders = await getFoundersForOnboardingByStartup(startupRecordId);
+      for (const f of founders) {
+        try {
+          await sendOnboardingEmail(f.email, f.first_name || "founder", PORTAL_URL);
+          await markFounderOnboardingSent(f.id);
+        } catch (err) {
+          console.error("Onboarding email error (non-blocking) for", f.email, ":", err instanceof Error ? err.message : err);
+        }
+      }
+    } catch (err) {
+      console.error("Onboarding fan-out error (non-blocking):", err instanceof Error ? err.message : err);
     }
   }
 

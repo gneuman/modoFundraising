@@ -4,6 +4,13 @@ import { verificarAdmin } from "@/lib/admin-auth";
 import { getClasesWithContent, updateClase, type ClaseInput } from "@/lib/airtable";
 import { createCalendarEvent } from "@/lib/calendar";
 
+// Misma convencion que clase-card.tsx#stripSemanaPrefix: en Airtable el titulo
+// guarda "Sx —" para que admin ordene visualmente, pero el founder lo ve sin prefijo
+// (portal y ahora tambien Google Calendar).
+function stripSemanaPrefix(titulo: string): string {
+  return titulo.replace(/^S\d+\s*[—–-]\s*/, "").trim();
+}
+
 // POST /api/admin/calendar/schedule
 // Agenda en Google Calendar las clases con fecha. Crea evento principal (founders)
 // y evento de equipo si faltan. Idempotente — si ya existe alguno, solo agenda el faltante.
@@ -18,9 +25,11 @@ export async function POST(req: NextRequest) {
     pendientes.map(async (clase) => {
       const patch: Partial<ClaseInput> = {};
 
+      const tituloLimpio = stripSemanaPrefix(clase.titulo ?? "Clase sin título");
+
       if (!clase.calendar_event_id) {
         const { eventId, meetLink } = await createCalendarEvent({
-          titulo: clase.titulo ?? "Clase sin título",
+          titulo: tituloLimpio,
           descripcion: clase.descripcion,
           fecha: clase.fecha!,
           duracionMinutos: 90,
@@ -32,7 +41,7 @@ export async function POST(req: NextRequest) {
 
       if (!clase.calendar_event_id_team) {
         const { eventId, meetLink } = await createCalendarEvent({
-          titulo: `[Equipo] ${clase.titulo ?? "Clase sin título"}`,
+          titulo: `[Equipo] ${tituloLimpio}`,
           descripcion: clase.descripcion,
           fecha: clase.fecha!,
           duracionMinutos: 90,

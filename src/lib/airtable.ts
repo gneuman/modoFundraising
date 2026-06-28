@@ -360,6 +360,56 @@ export async function getFounderEmailsByStartup(startupId: string): Promise<stri
   return records.map((r) => (r.fields as Record<string, unknown>).email as string).filter(Boolean);
 }
 
+// Devuelve {id, email, first_name} de los founders del startup que TODAVIA no
+// recibieron el correo de onboarding (portal_access=1 AND onboarding_enviado_at vacio).
+// Usado por el flujo de pago para mandar el correo de onboarding personalizado
+// sin remandar a quien ya lo recibio.
+export async function getFoundersForOnboardingByStartup(
+  startupId: string,
+): Promise<{ id: string; email: string; first_name: string }[]> {
+  const records = await base(Tables.FOUNDERS)
+    .select({
+      filterByFormula: `AND(SEARCH("${startupId}", ARRAYJOIN({Startups MF26})), {portal_access} = 1, {onboarding_enviado_at} = "")`,
+      fields: ["email", "first_name"],
+    })
+    .all();
+  return records
+    .map((r) => {
+      const f = r.fields as Record<string, unknown>;
+      return { id: r.id, email: (f.email as string) ?? "", first_name: (f.first_name as string) ?? "" };
+    })
+    .filter((f) => f.email);
+}
+
+// Marca a un founder con onboarding_enviado_at = now para no remandar.
+export async function markFounderOnboardingSent(founderId: string): Promise<void> {
+  await base(Tables.FOUNDERS).update([
+    { id: founderId, fields: { onboarding_enviado_at: new Date().toISOString() } as never },
+  ]);
+}
+
+// Devuelve el proximo founder pendiente de onboarding (portal_access=1 AND onboarding_enviado_at vacio).
+// Devuelve null si no hay mas.
+export async function getNextFounderForOnboarding(
+  opts: { excludeEmails?: string[] } = {},
+): Promise<{ id: string; email: string; first_name: string; pendientes: number } | null> {
+  const exclude = (opts.excludeEmails ?? []).map((e) => e.toLowerCase());
+  const records = await base(Tables.FOUNDERS)
+    .select({
+      filterByFormula: `AND({portal_access} = 1, {onboarding_enviado_at} = "")`,
+      fields: ["email", "first_name"],
+    })
+    .all();
+  const eligibles = records
+    .map((r) => {
+      const f = r.fields as Record<string, unknown>;
+      return { id: r.id, email: (f.email as string) ?? "", first_name: (f.first_name as string) ?? "" };
+    })
+    .filter((f) => f.email && !exclude.includes(f.email.toLowerCase()));
+  if (!eligibles.length) return null;
+  return { ...eligibles[0], pendientes: eligibles.length };
+}
+
 // Devuelve todos los calendar_event_id de las clases que tienen evento en Calendar
 export async function getCalendarEventIds(): Promise<string[]> {
   const records = await base(Tables.CLASES)
