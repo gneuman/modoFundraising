@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obtenerSesion } from "@/lib/auth";
-import { crearTokenMagic, TTL_MAGIC_ONBOARDING } from "@/lib/auth";
+import { obtenerSesion, crearTokenMagic, TTL_MAGIC_ONBOARDING, normalizarEmail } from "@/lib/auth";
 import { getAllApplications, getCalendarEventIds } from "@/lib/airtable";
 import Airtable from "airtable";
 import { sendMagicLink } from "@/lib/email-engine";
@@ -12,14 +11,16 @@ export async function POST(req: NextRequest) {
   const session = await obtenerSesion();
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
-  const { nombre, apellido, email, whatsapp, linkedin, rol, pais, es_mujer, startupName, founderName } = await req.json();
-  if (!email || !nombre || !apellido || !rol) {
+  const { nombre, apellido, email: emailRaw, whatsapp, linkedin, rol, pais, es_mujer, startupName, founderName } = await req.json();
+  if (!emailRaw || !nombre || !apellido || !rol) {
     return NextResponse.json({ error: "Nombre, apellido, email y rol son requeridos" }, { status: 400 });
   }
+  const email = normalizarEmail(emailRaw);
 
   // Buscar la postulación del founder logueado para obtener IDs de postulación y startup
   const apps = await getAllApplications();
-  const app = apps.find((a) => a.email === session.email);
+  const sessionEmail = normalizarEmail(session.email);
+  const app = apps.find((a) => a.email && normalizarEmail(a.email) === sessionEmail);
   if (!app?.id) return NextResponse.json({ error: "Postulación no encontrada" }, { status: 404 });
 
   const postulacionId = app.id;

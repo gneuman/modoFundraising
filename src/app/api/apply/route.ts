@@ -3,6 +3,7 @@ import { createApplication, getApplicationByEmail } from "@/lib/airtable";
 import { sendApplicationConfirmation } from "@/lib/email-engine";
 import { sendReferralRequest } from "@/lib/email-engine";
 import { applicationSchema } from "@/lib/form-schema";
+import { normalizarEmail } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   const t0 = Date.now();
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const data = parsed.data;
+    const data = { ...parsed.data, email: normalizarEmail(parsed.data.email) };
     const hasPostulacionId = Boolean(body._postulacion_record_id);
 
     // Saltarse el check de duplicados si ya tenemos un draft postulacion

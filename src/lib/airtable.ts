@@ -431,8 +431,9 @@ export async function getTeamCalendarEventIds(): Promise<string[]> {
 }
 
 export async function getFounderByEmail(email: string): Promise<FounderRecord | null> {
+  const emailNorm = email.trim().toLowerCase();
   const records = await base(Tables.FOUNDERS)
-    .select({ filterByFormula: `{email} = "${email}"`, maxRecords: 1 })
+    .select({ filterByFormula: `LOWER({email}) = "${emailNorm}"`, maxRecords: 1 })
     .firstPage();
   if (!records.length) return null;
   return { id: records[0].id, ...records[0].fields } as FounderRecord;
@@ -441,8 +442,9 @@ export async function getFounderByEmail(email: string): Promise<FounderRecord | 
 // Registra la fecha/hora del último ingreso al portal en el Founder.
 // No-bloqueante: si falla, no debe interrumpir el login.
 export async function registrarIngresoPortal(email: string): Promise<void> {
+  const emailNorm = email.trim().toLowerCase();
   const records = await base(Tables.FOUNDERS)
-    .select({ filterByFormula: `{email} = "${email}"`, maxRecords: 1 })
+    .select({ filterByFormula: `LOWER({email}) = "${emailNorm}"`, maxRecords: 1 })
     .firstPage();
   if (!records.length) return;
   await base(Tables.FOUNDERS).update(records[0].id, {
@@ -494,8 +496,9 @@ export interface FounderProfile {
 }
 
 export async function getFounderProfile(email: string): Promise<FounderProfile | null> {
+  const emailNorm = email.trim().toLowerCase();
   const records = await base(Tables.FOUNDERS)
-    .select({ filterByFormula: `{email} = "${email}"`, maxRecords: 1 })
+    .select({ filterByFormula: `LOWER({email}) = "${emailNorm}"`, maxRecords: 1 })
     .firstPage();
   if (!records.length) return null;
 
@@ -938,9 +941,10 @@ export async function getAllPagos(): Promise<PagoRecord[]> {
 export async function getApplicationByEmail(email: string): Promise<PostulacionRecord | null> {
   // Buscar postulaciones con status definido (no drafts) usando lookup directo del email.
   // Excluye las marcadas como `test` para que no bloqueen una postulación real ni aparezcan.
+  const emailNorm = email.trim().toLowerCase();
   const postulaciones = await base(Tables.POSTULACIONES)
     .select({
-      filterByFormula: `AND({status}, {email (from founder_record)} = "${email}", NOT({test}))`,
+      filterByFormula: `AND({status}, LOWER({email (from founder_record)}) = "${emailNorm}", NOT({test}))`,
       fields: ["status", "created_at", "startup_record", "first_name (from founder_record)", "last_name (from founder_record)"],
       maxRecords: 1,
     })

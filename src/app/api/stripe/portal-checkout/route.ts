@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obtenerSesion } from "@/lib/auth";
+import { obtenerSesion, normalizarEmail } from "@/lib/auth";
 import { getAllApplications, getAllCoupons, updateApplicationStatus } from "@/lib/airtable";
 import { createStripeCustomer, createSubscriptionCheckout, createOneTimeCheckout, PROGRAM_PRICE_USD, STRIPE_PRICE_ID_MONTHLY } from "@/lib/stripe";
 
@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
   const { mode = "subscription" } = await req.json().catch(() => ({}));
 
   const [apps, coupons] = await Promise.all([getAllApplications(), getAllCoupons()]);
-  const app = apps.find((a) => a.email === session.email);
+  const sessionEmail = normalizarEmail(session.email);
+  const app = apps.find((a) => a.email && normalizarEmail(a.email) === sessionEmail);
 
   if (!app?.id) {
     return NextResponse.json({ error: "Postulación no encontrada" }, { status: 404 });

@@ -10,13 +10,19 @@ export type PayloadSesion = {
   recordId?: string;
 };
 
+// Normaliza email para comparación: minúsculas + sin espacios.
+// David.Alvo@X.com === david.alvo@x.com en todo el flujo de auth y búsquedas.
+export function normalizarEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 // ── Token de magic link ──────────────────────────────────────────────────────
 // TTL por defecto 15 min (login recurrente). Onboarding/invitación pasa "72h".
 export const TTL_MAGIC_LOGIN = "15m";
 export const TTL_MAGIC_ONBOARDING = "72h";
 
 export async function crearTokenMagic(email: string, ttl: string = TTL_MAGIC_LOGIN) {
-  return new SignJWT({ email })
+  return new SignJWT({ email: normalizarEmail(email) })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime(ttl)
     .setIssuedAt()
@@ -26,7 +32,7 @@ export async function crearTokenMagic(email: string, ttl: string = TTL_MAGIC_LOG
 export async function verificarTokenMagic(token: string): Promise<string | null> {
   try {
     const { payload } = await jwtVerify(token, getSecretoMagic());
-    return payload.email as string;
+    return normalizarEmail(payload.email as string);
   } catch {
     return null;
   }
@@ -39,7 +45,7 @@ export function decodificarEmailToken(token: string): string | null {
   try {
     const payload = decodeJwt(token);
     const email = payload.email;
-    return typeof email === "string" ? email : null;
+    return typeof email === "string" ? normalizarEmail(email) : null;
   } catch {
     return null;
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obtenerSesion } from "@/lib/auth";
+import { obtenerSesion, normalizarEmail } from "@/lib/auth";
 import { cancelSubscription } from "@/lib/stripe";
 import {
   getAllApplications,
@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
   }
 
   const apps = await getAllApplications();
-  const app = apps.find((a) => a.email === session.email);
+  const sessionEmail = normalizarEmail(session.email);
+  const app = apps.find((a) => a.email && normalizarEmail(a.email) === sessionEmail);
   if (!app?.stripe_subscription_id) {
     return NextResponse.json({ error: "No subscription found" }, { status: 404 });
   }

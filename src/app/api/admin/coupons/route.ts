@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
+import { normalizarEmail } from "@/lib/auth";
 import { createStripeCoupon, createStripePromoCode, STRIPE_PRICE_ID_MONTHLY, createSubscriptionCheckout, createStripeCustomer } from "@/lib/stripe";
 import { createCouponRecord, getAllCoupons, getAllApplications, assignCouponToApplication } from "@/lib/airtable";
 import { sendCouponLink } from "@/lib/email-engine";
@@ -38,13 +39,14 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const denied = await verificarAdmin(req);
   if (denied) return denied;
-  const { email, firstName, couponId, percentOff } = await req.json();
-  if (!email || !firstName || !couponId) {
+  const { email: emailRaw, firstName, couponId, percentOff } = await req.json();
+  if (!emailRaw || !firstName || !couponId) {
     return NextResponse.json({ error: "Faltan campos: email, firstName, couponId" }, { status: 400 });
   }
+  const email = normalizarEmail(emailRaw);
 
   const [apps, coupons] = await Promise.all([getAllApplications(), getAllCoupons()]);
-  const app = apps.find((a) => a.email === email);
+  const app = apps.find((a) => a.email && normalizarEmail(a.email) === email);
   let customerId = app?.stripe_customer_id;
 
   if (!customerId) {
