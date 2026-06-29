@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.linear.app)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(npx create-next-app@latest app --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npx shadcn@latest add input label select textarea checkbox radio-group progress badge card table tabs separator toast dialog alert)",
+      "Bash(npx shadcn@latest add sonner dropdown-menu avatar)",
+      "Bash(npx shadcn@latest add textarea input checkbox)",
+      "WebSearch",
+      "WebFetch(domain:support.pipedrive.com)",
+      "mcp__claude_ai_Linear__list_issues",
+      "mcp__claude_ai_Linear__list_projects",
+      "mcp__claude_ai_Linear__save_issue",
+      "WebFetch(domain:stripe.com)",
+      "WebFetch(domain:docs.stripe.com)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\impactaVC\\Modo Fundraing\\app\\src\\app\\checkout",
+      "c:\\Users\\Usuario\\GNB Labs\\Gabriel Neuman\\proyectos\\clientes\\impactaVC\\Modo Fundraing\\app\\src\\app\\portal\\clases"
+    ]
+  }
+}

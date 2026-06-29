@@ -1,0 +1,279 @@
+[2026-04-23T18:56:09.296Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T18:56:09.542Z] [log] [HMR] connected
+[2026-04-23T18:56:09.637Z] [warning] Image with src "/logo-mf.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[2026-04-23T18:56:09.665Z] [error] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <RedirectErrorBoundary router={{...}}>
+      <InnerLayoutRouter url="/auth/login" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+        <SegmentViewNode type="page" pagePath="auth/login...">
+          <SegmentTrieNode>
+          <ClientPageRoot Component={function PaginaLogin} serverProvidedParams={{...}}>
+            <PaginaLogin params={Promise} searchParams={Promise}>
+              <main className="min-h-scre...">
+                <div className="w-full max...">
+                  <div>
+                  <div className="bg-white r...">
+                    <h1>
+                    <form onSubmit={function manejarEnvio} className="space-y-4">
+                      <div>
+                        <label>
+                        <Input type="email" value="" onChange={function onChange} placeholder="tu@startup..." ...>
+                          <Input type="email" data-slot="input" className="h-8 w-full..." value="" ...>
+                            <FieldControl ref={null} type="email" data-slot="input" className="h-8 w-full..." value="" ...>
+                              <input
+                                id="base-ui-_R_jaatpesndlb_"
+                                disabled={false}
+                                name={undefined}
+                                ref={function}
+                                aria-labelledby={undefined}
+                                autoFocus={false}
+                                value=""
+                                onChange={function}
+                                onFocus={function}
+                                onBlur={function}
+                                onKeyDown={function}
+                                type="email"
+                                data-slot="input"
+                                placeholder="tu@startup.com"
+                                required={true}
+                                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-..."
+-                               style={{caret-color:"transparent"}}
+                              >
+                      ...
+        ...
+      ...
+
+[2026-04-23T18:56:09.691Z] [warning] Image with src "/logo-mf.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[2026-04-23T18:56:18.704Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T18:56:18.962Z] [log] [Fast Refresh] done in 111ms
+[2026-04-23T18:56:24.758Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T18:56:24.901Z] [log] [Fast Refresh] done in 251ms
+[2026-04-23T18:56:34.658Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T18:56:34.862Z] [log] [Fast Refresh] done in 319ms
+[2026-04-23T18:56:34.989Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T18:56:35.945Z] [log] [Fast Refresh] done in 1061ms
+[2026-04-23T18:56:36.681Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T18:56:36.707Z] [log] [HMR] connected
+[2026-04-23T18:59:10.321Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T18:59:10.928Z] [log] [Fast Refresh] done in 727ms
+[2026-04-23T19:00:23.762Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:23.780Z] [log] [Fast Refresh] done in 131ms
+[2026-04-23T19:00:23.919Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:24.029Z] [log] [Fast Refresh] done in 225ms
+[2026-04-23T19:00:30.519Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:30.609Z] [log] [Fast Refresh] done in 188ms
+[2026-04-23T19:00:30.734Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:31.142Z] [log] [Fast Refresh] done in 533ms
+[2026-04-23T19:00:31.544Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:31.619Z] [log] [Fast Refresh] done in 176ms
+[2026-04-23T19:00:34.012Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:34.063Z] [log] [Fast Refresh] done in 156ms
+[2026-04-23T19:00:37.615Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:37.629Z] [log] [Fast Refresh] done in 114ms
+[2026-04-23T19:00:37.740Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:37.970Z] [log] [Fast Refresh] done in 336ms
+[2026-04-23T19:00:38.095Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:38.118Z] [log] [Fast Refresh] done in 126ms
+[2026-04-23T19:00:39.290Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:39.299Z] [log] [Fast Refresh] done in 110ms
+[2026-04-23T19:00:42.128Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:00:42.778Z] [log] [Fast Refresh] done in 753ms
+[2026-04-23T19:01:01.118Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:01:01.790Z] [log] [Fast Refresh] done in 776ms
+[2026-04-23T19:02:09.439Z] [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[2026-04-23T19:02:09.510Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:02:09.625Z] [log] [HMR] connected
+[2026-04-23T19:02:10.032Z] [error] Failed to load resource: the server responded with a status of 404 (Not Found)
+[2026-04-23T19:02:10.087Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:02:10.117Z] [log] [HMR] connected
+[2026-04-23T19:02:11.102Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:02:11.126Z] [log] [HMR] connected
+[2026-04-23T19:03:21.758Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:03:21.773Z] [log] [Fast Refresh] done in 118ms
+[2026-04-23T19:03:31.867Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:03:32.233Z] [log] [Fast Refresh] done in 444ms
+[2026-04-23T19:03:32.354Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:03:32.625Z] [log] [Fast Refresh] done in 382ms
+[2026-04-23T19:03:32.762Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:03:32.864Z] [log] [Fast Refresh] done in 206ms
+[2026-04-23T19:03:33.004Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:03:33.138Z] [log] [Fast Refresh] done in 247ms
+[2026-04-23T19:03:58.773Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:03:58.867Z] [log] [Fast Refresh] done in 182ms
+[2026-04-23T19:04:16.446Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:17.035Z] [log] [Fast Refresh] done in 692ms
+[2026-04-23T19:04:17.134Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:17.303Z] [log] [Fast Refresh] done in 269ms
+[2026-04-23T19:04:17.534Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:17.600Z] [log] [Fast Refresh] done in 169ms
+[2026-04-23T19:04:18.073Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:19.228Z] [log] [Fast Refresh] done in 1253ms
+[2026-04-23T19:04:19.365Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:19.500Z] [log] [Fast Refresh] done in 234ms
+[2026-04-23T19:04:20.083Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:20.210Z] [log] [Fast Refresh] done in 242ms
+[2026-04-23T19:04:39.173Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:39.750Z] [log] [Fast Refresh] done in 680ms
+[2026-04-23T19:04:39.968Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:40.057Z] [log] [Fast Refresh] done in 191ms
+[2026-04-23T19:04:40.311Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:40.398Z] [log] [Fast Refresh] done in 195ms
+[2026-04-23T19:04:40.900Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:40.950Z] [log] [Fast Refresh] done in 157ms
+[2026-04-23T19:04:41.434Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:41.456Z] [log] [Fast Refresh] done in 125ms
+[2026-04-23T19:04:41.998Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:42.006Z] [log] [Fast Refresh] done in 111ms
+[2026-04-23T19:04:42.516Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:42.562Z] [log] [Fast Refresh] done in 147ms
+[2026-04-23T19:04:43.009Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:04:43.043Z] [log] [Fast Refresh] done in 135ms
+[2026-04-23T19:05:08.984Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:09.209Z] [log] [Fast Refresh] done in 336ms
+[2026-04-23T19:05:09.437Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:09.494Z] [log] [Fast Refresh] done in 160ms
+[2026-04-23T19:05:09.720Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:09.772Z] [log] [Fast Refresh] done in 153ms
+[2026-04-23T19:05:09.922Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:09.973Z] [log] [Fast Refresh] done in 157ms
+[2026-04-23T19:05:10.382Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:10.455Z] [log] [Fast Refresh] done in 177ms
+[2026-04-23T19:05:10.901Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:10.939Z] [log] [Fast Refresh] done in 148ms
+[2026-04-23T19:05:11.401Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:11.435Z] [log] [Fast Refresh] done in 137ms
+[2026-04-23T19:05:11.897Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:11.932Z] [log] [Fast Refresh] done in 139ms
+[2026-04-23T19:05:12.380Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:12.386Z] [log] [Fast Refresh] done in 116ms
+[2026-04-23T19:05:12.816Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:12.853Z] [log] [Fast Refresh] done in 138ms
+[2026-04-23T19:05:29.560Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:29.616Z] [log] [Fast Refresh] done in 165ms
+[2026-04-23T19:05:29.780Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:05:29.931Z] [log] [HMR] connected
+[2026-04-23T19:05:30.125Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:30.253Z] [log] [Fast Refresh] done in 237ms
+[2026-04-23T19:05:30.377Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:30.850Z] [log] [Fast Refresh] done in 576ms
+[2026-04-23T19:05:31.147Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:05:31.179Z] [log] [HMR] connected
+[2026-04-23T19:05:31.659Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:32.047Z] [log] [Fast Refresh] done in 499ms
+[2026-04-23T19:05:32.430Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:05:32.457Z] [log] [HMR] connected
+[2026-04-23T19:05:46.454Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:46.651Z] [log] [Fast Refresh] done in 311ms
+[2026-04-23T19:05:51.001Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:05:51.188Z] [log] [Fast Refresh] done in 299ms
+[2026-04-23T19:06:04.602Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:06:04.686Z] [log] [HMR] connected
+[2026-04-23T19:06:43.776Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:06:44.025Z] [log] [Fast Refresh] done in 321ms
+[2026-04-23T19:06:44.131Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:06:44.339Z] [log] [Fast Refresh] done in 308ms
+[2026-04-23T19:11:51.039Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:11:51.191Z] [log] [Fast Refresh] done in 261ms
+[2026-04-23T19:11:51.348Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:11:51.475Z] [log] [HMR] connected
+[2026-04-23T19:11:51.647Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:11:51.766Z] [log] [Fast Refresh] done in 228ms
+[2026-04-23T19:12:05.018Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:12:05.479Z] [log] [Fast Refresh] done in 565ms
+[2026-04-23T19:12:30.430Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:12:31.161Z] [log] [Fast Refresh] done in 840ms
+[2026-04-23T19:12:32.521Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:12:32.937Z] [log] [Fast Refresh] done in 526ms
+[2026-04-23T19:13:37.595Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:13:37.637Z] [log] [Fast Refresh] done in 147ms
+[2026-04-23T19:15:01.227Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:15:01.795Z] [log] [Fast Refresh] done in 657ms
+[2026-04-23T19:15:01.908Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:15:02.354Z] [log] [Fast Refresh] done in 552ms
+[2026-04-23T19:15:02.510Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:15:02.541Z] [log] [Fast Refresh] done in 141ms
+[2026-04-23T19:15:48.487Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:15:48.541Z] [log] [Fast Refresh] done in 159ms
+[2026-04-23T19:15:48.685Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:15:48.807Z] [log] [HMR] connected
+[2026-04-23T19:17:12.007Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:17:12.148Z] [log] [HMR] connected
+[2026-04-23T19:17:19.927Z] [error] Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+[2026-04-23T19:17:59.018Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:17:59.916Z] [log] [Fast Refresh] done in 1010ms
+[2026-04-23T19:18:00.019Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:18:00.189Z] [log] [Fast Refresh] done in 271ms
+[2026-04-23T19:18:00.310Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:18:00.318Z] [log] [Fast Refresh] done in 109ms
+[2026-04-23T19:18:00.450Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:18:00.578Z] [log] [Fast Refresh] done in 234ms
+[2026-04-23T19:18:01.103Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:18:01.147Z] [log] [Fast Refresh] done in 149ms
+[2026-04-23T19:22:52.246Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:22:52.502Z] [log] [Fast Refresh] done in 358ms
+[2026-04-23T19:23:47.425Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:23:47.565Z] [log] [Fast Refresh] done in 219ms
+[2026-04-23T19:23:47.672Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:23:47.900Z] [log] [Fast Refresh] done in 335ms
+[2026-04-23T19:24:06.563Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:06.656Z] [warning] [Fast Refresh] performing full reload because your application had an unrecoverable error
+[2026-04-23T19:24:06.786Z] [warning] [Fast Refresh] performing full reload because your application had an unrecoverable error
+[2026-04-23T19:24:07.890Z] [warning] [Fast Refresh] performing full reload because your application had an unrecoverable error
+[2026-04-23T19:24:07.916Z] [log] [Fast Refresh] done in 1408ms
+[2026-04-23T19:24:08.244Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:08.744Z] [log] [Fast Refresh] done in 611ms
+[2026-04-23T19:24:09.177Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:09.402Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:24:09.566Z] [log] [HMR] connected
+[2026-04-23T19:24:09.633Z] [warning] Image with src "/logo-mf.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[2026-04-23T19:24:09.666Z] [warning] Image with src "/logo-mf.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[2026-04-23T19:24:09.759Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:09.759Z] [log] [Fast Refresh] done in 107ms
+[2026-04-23T19:24:19.470Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:19.571Z] [log] [Fast Refresh] done in 203ms
+[2026-04-23T19:24:19.692Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:20.004Z] [log] [Fast Refresh] done in 419ms
+[2026-04-23T19:24:20.259Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:24:20.327Z] [log] [HMR] connected
+[2026-04-23T19:24:20.384Z] [warning] Image with src "/logo-mf.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[2026-04-23T19:24:20.423Z] [warning] Image with src "/logo-mf.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[2026-04-23T19:24:20.539Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:20.709Z] [log] [Fast Refresh] done in 278ms
+[2026-04-23T19:24:26.343Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:26.858Z] [log] [Fast Refresh] done in 627ms
+[2026-04-23T19:24:26.968Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:27.333Z] [log] [Fast Refresh] done in 466ms
+[2026-04-23T19:24:27.502Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:24:27.539Z] [log] [HMR] connected
+[2026-04-23T19:24:27.580Z] [warning] Image with src "/logo-mf.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[2026-04-23T19:24:27.604Z] [warning] Image with src "/logo-mf.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[2026-04-23T19:24:27.721Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:27.940Z] [log] [Fast Refresh] done in 332ms
+[2026-04-23T19:24:28.047Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:28.181Z] [log] [Fast Refresh] done in 230ms
+[2026-04-23T19:24:28.286Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:28.500Z] [log] [Fast Refresh] done in 316ms
+[2026-04-23T19:24:28.604Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:24:28.773Z] [log] [Fast Refresh] done in 272ms
+[2026-04-23T19:25:07.592Z] [log] [Fast Refresh] rebuilding
+[2026-04-23T19:25:07.674Z] [log] [Fast Refresh] done in 193ms
+[2026-04-23T19:25:07.811Z] [info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[2026-04-23T19:25:07.946Z] [log] [HMR] connected
+[2026-04-23T19:25:07.977Z] [warning] Image with src "/logo-mf.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[2026-04-23T19:25:08.001Z] [warning] Image with src "/logo-mf.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
