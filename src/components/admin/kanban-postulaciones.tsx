@@ -4,20 +4,32 @@ import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   ExternalLink, CheckCircle, XCircle, X, Loader2,
-  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2,
+  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff, Send, Building2, Search, AlertCircle,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ApplicationProfile } from "@/components/admin/application-profile";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { ApplicationRecord, ApplicationStatus, CouponRecord } from "@/lib/airtable";
+import type { ApplicationRecord, ApplicationStatus, CouponRecord, PagoRecord } from "@/lib/airtable";
+import { applicationSchema } from "@/lib/form-schema";
+
+function isIncompleta(a: ApplicationRecord): boolean {
+  if (a.status !== "Nueva postulación") return false;
+  let data: unknown = {};
+  try { data = JSON.parse(a.form_responses ?? "{}"); } catch { /* ignore */ }
+  return !applicationSchema.safeParse(data).success;
+}
 
 // ─── Pipeline columns ─────────────────────────────────────────────────────────
 
 const COLUMNS: { id: ApplicationStatus; label: string; border: string; header: string }[] = [
   { id: "Nueva postulación", label: "Nueva postulación", border: "border-t-zinc-400",  header: "bg-zinc-100 text-zinc-700" },
-  { id: "En revisión",       label: "En revisión",       border: "border-t-amber-400", header: "bg-amber-50 text-amber-700" },
   { id: "Admitida",          label: "Admitida",           border: "border-t-blue-500",  header: "bg-blue-50 text-blue-700" },
-  { id: "Inscrita",          label: "Inscrita",           border: "border-t-green-500", header: "bg-green-50 text-green-700" },
+  { id: "Sin Respuesta",     label: "Sin respuesta",      border: "border-t-zinc-300",  header: "bg-zinc-50 text-zinc-500" },
 ];
+
+// Estados que NO se muestran en el kanban — viven en Empresas activas
+const HIDDEN_STATUSES: ApplicationStatus[] = ["Inscrita", "Invitada institucional"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,7 +62,7 @@ function getAlerts(a: ApplicationRecord, days: number): Alert[] {
 // ─── Modals ───────────────────────────────────────────────────────────────────
 
 interface StatusModal {
-  type: "Admitida" | "Rechazada";
+  type: "Admitida" | "Rechazada" | "Rechazada por founder";
   recordId: string;
   startupName: string;
   founderName: string;
@@ -64,29 +76,67 @@ interface ActionsModal {
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 function KanbanCard({
-  a, onAdmit, onReject, onActions, updating, onDragStart,
+  a, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, onCardClick, updating, onDragStart,
 }: {
   a: ApplicationRecord;
   onAdmit: (a: ApplicationRecord) => void;
   onReject: (a: ApplicationRecord) => void;
+  onSinRespuesta: (a: ApplicationRecord) => void;
+  onRechazadoFounder: (a: ApplicationRecord) => void;
   onActions: (a: ApplicationRecord) => void;
+  onCardClick: (a: ApplicationRecord) => void;
   updating: string | null;
   onDragStart: (id: string) => void;
 }) {
   const days = daysOld(a.created_at as string);
   const alerts = getAlerts(a, days);
-  const canAct = a.status === "Nueva postulación" || a.status === "En revisión";
+  const canAct = a.status === "Nueva postulación" || a.status === "Sin Respuesta";
+  const [sendingLink, setSendingLink] = useState(false);
+
+  async function handleResendCheckout(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSendingLink(true);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: a.id, action: "resend_checkout" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Error");
+      await navigator.clipboard.writeText(data.url);
+      toast.success("Link de pago copiado — reenvialo por email o WhatsApp");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al generar link");
+    } finally {
+      setSendingLink(false);
+    }
+  }
 
   return (
     <div
       draggable
       onDragStart={() => onDragStart(a.id!)}
-      className="bg-white rounded-xl border border-zinc-200 p-3.5 space-y-2.5 hover:shadow-md transition-shadow group cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95 select-none"
+      onClick={() => onCardClick(a)}
+      className="bg-white rounded-xl border border-zinc-200 p-3.5 space-y-2.5 hover:shadow-md transition-shadow group cursor-pointer active:cursor-grabbing active:opacity-60 active:scale-95 select-none"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold text-zinc-800 text-sm truncate">{a.startup_name}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="font-semibold text-zinc-800 text-sm truncate">{a.startup_name}</p>
+            {a.ias_interested === "Sí" && (
+              <span title="Invitación Institucional">
+                <Building2 className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+              </span>
+            )}
+            {isIncompleta(a) && (
+              <span title="No terminó el formulario" className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 text-[10px] font-semibold shrink-0">
+                <AlertCircle className="h-3 w-3" />
+                Incompleta
+              </span>
+            )}
+          </div>
           <p className="text-xs text-zinc-400 truncate mt-0.5">{a.first_name} {a.last_name}</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -98,6 +148,18 @@ function KanbanCard({
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
+          {/* Follow-up badge alongside the age dot */}
+          {(a.follow_up_1_sent || a.follow_up_2_sent) && (
+            <span
+              className={cn(
+                "flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white",
+                a.follow_up_2_sent ? "bg-red-500" : "bg-amber-400"
+              )}
+              title={`Seguimiento ${a.follow_up_2_sent ? 2 : 1}/2 enviado`}
+            >
+              {a.follow_up_2_sent ? 2 : 1}
+            </span>
+          )}
           <span className={cn("w-2.5 h-2.5 rounded-full mt-0.5", dotClass(days))} title={`${days} días`} />
         </div>
       </div>
@@ -107,7 +169,16 @@ function KanbanCard({
         {a.startup_country_ops && <span>{a.startup_country_ops}</span>}
         {a.startup_stage && <><span className="text-zinc-200">·</span><span>{a.startup_stage}</span></>}
         {a.startup_mrr ? <><span className="text-zinc-200">·</span><span className="font-mono font-semibold text-zinc-700">${Number(a.startup_mrr).toLocaleString()}/mo</span></> : null}
+        {a.round_size ? <><span className="text-zinc-200">·</span><span className="font-mono text-emerald-700 font-semibold">Ronda ${Number(a.round_size).toLocaleString()}</span></> : null}
       </div>
+
+      {/* Referral code */}
+      {a.referral_code && (
+        <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-amber-50 text-amber-700 border-amber-200">
+          <Link2 className="h-3 w-3" />
+          <span>Ref: {a.referral_code as string}</span>
+        </div>
+      )}
 
       {/* Alerts */}
       {alerts.map((al, i) => (
@@ -115,6 +186,54 @@ function KanbanCard({
           {al.icon}<span>{al.text}</span>
         </div>
       ))}
+
+      {/* Pending payment badge for Admitida */}
+      {a.status === "Admitida" && (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg border bg-blue-50 text-blue-700 border-blue-200">
+            <CreditCard className="h-3 w-3 shrink-0" />
+            <span className="font-medium">
+              {a.payment_status && a.payment_status !== "Pendiente" ? a.payment_status : "Esperando pago"}
+            </span>
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={handleResendCheckout}
+              disabled={sendingLink}
+              className="ml-auto flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold disabled:opacity-40 transition-colors"
+            >
+              {sendingLink ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+              Copiar link
+            </button>
+          </div>
+          {/* Price with discount */}
+          <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border bg-zinc-50 text-zinc-600 border-zinc-200">
+            <Tag className="h-3 w-3 shrink-0" />
+            {a.discount_percent ? (
+              <>
+                <span className="line-through text-zinc-400">US$349</span>
+                <span className="font-semibold text-emerald-700">
+                  US${Math.round(349 * (1 - (a.discount_percent as number) / 100)).toLocaleString()}
+                </span>
+                <span className="text-zinc-400">({a.discount_percent as number}% off)</span>
+              </>
+            ) : (
+              <span className="font-semibold">US$349</span>
+            )}
+          </div>
+          {/* Follow-up status */}
+          {(a.follow_up_1_sent || a.follow_up_2_sent) && (
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border",
+              a.follow_up_2_sent
+                ? "bg-red-50 text-red-600 border-red-200"
+                : "bg-amber-50 text-amber-700 border-amber-200"
+            )}>
+              <Send className="h-3 w-3 shrink-0" />
+              <span>Follow-up {a.follow_up_2_sent ? "2/2" : "1/2"} enviado</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Coupon badge */}
       {a.coupon_code && (
@@ -137,18 +256,43 @@ function KanbanCard({
           <span className="text-xs text-zinc-300">{days}d</span>
         </div>
 
-        {canAct && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => onAdmit(a)} disabled={updating === a.id} title="Admitir"
-              className="p-1.5 rounded-lg hover:bg-blue-50 text-zinc-300 hover:text-blue-600 transition-colors">
-              <CheckCircle className="h-4 w-4" />
-            </button>
-            <button onClick={() => onReject(a)} disabled={updating === a.id} title="Rechazar"
-              className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-300 hover:text-red-500 transition-colors">
-              <XCircle className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {canAct && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); onAdmit(a); }} disabled={updating === a.id} title="Admitir"
+                className="p-1.5 rounded-lg hover:bg-blue-50 text-zinc-300 hover:text-blue-600 transition-colors">
+                <CheckCircle className="h-4 w-4" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onReject(a); }} disabled={updating === a.id} title="Rechazar"
+                className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-300 hover:text-red-500 transition-colors">
+                <XCircle className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          {a.status === "Admitida" && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleResendCheckout(e); }}
+                disabled={sendingLink || updating === a.id}
+                title="Copiar link de pago"
+                className="p-1.5 rounded-lg hover:bg-blue-50 text-zinc-300 hover:text-blue-600 transition-colors disabled:opacity-40"
+              >
+                {sendingLink
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <Send className="h-4 w-4" />
+                }
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onSinRespuesta(a); }} disabled={updating === a.id} title="Sin respuesta"
+                className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-300 hover:text-zinc-500 transition-colors">
+                <BellOff className="h-4 w-4" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onRechazadoFounder(a); }} disabled={updating === a.id} title="Rechazado por founder"
+                className="p-1.5 rounded-lg hover:bg-orange-50 text-zinc-300 hover:text-orange-500 transition-colors">
+                <XCircle className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -157,13 +301,16 @@ function KanbanCard({
 // ─── Drop Column ──────────────────────────────────────────────────────────────
 
 function DropColumn({
-  col, cards, onAdmit, onReject, onActions, updating, onDragStart, onDrop, dragOver, setDragOver,
+  col, cards, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, onCardClick, updating, onDragStart, onDrop, dragOver, setDragOver,
 }: {
   col: typeof COLUMNS[0];
   cards: ApplicationRecord[];
   onAdmit: (a: ApplicationRecord) => void;
   onReject: (a: ApplicationRecord) => void;
+  onSinRespuesta: (a: ApplicationRecord) => void;
+  onRechazadoFounder: (a: ApplicationRecord) => void;
   onActions: (a: ApplicationRecord) => void;
+  onCardClick: (a: ApplicationRecord) => void;
   updating: string | null;
   onDragStart: (id: string) => void;
   onDrop: (targetStatus: ApplicationStatus) => void;
@@ -201,7 +348,7 @@ function DropColumn({
           </div>
         )}
         {cards.map((a) => (
-          <KanbanCard key={a.id} a={a} onAdmit={onAdmit} onReject={onReject} onActions={onActions} updating={updating} onDragStart={onDragStart} />
+          <KanbanCard key={a.id} a={a} onAdmit={onAdmit} onReject={onReject} onSinRespuesta={onSinRespuesta} onRechazadoFounder={onRechazadoFounder} onActions={onActions} onCardClick={onCardClick} updating={updating} onDragStart={onDragStart} />
         ))}
       </div>
     </div>
@@ -261,9 +408,9 @@ function ActionsModalView({ app, coupons, onClose, onCouponAssign, onAdmit, onRe
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error");
       await navigator.clipboard.writeText(data.url);
-      toast.success("Link de pago copiado al portapapeles");
+      toast.success("Email con link de pago enviado");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al generar link");
+      toast.error(err instanceof Error ? err.message : "Error al enviar email");
     } finally {
       setCopyingLink(false);
     }
@@ -309,7 +456,7 @@ function ActionsModalView({ app, coupons, onClose, onCouponAssign, onAdmit, onRe
               </select>
               <Button
                 onClick={handleCouponSave}
-                disabled={!selectedCoupon || selectedCoupon === app.coupon_code || updating === app.id}
+                disabled={!selectedCoupon || updating === app.id}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4"
               >
                 {updating === app.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Asignar"}
@@ -361,7 +508,7 @@ function ActionsModalView({ app, coupons, onClose, onCouponAssign, onAdmit, onRe
                 className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 py-1 disabled:opacity-50"
               >
                 {copyingLink ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
-                {copyingLink ? "Generando..." : "Copiar link de pago"}
+                {copyingLink ? "Enviando..." : "Enviar link por email"}
               </button>
             </div>
           </div>
@@ -374,23 +521,49 @@ function ActionsModalView({ app, coupons, onClose, onCouponAssign, onAdmit, onRe
 
 // ─── Board ────────────────────────────────────────────────────────────────────
 
-export function KanbanPostulaciones({ initialData, coupons }: {
+export function KanbanPostulaciones({ initialData, coupons, pagos }: {
   initialData: ApplicationRecord[];
   coupons: CouponRecord[];
+  pagos: PagoRecord[];
 }) {
   const [data, setData] = useState(initialData);
+  const [search, setSearch] = useState("");
+  const [filterStage, setFilterStage] = useState("");
+  const [filterCountry, setFilterCountry] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
   const [statusModal, setStatusModal] = useState<StatusModal | null>(null);
   const [actionsModal, setActionsModal] = useState<ActionsModal | null>(null);
+  const [profileApp, setProfileApp] = useState<ApplicationRecord | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const draggingId = useRef<string | null>(null);
 
+  const filteredData = useMemo(() => {
+    const q = search.toLowerCase();
+    return data.filter((a) => {
+      if (a.status && HIDDEN_STATUSES.includes(a.status)) return false;
+      if (q && !(
+        a.startup_name?.toLowerCase().includes(q) ||
+        a.first_name?.toLowerCase().includes(q) ||
+        a.last_name?.toLowerCase().includes(q) ||
+        a.email?.toLowerCase().includes(q) ||
+        a.startup_country_ops?.toLowerCase().includes(q) ||
+        a.startup_industries?.toLowerCase().includes(q)
+      )) return false;
+      if (filterStage && a.startup_stage !== filterStage) return false;
+      if (filterCountry && a.startup_country_ops !== filterCountry) return false;
+      return true;
+    });
+  }, [data, search, filterStage, filterCountry]);
+
   const byColumn = useMemo(() => {
     const map: Record<string, ApplicationRecord[]> = {};
-    COLUMNS.forEach((c) => { map[c.id] = data.filter((a) => a.status === c.id); });
+    COLUMNS.forEach((c) => { map[c.id] = filteredData.filter((a) => a.status === c.id); });
     return map;
-  }, [data]);
+  }, [filteredData]);
+
+  const stages = useMemo(() => [...new Set(data.map((a) => a.startup_stage).filter(Boolean))].sort() as string[], [data]);
+  const countries = useMemo(() => [...new Set(data.map((a) => a.startup_country_ops).filter(Boolean))].sort() as string[], [data]);
 
   function onDragStart(id: string) {
     draggingId.current = id;
@@ -415,6 +588,12 @@ export function KanbanPostulaciones({ initialData, coupons }: {
   }
   function openReject(a: ApplicationRecord) {
     setStatusModal({ type: "Rechazada", recordId: a.id!, startupName: a.startup_name ?? "", founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(), reason: "" });
+  }
+  async function marcarSinRespuesta(a: ApplicationRecord) {
+    await applyStatus(a.id!, "Sin Respuesta");
+  }
+  function openRechazadoFounder(a: ApplicationRecord) {
+    setStatusModal({ type: "Rechazada por founder", recordId: a.id!, startupName: a.startup_name ?? "", founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(), reason: "" });
   }
 
   async function applyStatus(recordId: string, status: ApplicationStatus, reason?: string) {
@@ -445,14 +624,17 @@ export function KanbanPostulaciones({ initialData, coupons }: {
       const res = await fetch("/api/admin/applications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recordId: app.id, coupon_code: coupon.code, discount_percent: coupon.discount_percent, stripe_coupon_id: coupon.stripe_coupon_id }),
+        body: JSON.stringify({ recordId: app.id, coupon_code: coupon.code, discount_percent: coupon.discount_percent, stripe_coupon_id: coupon.stripe_coupon_id, stripe_promotion_code_id: coupon.stripe_promotion_code_id }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
       setData((prev) => prev.map((a) => a.id === app.id ? { ...a, coupon_code: coupon.code, discount_percent: coupon.discount_percent } : a));
       setActionsModal((m) => m ? { ...m, app: { ...m.app, coupon_code: coupon.code, discount_percent: coupon.discount_percent } } : m);
       toast.success(`Cupón ${coupon.code} (${coupon.discount_percent}% off) asignado`);
-    } catch {
-      toast.error("Error al asignar cupón");
+    } catch (err) {
+      toast.error(`Error al asignar cupón: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setUpdating(null);
     }
@@ -463,6 +645,43 @@ export function KanbanPostulaciones({ initialData, coupons }: {
   return (
     <div className="space-y-3" onDragEnd={() => { draggingId.current = null; setDragOver(null); setIsDragging(false); }}>
 
+      {/* Search + filters */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar startup, founder, email, país..."
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
+        <select
+          value={filterStage}
+          onChange={(e) => setFilterStage(e.target.value)}
+          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">Todas las etapas</option>
+          {stages.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select
+          value={filterCountry}
+          onChange={(e) => setFilterCountry(e.target.value)}
+          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">Todos los países</option>
+          {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        {(search || filterStage || filterCountry) && (
+          <button
+            onClick={() => { setSearch(""); setFilterStage(""); setFilterCountry(""); }}
+            className="h-9 px-3 rounded-lg border border-zinc-200 text-sm text-zinc-500 hover:bg-zinc-50 transition-colors"
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
+
       <div className="flex gap-3 overflow-x-auto pb-2 items-start">
         {COLUMNS.map((col) => (
           <DropColumn
@@ -471,7 +690,10 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             cards={byColumn[col.id] ?? []}
             onAdmit={openAdmit}
             onReject={openReject}
+            onSinRespuesta={marcarSinRespuesta}
+            onRechazadoFounder={openRechazadoFounder}
             onActions={(a) => setActionsModal({ app: a })}
+            onCardClick={(a) => setProfileApp(a)}
             updating={updating}
             onDragStart={onDragStart}
             onDrop={(status) => moveCard(status)}
@@ -499,7 +721,7 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-lg font-bold text-zinc-800">
-                  {statusModal.type === "Admitida" ? "✅ Admitir postulación" : "Rechazar postulación"}
+                  {statusModal.type === "Admitida" ? "✅ Admitir postulación" : statusModal.type === "Rechazada por founder" ? "Rechazado por founder" : "Rechazar postulación"}
                 </h3>
                 <p className="text-sm text-zinc-500 mt-0.5">{statusModal.startupName} — {statusModal.founderName}</p>
               </div>
@@ -507,20 +729,24 @@ export function KanbanPostulaciones({ initialData, coupons }: {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700">
-                {statusModal.type === "Admitida" ? "Nota de admisión (opcional)" : "Razón de rechazo (opcional)"}
-              </label>
-              <textarea
-                value={statusModal.reason}
-                onChange={(e) => setStatusModal((m) => m ? { ...m, reason: e.target.value } : m)}
-                placeholder={statusModal.type === "Admitida"
-                  ? "Excelente tracción, encaja perfecto con el programa..."
-                  : "El MRR no cumple el mínimo requerido para esta cohorte..."}
-                rows={3}
-                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
+            {statusModal.type !== "Rechazada" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700">
+                  {statusModal.type === "Admitida"
+                    ? "Nota de admisión (opcional)"
+                    : "¿Por qué rechazó el founder? *"}
+                </label>
+                <textarea
+                  value={statusModal.reason}
+                  onChange={(e) => setStatusModal((m) => m ? { ...m, reason: e.target.value } : m)}
+                  placeholder={statusModal.type === "Admitida"
+                    ? "Excelente tracción, encaja perfecto con el programa..."
+                    : "El founder indicó que el precio no se ajusta a su presupuesto..."}
+                  rows={3}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+            )}
             {statusModal.type === "Admitida" && (
               <div className="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-700">
                 Se enviará automáticamente un email con el link de pago de Stripe.
@@ -529,6 +755,10 @@ export function KanbanPostulaciones({ initialData, coupons }: {
             <div className="flex gap-3">
               <Button
                 onClick={async () => {
+                  if (statusModal.type === "Rechazada por founder" && !statusModal.reason.trim()) {
+                    toast.error("Indicá la razón del rechazo del founder");
+                    return;
+                  }
                   await applyStatus(statusModal.recordId, statusModal.type as ApplicationStatus, statusModal.reason || undefined);
                   setStatusModal(null);
                 }}
@@ -553,6 +783,28 @@ export function KanbanPostulaciones({ initialData, coupons }: {
           onAdmit={openAdmit}
           onReject={openReject}
           updating={updating}
+        />
+      )}
+
+      {/* Profile slide-over */}
+      {profileApp && (
+        <ApplicationProfile
+          app={profileApp}
+          coupons={coupons}
+          pagos={pagos}
+          onClose={() => setProfileApp(null)}
+          onStatusChange={(id, status) => {
+            setData((prev) => prev.map((a) => a.id === id ? { ...a, status } : a));
+            setProfileApp(null);
+          }}
+          onCouponAssign={(id, coupon) => {
+            const code = coupon.code || undefined;
+            const pct = coupon.code ? coupon.discount_percent : undefined;
+            setData((prev) => prev.map((a) =>
+              a.id === id ? { ...a, coupon_code: code, discount_percent: pct } : a
+            ));
+            setProfileApp((prev) => prev ? { ...prev, coupon_code: code, discount_percent: pct } : prev);
+          }}
         />
       )}
     </div>

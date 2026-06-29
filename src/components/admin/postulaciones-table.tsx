@@ -1,22 +1,26 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Search, ExternalLink, CheckCircle, XCircle, X, Loader2 } from "lucide-react";
+import { Search, ExternalLink, CheckCircle, XCircle, X, Loader2, BellOff, Send, ChevronDown, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ApplicationRecord, ApplicationStatus } from "@/lib/airtable";
+import { applicationSchema } from "@/lib/form-schema";
 
 const STATUS_TABS: { label: string; value: ApplicationStatus | "all" }[] = [
   { label: "Todas", value: "all" },
-  { label: "Nuevas", value: "Nueva postulación" },
-  { label: "En revisión", value: "En revisión" },
-  { label: "Admitidas", value: "Admitida" },
-  { label: "Rechazadas", value: "Rechazada" },
-  { label: "Inscritas", value: "Inscrita" },
+  { label: "Nueva postulación", value: "Nueva postulación" },
+  { label: "Admitida", value: "Admitida" },
+  { label: "Rechazada por founder", value: "Rechazada por founder" },
   { label: "Churn", value: "Churn" },
+  { label: "Sin respuesta", value: "Sin Respuesta" },
+  { label: "Rechazada", value: "Rechazada" },
 ];
+
+// Estados que NO se muestran en /admin/postulaciones (viven en otra vista, ej. Empresas activas)
+const HIDDEN_STATUSES: ApplicationStatus[] = ["Inscrita", "Invitada institucional"];
 
 const STATUS_COLORS: Record<string, string> = {
   "Nueva postulación": "bg-zinc-100 text-zinc-600",
@@ -38,18 +42,102 @@ interface ModalState {
   startupName: string;
   founderName: string;
   reason: string;
+  appData: AppData;
 }
+
+interface AppData {
+  email: string;
+  firstName: string;
+  startupName: string;
+  stripeCouponId?: string;
+  discountPercent?: number;
+}
+
+const CHANGEABLE_STATUSES: ApplicationStatus[] = [
+  "Nueva postulación",
+  "En revisión",
+  "Admitida",
+  "Rechazada",
+  "Sin Respuesta",
+];
+
+function isIncompleta(a: ApplicationRecord): boolean {
+  if (a.status !== "Nueva postulación") return false;
+  let data: unknown = {};
+  try { data = JSON.parse(a.form_responses as string ?? "{}"); } catch { /* ignore */ }
+  return !applicationSchema.safeParse(data).success;
+}
+
+type ColumnKey =
+  | "startup_founder"
+  | "country"
+  | "stage"
+  | "mrr"
+  | "deck"
+  | "website"
+  | "followups"
+  | "payment_status"
+  | "cobranza"
+  | "comentarios"
+  | "churn_reason"
+  | "estado"
+  | "acciones"
+  | "fecha";
+
+const COLUMNS_BY_STATUS: Record<string, ColumnKey[]> = {
+  "all": ["startup_founder", "country", "stage", "mrr", "deck", "estado", "acciones", "fecha"],
+  "Nueva postulación": ["startup_founder", "country", "stage", "mrr", "deck", "website", "estado", "acciones", "fecha"],
+  "Admitida": ["startup_founder", "deck", "website", "followups", "payment_status", "acciones", "fecha"],
+  "Inscrita": ["startup_founder", "deck", "website", "payment_status", "cobranza", "acciones", "fecha"],
+  "Rechazada por founder": ["startup_founder", "comentarios", "acciones", "fecha"],
+  "Churn": ["startup_founder", "churn_reason", "acciones", "fecha"],
+  "Sin Respuesta": ["startup_founder", "country", "stage", "deck", "estado", "acciones", "fecha"],
+  "Rechazada": ["startup_founder", "comentarios", "acciones", "fecha"],
+};
+
+const COLUMN_LABELS: Record<ColumnKey, string> = {
+  startup_founder: "Startup / Founder",
+  country: "País",
+  stage: "Etapa",
+  mrr: "MRR",
+  deck: "Deck",
+  website: "Página web",
+  followups: "Follow-ups",
+  payment_status: "Status pago",
+  cobranza: "Seguim. cobranza",
+  comentarios: "Comentarios",
+  churn_reason: "Razón de churn",
+  estado: "Estado",
+  acciones: "Acciones",
+  fecha: "Fecha",
+};
 
 export function PostulacionesTable({ initialData }: { initialData: ApplicationRecord[] }) {
   const [data, setData] = useState(initialData);
   const [activeTab, setActiveTab] = useState<ApplicationStatus | "all">("all");
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [copiando, setCopiando] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState | null>(null);
+  const [statusDropdown, setStatusDropdown] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Hide rejected from "all" and "En revisión" tabs — show only when filter is active
+  useEffect(() => {
+    if (!statusDropdown) return;
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setStatusDropdown(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [statusDropdown]);
+
+  // Las inscritas/invitadas viven en Empresas activas, no en postulaciones.
+  // Rechazadas se ocultan de "Todas" — solo se ven cuando el tab está activo.
   const filtered = useMemo(() => {
     return data.filter((a) => {
+      if (a.status && HIDDEN_STATUSES.includes(a.status)) return false;
       if (activeTab === "all" && a.status === "Rechazada") return false;
       const matchesTab = activeTab === "all" || a.status === activeTab;
       const q = search.toLowerCase();
@@ -63,6 +151,16 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
     });
   }, [data, activeTab, search]);
 
+  function buildAppData(a: ApplicationRecord): AppData {
+    return {
+      email: a.email!,
+      firstName: a.first_name!,
+      startupName: a.startup_name!,
+      stripeCouponId: a.stripe_coupon_id as string | undefined,
+      discountPercent: a.discount_percent ? Number(a.discount_percent) : undefined,
+    };
+  }
+
   function openModal(type: "Admitida" | "Rechazada", a: ApplicationRecord) {
     setModal({
       type,
@@ -70,7 +168,52 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
       startupName: a.startup_name ?? "",
       founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(),
       reason: "",
+      appData: buildAppData(a),
     });
+  }
+
+  async function copiarLinkPago(a: ApplicationRecord) {
+    setCopiando(a.id!);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: a.id, action: "resend_checkout", appData: buildAppData(a) }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Error");
+      toast.success("Email con link de pago enviado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al enviar email");
+    } finally {
+      setCopiando(null);
+    }
+  }
+
+  async function cambiarEstado(a: ApplicationRecord, nuevoEstado: ApplicationStatus) {
+    setStatusDropdown(null);
+    if (a.status === nuevoEstado) return;
+    if (nuevoEstado === "Admitida") { openModal("Admitida", a); return; }
+    if (nuevoEstado === "Rechazada") { openModal("Rechazada", a); return; }
+    setUpdating(a.id!);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: a.id, status: nuevoEstado, appData: buildAppData(a) }),
+      });
+      if (!res.ok) throw new Error();
+      setData((prev) => prev.map((r) => r.id === a.id ? { ...r, status: nuevoEstado } : r));
+      toast.success(`${a.startup_name} → ${nuevoEstado}`);
+    } catch {
+      toast.error("Error al actualizar estado");
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function marcarSinRespuesta(a: ApplicationRecord) {
+    await cambiarEstado(a, "Sin Respuesta");
   }
 
   async function confirmAction() {
@@ -80,6 +223,7 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
       const body: Record<string, unknown> = {
         recordId: modal.recordId,
         status: modal.type,
+        appData: modal.appData,
       };
       if (modal.reason) body.rejection_reason = modal.reason;
 
@@ -111,12 +255,15 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
   }
 
   const tabCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: data.filter((a) => a.status !== "Rechazada").length };
+    const visible = data.filter((a) => !a.status || !HIDDEN_STATUSES.includes(a.status));
+    const counts: Record<string, number> = { all: visible.filter((a) => a.status !== "Rechazada").length };
     STATUS_TABS.slice(1).forEach(({ value }) => {
-      counts[value] = data.filter((a) => a.status === value).length;
+      counts[value] = visible.filter((a) => a.status === value).length;
     });
     return counts;
   }, [data]);
+
+  const columns = COLUMNS_BY_STATUS[activeTab] ?? COLUMNS_BY_STATUS.all;
 
   return (
     <div className="space-y-4">
@@ -156,76 +303,222 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50">
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Startup / Founder</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">País</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Etapa</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">MRR</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Deck</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Estado</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Acciones</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Fecha</th>
+                {columns.map((col) => (
+                  <th key={col} className="text-left px-4 py-3 font-semibold text-zinc-600">
+                    {COLUMN_LABELS[col]}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-zinc-400">
+                  <td colSpan={columns.length} className="px-4 py-10 text-center text-zinc-400">
                     No hay postulaciones que coincidan
                   </td>
                 </tr>
               )}
               {filtered.map((a) => (
                 <tr key={a.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-zinc-800">{a.startup_name}</p>
-                    <p className="text-xs text-zinc-400">{a.first_name} {a.last_name} · {a.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600">{a.startup_country_ops}</td>
-                  <td className="px-4 py-3 text-zinc-600 text-xs">{a.startup_stage}</td>
-                  <td className="px-4 py-3 text-zinc-700 font-mono">
-                    {a.startup_mrr ? `$${Number(a.startup_mrr).toLocaleString()}` : "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {a.deck_url ? (
-                      <a href={a.deck_url as string} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs">
-                        Ver <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={cn(
-                      "inline-flex px-2 py-0.5 rounded-full text-xs font-medium",
-                      STATUS_COLORS[a.status ?? "Nueva postulación"] ?? "bg-zinc-100 text-zinc-600"
-                    )}>
-                      {a.status ?? "Nueva postulación"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {(a.status === "Nueva postulación" || a.status === "En revisión") && (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => openModal("Admitida", a)}
-                          disabled={updating === a.id}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium transition-colors"
-                        >
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          Admitir
-                        </button>
-                        <button
-                          onClick={() => openModal("Rechazada", a)}
-                          disabled={updating === a.id}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium transition-colors"
-                        >
-                          <XCircle className="h-3.5 w-3.5" />
-                          Rechazar
-                        </button>
+                  {columns.includes("startup_founder") && (
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-zinc-800">{a.startup_name}</p>
+                        {isIncompleta(a) && (
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 text-[10px] font-semibold">
+                            <AlertCircle className="h-3 w-3" />
+                            Incompleta
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-zinc-400">
-                    {a.created_at ? new Date(a.created_at as string).toLocaleDateString("es") : "-"}
-                  </td>
+                      <p className="text-xs text-zinc-400">{a.first_name} {a.last_name} · {a.email}</p>
+                    </td>
+                  )}
+                  {columns.includes("country") && (
+                    <td className="px-4 py-3 text-zinc-600">{a.startup_country_ops}</td>
+                  )}
+                  {columns.includes("stage") && (
+                    <td className="px-4 py-3 text-zinc-600 text-xs">{a.startup_stage}</td>
+                  )}
+                  {columns.includes("mrr") && (
+                    <td className="px-4 py-3 text-zinc-700 font-mono">
+                      {a.startup_mrr ? `$${Number(a.startup_mrr).toLocaleString()}` : "-"}
+                    </td>
+                  )}
+                  {columns.includes("deck") && (
+                    <td className="px-4 py-3">
+                      {a.deck_url ? (
+                        <a href={a.deck_url as string} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs">
+                          Ver <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : "-"}
+                    </td>
+                  )}
+                  {columns.includes("website") && (
+                    <td className="px-4 py-3">
+                      {a.startup_website ? (
+                        <a href={a.startup_website as string} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs">
+                          Visitar <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : "-"}
+                    </td>
+                  )}
+                  {columns.includes("followups") && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5 text-xs">
+                        <span className={cn(
+                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded w-fit",
+                          a.follow_up_1_sent ? "bg-amber-50 text-amber-700" : "bg-zinc-50 text-zinc-400"
+                        )}>
+                          {a.follow_up_1_sent ? "✓" : "○"} FU 1
+                        </span>
+                        <span className={cn(
+                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded w-fit",
+                          a.follow_up_2_sent ? "bg-red-50 text-red-600" : "bg-zinc-50 text-zinc-400"
+                        )}>
+                          {a.follow_up_2_sent ? "✓" : "○"} FU 2
+                        </span>
+                      </div>
+                    </td>
+                  )}
+                  {columns.includes("payment_status") && (
+                    <td className="px-4 py-3 text-zinc-600 text-xs">
+                      {a.payment_status ?? "—"}
+                    </td>
+                  )}
+                  {columns.includes("cobranza") && (
+                    <td className="px-4 py-3 text-xs">
+                      {a.payment_failed_at && !a.payment_resolved_at ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 text-red-600">
+                          ⚠ Falló {new Date(a.payment_failed_at as string).toLocaleDateString("es")}
+                        </span>
+                      ) : a.payment_resolved_at ? (
+                        <span className="text-green-600">Al día</span>
+                      ) : (
+                        <span className="text-zinc-400">—</span>
+                      )}
+                    </td>
+                  )}
+                  {columns.includes("comentarios") && (
+                    <td className="px-4 py-3 text-zinc-600 text-xs max-w-md">
+                      {a.rejection_reason || <span className="text-zinc-400">—</span>}
+                    </td>
+                  )}
+                  {columns.includes("churn_reason") && (
+                    <td className="px-4 py-3 text-zinc-600 text-xs max-w-md">
+                      {a.churn_reason || <span className="text-zinc-400">—</span>}
+                    </td>
+                  )}
+                  {columns.includes("estado") && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <span className={cn(
+                          "inline-flex px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap w-fit",
+                          STATUS_COLORS[a.status ?? "Nueva postulación"] ?? "bg-zinc-100 text-zinc-600"
+                        )}>
+                          {a.status ?? "Nueva postulación"}
+                        </span>
+                        {a.status === "Admitida" && a.follow_up_2_sent && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-600 w-fit">
+                            ⚠ Seg. 2/2
+                          </span>
+                        )}
+                        {a.status === "Admitida" && a.follow_up_1_sent && !a.follow_up_2_sent && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 w-fit">
+                            Seg. 1/2
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  )}
+                  {columns.includes("acciones") && (
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Quick actions per status */}
+                      {(a.status === "Nueva postulación" || a.status === "Sin Respuesta") && (
+                        <>
+                          <button
+                            onClick={() => openModal("Admitida", a)}
+                            disabled={updating === a.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium transition-colors"
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            Admitir
+                          </button>
+                          <button
+                            onClick={() => openModal("Rechazada", a)}
+                            disabled={updating === a.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium transition-colors"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            Rechazar
+                          </button>
+                        </>
+                      )}
+                      {a.status === "Admitida" && (
+                        <>
+                          <button
+                            onClick={() => copiarLinkPago(a)}
+                            disabled={copiando === a.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-xs font-medium transition-colors disabled:opacity-50"
+                          >
+                            {copiando === a.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Send className="h-3.5 w-3.5" />
+                            }
+                            {copiando === a.id ? "Enviando..." : "Enviar link pago"}
+                          </button>
+                          <button
+                            onClick={() => marcarSinRespuesta(a)}
+                            disabled={updating === a.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 text-xs font-medium transition-colors"
+                          >
+                            <BellOff className="h-3.5 w-3.5" />
+                            Sin respuesta
+                          </button>
+                        </>
+                      )}
+
+                      {/* Status dropdown — available on any state */}
+                      <div className="relative" ref={statusDropdown === a.id ? dropdownRef : undefined}>
+                        <button
+                          onClick={() => setStatusDropdown(statusDropdown === a.id ? null : a.id!)}
+                          disabled={updating === a.id}
+                          className="flex items-center gap-0.5 px-2 py-1 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 text-xs font-medium transition-colors"
+                        >
+                          {updating === a.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <ChevronDown className="h-3.5 w-3.5" />
+                          }
+                        </button>
+                        {statusDropdown === a.id && (
+                          <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-zinc-200 rounded-xl shadow-lg py-1 min-w-[170px]">
+                            <p className="px-3 py-1 text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Cambiar estado</p>
+                            {CHANGEABLE_STATUSES.map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => cambiarEstado(a, s)}
+                                className={cn(
+                                  "w-full text-left px-3 py-1.5 text-xs hover:bg-zinc-50 transition-colors",
+                                  a.status === s ? "font-semibold text-zinc-800" : "text-zinc-600"
+                                )}
+                              >
+                                {a.status === s ? "✓ " : ""}{s}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      </div>
+                    </td>
+                  )}
+                  {columns.includes("fecha") && (
+                    <td className="px-4 py-3 text-xs text-zinc-400">
+                      {a.created_at ? new Date(a.created_at as string).toLocaleDateString("es") : "-"}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -252,25 +545,20 @@ export function PostulacionesTable({ initialData }: { initialData: ApplicationRe
               </button>
             </div>
 
-            {/* Reason */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700">
-                {modal.type === "Admitida"
-                  ? "Mensaje de admisión (opcional)"
-                  : "Razón de rechazo (opcional)"}
-              </label>
-              <textarea
-                value={modal.reason}
-                onChange={(e) => setModal((m) => m ? { ...m, reason: e.target.value } : m)}
-                placeholder={
-                  modal.type === "Admitida"
-                    ? "Ej: Excelente tracción, encaja perfecto con el programa..."
-                    : "Ej: El MRR no cumple el mínimo requerido para esta cohorte..."
-                }
-                rows={4}
-                className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            </div>
+            {modal.type === "Admitida" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700">
+                  Mensaje de admisión (opcional)
+                </label>
+                <textarea
+                  value={modal.reason}
+                  onChange={(e) => setModal((m) => m ? { ...m, reason: e.target.value } : m)}
+                  placeholder="Ej: Excelente tracción, encaja perfecto con el programa..."
+                  rows={4}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+            )}
 
             {modal.type === "Admitida" && (
               <div className="bg-blue-50 rounded-lg px-4 py-3 text-sm text-blue-700">

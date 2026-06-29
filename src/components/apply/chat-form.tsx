@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { ChevronRight, Loader2, SkipForward } from "lucide-react";
@@ -15,6 +15,37 @@ import { applicationSchema, type ApplicationFormData } from "@/lib/form-schema";
 import { ALL_COUNTRIES } from "@/lib/countries";
 
 const STORAGE_KEY = "mf2026_chat";
+const SUBMITTED_KEY = "mf2026_submitted";
+
+interface SubmittedMarker {
+  email: string;
+  startup_name: string;
+  founder_name: string;
+  submitted_at: string;
+}
+
+const PHONE_CODES = [
+  { code: "+56", label: "🇨🇱 +56 Chile" },
+  { code: "+54", label: "🇦🇷 +54 Argentina" },
+  { code: "+55", label: "🇧🇷 +55 Brasil" },
+  { code: "+57", label: "🇨🇴 +57 Colombia" },
+  { code: "+52", label: "🇲🇽 +52 México" },
+  { code: "+51", label: "🇵🇪 +51 Perú" },
+  { code: "+58", label: "🇻🇪 +58 Venezuela" },
+  { code: "+593", label: "🇪🇨 +593 Ecuador" },
+  { code: "+595", label: "🇵🇾 +595 Paraguay" },
+  { code: "+598", label: "🇺🇾 +598 Uruguay" },
+  { code: "+591", label: "🇧🇴 +591 Bolivia" },
+  { code: "+1", label: "🇺🇸 +1 USA / Canadá" },
+  { code: "+34", label: "🇪🇸 +34 España" },
+  { code: "+44", label: "🇬🇧 +44 Reino Unido" },
+  { code: "+49", label: "🇩🇪 +49 Alemania" },
+  { code: "+33", label: "🇫🇷 +33 Francia" },
+  { code: "+39", label: "🇮🇹 +39 Italia" },
+  { code: "+972", label: "🇮🇱 +972 Israel" },
+  { code: "+971", label: "🇦🇪 +971 Emiratos" },
+  { code: "+65", label: "🇸🇬 +65 Singapur" },
+];
 
 const INDUSTRIES = [
   "AgriTech", "BioTech", "CleanTech", "ClimaTech", "ConstructionTech",
@@ -30,10 +61,14 @@ const TICKET_SIZES = [
 ];
 
 type InternalKeys = "_add_ref_2" | "_add_ref_3";
-type FormState = Partial<ApplicationFormData> & { [K in InternalKeys]?: "Sí" | "No" };
+type FormState = Partial<ApplicationFormData> & { [K in InternalKeys]?: "Sí" | "No" } & {
+  _founder_record_id?: string;
+  _startup_record_id?: string;
+  _postulacion_record_id?: string;
+};
 
 type QuestionType =
-  | "text" | "email" | "tel" | "number" | "url"
+  | "text" | "email" | "tel" | "phone" | "number" | "url"
   | "textarea" | "select" | "radio" | "multiselect"
   | "file" | "checkbox";
 
@@ -47,27 +82,27 @@ interface Question {
   condition?: (d: FormState) => boolean;
 }
 
-const QUESTIONS: Question[] = [
+export const QUESTIONS: Question[] = [
   // S1 — Founder
   { id: "first_name", text: "¡Hola! Soy el asistente de postulación de Impacta VC.\n\n¿Cuál es tu nombre?", type: "text" },
   { id: "last_name", text: "¿Y tu apellido?", type: "text" },
   { id: "email", text: "¿Cuál es tu email de contacto?", type: "email" },
-  { id: "whatsapp", text: "¿Número de WhatsApp? (con código de país)", type: "tel", help: "Ejemplo: +56912345678" },
-  { id: "linkedin_founder", text: "¿URL de tu perfil de LinkedIn?", type: "url", help: "https://linkedin.com/in/..." },
+  { id: "whatsapp", text: "¿Cuál es tu número de WhatsApp?", type: "phone" },
+  { id: "linkedin_founder", text: "¿URL de tu perfil de LinkedIn? (opcional)", type: "url", optional: true, help: "https://linkedin.com/in/... Puedes saltarlo si no tienes." },
   { id: "founder_role", text: "¿Cuál es tu rol en la startup?", type: "radio", options: ["CEO", "CTO", "COO", "CMO", "CFO", "Co-founder", "Otro"] },
-  { id: "country_residence", text: "¿En qué país vivís actualmente?", type: "select", options: ALL_COUNTRIES },
+  { id: "country_residence", text: "¿En qué país vives actualmente?", type: "select", options: ALL_COUNTRIES },
 
   // S2 — Startup
   { id: "startup_name", text: "¿Cómo se llama tu startup?", type: "text" },
   { id: "startup_website", text: "¿Cuál es el website de la startup?", type: "url", help: "Incluir https://" },
-  { id: "startup_linkedin", text: "¿LinkedIn de la startup?", type: "url", help: "https://linkedin.com/company/..." },
+  { id: "startup_linkedin", text: "¿LinkedIn de la startup? (opcional)", type: "url", optional: true, help: "https://linkedin.com/company/... Puedes saltarlo si no tienen." },
   { id: "startup_country_ops", text: "¿Cuál es el país principal de operaciones?", type: "select", options: ALL_COUNTRIES },
   { id: "startup_countries_expansion", text: "¿En qué países operan o quieren operar en los próximos 18 meses?", type: "multiselect", options: ALL_COUNTRIES, help: "Selecciona todos los que apliquen" },
-  { id: "startup_description", text: "Describí tu startup en 1–2 frases. ¿Qué problema resuelven y para quién?", type: "textarea" },
+  { id: "startup_description", text: "Describe tu startup en 1–2 frases. ¿Qué problema resuelven y para quién?", type: "textarea" },
   { id: "startup_industries", text: "¿En qué verticales o industrias operan?", type: "multiselect", options: INDUSTRIES, help: "Selecciona todas las que apliquen" },
-  { id: "startup_industry_other", text: "¿Cuál es la vertical? Especificá.", type: "text", optional: true, condition: (d) => Array.isArray(d.startup_industries) && d.startup_industries.includes("Otro") },
+  { id: "startup_industry_other", text: "¿Cuál es la vertical? Especifica.", type: "text", optional: true, condition: (d) => Array.isArray(d.startup_industries) && d.startup_industries.includes("Otro") },
   { id: "business_model", text: "¿Cuál es el modelo de negocio?", type: "radio", options: ["B2B", "B2C", "B2B2C", "Marketplace", "SaaS", "Otro"] },
-  { id: "business_model_other", text: "¿Cuál es el modelo? Especificá.", type: "text", optional: true, condition: (d) => d.business_model === "Otro" },
+  { id: "business_model_other", text: "¿Cuál es el modelo? Especifica.", type: "text", optional: true, condition: (d) => d.business_model === "Otro" },
   { id: "startup_stage", text: "¿En qué etapa está la startup?", type: "radio", options: ["Idea / Patent", "Prototype / MVP", "Early Revenue / Product Market-Fit", "Scaling / Go-To-Market", "Growth / Expansion"] },
   { id: "founder_team_women", text: "¿Hay al menos una mujer en el founding team?", type: "radio", options: ["Sí", "No"] },
   { id: "startup_usa_intl", text: "¿Tienen intención de internacionalizarse a USA en los próximos 18 meses?", type: "radio", options: ["Sí", "No", "Ya operamos en USA"] },
@@ -81,48 +116,46 @@ const QUESTIONS: Question[] = [
   { id: "prior_fundraising", text: "¿Han levantado capital anteriormente?", type: "radio", options: ["Sí", "No (esta sería nuestra primera ronda)"] },
   { id: "prior_fundraising_amount", text: "¿Cuánto han levantado en total hasta hoy (USD)?", type: "number", optional: true, condition: (d) => d.prior_fundraising === "Sí", help: "Suma de todas las rondas previas" },
 
-  // S5 — Ronda
+  // S5 — Ronda (se saltan las preguntas de ronda activa si round_open === "No ...")
   { id: "round_open", text: "¿Están levantando ronda actualmente?", type: "radio", options: ["Sí", "No (pero la iniciaremos en los próximos 12 meses)"] },
-  { id: "round_series", text: "¿Qué tipo de ronda es?", type: "radio", options: ["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"] },
-  { id: "round_size", text: "¿Cuál es el tamaño objetivo de la ronda (USD)?", type: "number", help: "Monto total que buscan levantar" },
-  { id: "round_tickets", text: "¿Qué rango de ticket buscan por inversor?", type: "multiselect", options: TICKET_SIZES },
+  { id: "round_series", text: "¿Qué tipo de ronda es?", type: "radio", options: ["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"], condition: (d) => d.round_open === "Sí" },
+  { id: "round_size", text: "¿Cuál es el tamaño objetivo de la ronda (USD)?", type: "number", help: "Monto total que buscan levantar", condition: (d) => d.round_open === "Sí" },
+  { id: "startup_valuation", text: "¿Cuál es la valuación actual de tu startup (USD)?", type: "number", optional: true, help: "Pre-money. Si no tienen valuación definida, puedes saltarlo.", condition: (d) => d.round_open === "Sí" },
+  { id: "round_tickets", text: "¿Qué rango de ticket buscan por inversor?", type: "multiselect", options: TICKET_SIZES, condition: (d) => d.round_open === "Sí" },
   { id: "runway", text: "¿Cuántos meses de runway tienen actualmente?", type: "number", help: "Meses que pueden operar con la caja actual" },
 
   // S6 — Deck
-  { id: "deck_url", text: "¿Dónde está tu Pitch Deck?", type: "url", help: "Google Drive, Dropbox, Notion. Asegurate que el link sea público." },
+  { id: "deck_url", text: "Sube tu deck aquí:", type: "url", help: "Google Drive, Dropbox, Notion. Asegúrate de que el link sea público." },
 
   // S7 — Recomendadores
-  { id: "referral_code", text: "¿Tenés un código de referido? (opcional)", type: "text", optional: true, help: "Ejemplo: ALUMNIMF. Podés saltearlo." },
-  { id: "has_referrals", text: "¿Querés sumar recomendadores a tu postulación? Suma puntos al perfil.", type: "radio", options: ["Sí", "No"] },
+  { id: "referral_code", text: "¿Tienes un código de referido? (opcional)", type: "text", optional: true, help: "Puedes saltarlo si no tienes." },
+  { id: "has_referrals", text: "¿Quieres sumar recomendadores a tu postulación? Suma puntos al perfil.", type: "radio", options: ["Sí", "No"], help: "Agrega a alguien que pueda hablarnos de ti y tu startup — un mentor, inversor, amigo del ecosistema o cualquier persona que conozca tu trabajo. No es obligatorio, pero una buena referencia suma." },
 
   // Referral 1
-  { id: "referral_1_name", text: "Nombre del primer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" },
-  { id: "referral_1_lastname", text: "Apellido del primer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" },
+  { id: "referral_1_name", text: "Nombre y apellido del primer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" },
   { id: "referral_1_email", text: "Email del primer recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" },
-  { id: "referral_1_linkedin", text: "LinkedIn del primer recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" },
-  { id: "referral_1_relation", text: "¿Quién es y cómo lo conocés?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" },
-  { id: "_add_ref_2", text: "¿Querés agregar otro recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" },
+  { id: "referral_1_linkedin", text: "LinkedIn del primer recomendador (opcional)", type: "text", optional: true, help: "Si no tienes, puedes saltarlo.", condition: (d) => d.has_referrals === "Sí" },
+  { id: "referral_1_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" },
+  { id: "_add_ref_2", text: "¿Quieres agregar otro recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" },
 
   // Referral 2
-  { id: "referral_2_name", text: "Nombre del segundo recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
-  { id: "referral_2_lastname", text: "Apellido", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
+  { id: "referral_2_name", text: "Nombre y apellido del segundo recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
   { id: "referral_2_email", text: "Email del segundo recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
-  { id: "referral_2_linkedin", text: "LinkedIn del segundo recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
-  { id: "referral_2_relation", text: "¿Quién es y cómo lo conocés?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
-  { id: "_add_ref_3", text: "¿Querés agregar un tercer recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
+  { id: "referral_2_linkedin", text: "LinkedIn del segundo recomendador (opcional)", type: "text", optional: true, help: "Si no tienes, puedes saltarlo.", condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
+  { id: "referral_2_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
+  { id: "_add_ref_3", text: "¿Quieres agregar un tercer recomendador?", type: "radio", options: ["Sí", "No"], condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" },
 
   // Referral 3
-  { id: "referral_3_name", text: "Nombre del tercer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
-  { id: "referral_3_lastname", text: "Apellido", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
+  { id: "referral_3_name", text: "Nombre y apellido del tercer recomendador", type: "text", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
   { id: "referral_3_email", text: "Email del tercer recomendador", type: "email", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
-  { id: "referral_3_linkedin", text: "LinkedIn del tercer recomendador", type: "url", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
-  { id: "referral_3_relation", text: "¿Quién es y cómo lo conocés?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
+  { id: "referral_3_linkedin", text: "LinkedIn del tercer recomendador (opcional)", type: "text", optional: true, help: "Si no tienes, puedes saltarlo.", condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
+  { id: "referral_3_relation", text: "¿Quién es y cómo lo conoces?", type: "textarea", optional: true, condition: (d) => d.has_referrals === "Sí" && d._add_ref_2 === "Sí" && d._add_ref_3 === "Sí" },
 
   // S8 — Programa
   { id: "program_source", text: "¿Cómo supiste de Modo Fundraising 2026?", type: "radio", options: ["Redes sociales", "Recomendación personal", "Ambassador", "Newsletter", "Evento", "Prensa / medios", "Otro"] },
-  { id: "ias_interested", text: "¿Querés ser considerado para IAS — sesiones 1:1 pagadas con mentor?", type: "radio", options: ["Sí", "No"], help: "Sesiones de 30 min semanales con mentor del equipo Impacta VC. Detalle y costo se comparte post-admisión." },
-  { id: "startup_logo_url", text: "¿Querés subir el logo de tu startup? (opcional)", type: "file", optional: true, help: "PNG, JPG o SVG. Máx 5MB. Preferible fondo transparente." },
-  { id: "accept_legal_terms", text: "Último paso: leé y aceptá las Bases Legales de Modo Fundraising 2026 para enviar tu postulación.", type: "checkbox" },
+  { id: "ias_interested", text: "¿Quieres ser considerado para IAS — sesiones 1:1 pagadas con mentor?", type: "radio", options: ["Sí", "No"], help: "Sesiones de 30 min semanales con mentor del equipo Impacta VC. Detalle y costo se comparte post-admisión." },
+  { id: "startup_logo_url", text: "¿Quieres subir el logo de tu startup? (opcional)", type: "file", optional: true, help: "PNG, JPG o SVG. Máx 5MB. Preferible fondo transparente." },
+  { id: "accept_legal_terms", text: "Último paso: lee y acepta las Bases Legales de Modo Fundraising 2026 para enviar tu postulación.", type: "checkbox" },
 ];
 
 function validateField(q: Question, val: unknown): string | null {
@@ -180,9 +213,43 @@ export function ChatForm({ onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [phoneCode, setPhoneCode] = useState("+56");
+  const [phoneNum, setPhoneNum] = useState("");
+  const [showBasesLegales, setShowBasesLegales] = useState(false);
+  const [previousSubmission, setPreviousSubmission] = useState<SubmittedMarker | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const startFreshApplication = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SUBMITTED_KEY);
+    setPreviousSubmission(null);
+    setFormData({});
+    setLogoFile(null);
+    setPhoneCode("+56");
+    setPhoneNum("");
+    setInputVal(getDefaultVal(QUESTIONS[0]));
+    setQIdx(0);
+    setMessages([
+      { from: "bot", text: "¡Empecemos una nueva postulación! Usa un email distinto para esta empresa." },
+      { from: "bot", text: QUESTIONS[0].text },
+    ]);
+  }, []);
+
   useEffect(() => {
+    // Si ya envió una postulación antes, mostrar pantalla de opciones en vez del chat
+    const submittedRaw = localStorage.getItem(SUBMITTED_KEY);
+    if (submittedRaw) {
+      try {
+        const submitted = JSON.parse(submittedRaw) as SubmittedMarker;
+        if (submitted?.email) {
+          setPreviousSubmission(submitted);
+          return;
+        }
+      } catch {
+        // ignore corrupt data
+      }
+    }
+
     const saved = localStorage.getItem(STORAGE_KEY);
     let savedData: FormState = {};
     let startIdx = 0;
@@ -201,7 +268,7 @@ export function ChatForm({ onSuccess }: Props) {
     const initMessages: Message[] = [];
 
     if (startIdx > 0 && firstIdx < QUESTIONS.length) {
-      initMessages.push({ from: "bot", text: "¡Bienvenido de nuevo! Retomamos tu postulación donde la dejaste 👋" });
+      initMessages.push({ from: "bot", text: "¡Bienvenido de nuevo! Retomamos tu postulación donde la dejaste." });
     }
 
     if (firstIdx < QUESTIONS.length) {
@@ -223,6 +290,33 @@ export function ChatForm({ onSuccess }: Props) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData: data, qIdx: idx }));
   }
 
+  function saveDraftToAirtable(data: FormState) {
+    const email = data.email;
+    if (!email || typeof email !== "string") return;
+    const { _add_ref_2: _r2, _add_ref_3: _r3, ...cleanData } = data;
+    void _r2; void _r3;
+    fetch("/api/apply/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, formData: cleanData }),
+    })
+      .then((r) => r.json())
+      .then((res: { founderRecordId?: string; startupRecordId?: string; postulacionRecordId?: string }) => {
+        const updates: Partial<FormState> = {};
+        if (res.founderRecordId) updates._founder_record_id = res.founderRecordId;
+        if (res.startupRecordId) updates._startup_record_id = res.startupRecordId;
+        if (res.postulacionRecordId) updates._postulacion_record_id = res.postulacionRecordId;
+        if (Object.keys(updates).length) {
+          setFormData((prev) => {
+            const next = { ...prev, ...updates };
+            saveToStorage(next, qIdx + 1);
+            return next;
+          });
+        }
+      })
+      .catch(() => {});
+  }
+
   async function handleNext(overrideVal?: unknown) {
     if (qIdx < 0 || qIdx >= QUESTIONS.length) return;
 
@@ -236,15 +330,62 @@ export function ChatForm({ onSuccess }: Props) {
     }
     setError(null);
 
+    // Validate email against existing applications before continuing
+    if (q.id === "email" && typeof val === "string" && val) {
+      setBotTyping(true);
+      try {
+        const res = await fetch(`/api/check-email?email=${encodeURIComponent(val.trim().toLowerCase())}`);
+        const data = await res.json();
+        if (data.exists) {
+          setBotTyping(false);
+          // Mostrar la misma pantalla "ya enviaste" con los datos del backend
+          // y persistir el marker para futuras visitas en este navegador.
+          const marker: SubmittedMarker = data.submission ?? {
+            email: val as string,
+            startup_name: "",
+            founder_name: "",
+            submitted_at: new Date().toISOString(),
+          };
+          try {
+            localStorage.setItem(SUBMITTED_KEY, JSON.stringify(marker));
+          } catch {
+            // ignore quota
+          }
+          setPreviousSubmission(marker);
+          return;
+        }
+      } catch {
+        // Si falla el check, continuar igual
+      } finally {
+        setBotTyping(false);
+      }
+    }
+
     const storedVal = q.type === "file" ? "" : val;
-    const newData: FormState = { ...formData, [q.id]: storedVal };
+    let newData: FormState = { ...formData, [q.id]: storedVal };
+
+    // Auto-split "Nombre Apellido" when typed in the first_name field
+    let skippedLastName = false;
+    if (q.id === "first_name" && typeof storedVal === "string" && storedVal.trim().includes(" ")) {
+      const spaceIdx = storedVal.trim().indexOf(" ");
+      newData = {
+        ...newData,
+        first_name: storedVal.trim().slice(0, spaceIdx),
+        last_name: storedVal.trim().slice(spaceIdx + 1),
+      };
+      skippedLastName = true;
+    }
+
     setFormData(newData);
     saveToStorage(newData, qIdx + 1);
+    saveDraftToAirtable(newData);
 
     const displayText = getDisplayText(q, val, logoFile);
     setMessages((prev) => [...prev, { from: "user", text: displayText }]);
 
-    const nextIdx = findNextQIdx(qIdx + 1, newData);
+    // If last_name was auto-filled, skip that question
+    const skipCount = skippedLastName ? 2 : 1;
+    const nextIdx = findNextQIdx(qIdx + skipCount, newData);
 
     if (nextIdx >= QUESTIONS.length) {
       await submitForm(newData);
@@ -271,9 +412,12 @@ export function ChatForm({ onSuccess }: Props) {
     setUploadingLogo(true);
     const form = new FormData();
     form.append("file", file);
+    const startupRecordId = formData._startup_record_id ?? "";
+    if (startupRecordId) form.append("startupRecordId", startupRecordId);
     const res = await fetch("/api/upload", { method: "POST", body: form });
     const data = await res.json();
     setUploadingLogo(false);
+    if (!data.url) throw new Error(data.error ?? "Upload failed");
     return data.url;
   }
 
@@ -281,7 +425,14 @@ export function ChatForm({ onSuccess }: Props) {
     setSubmitting(true);
     try {
       let logoUrl = "";
-      if (logoFile) logoUrl = await uploadLogo(logoFile);
+      if (logoFile) {
+        try {
+          logoUrl = await uploadLogo(logoFile);
+        } catch (e) {
+          console.error("[submitForm] uploadLogo failed:", e);
+          // No bloquear el submit por el logo — es opcional
+        }
+      }
 
       // Strip internal navigation keys before submitting
       const { _add_ref_2: _r2, _add_ref_3: _r3, ...submitData } = data;
@@ -294,20 +445,44 @@ export function ChatForm({ onSuccess }: Props) {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        if (err.code === "DUPLICATE_EMAIL") {
-          toast.error("Ya existe una postulación con este email.");
-        } else {
-          toast.error("Error al enviar. Intentá nuevamente.");
+        let errCode: string | undefined;
+        let errDetails: unknown;
+        try {
+          const err = await res.json();
+          errCode = err.code;
+          errDetails = err;
+          console.error("[submitForm] API error:", res.status, err);
+        } catch {
+          console.error("[submitForm] API non-JSON error:", res.status);
         }
+        if (errCode === "DUPLICATE_EMAIL") {
+          toast.error("Ya existe una postulación con este email.");
+        } else if (res.status === 400) {
+          toast.error("Algunos datos son inválidos. Revisa los campos e intenta de nuevo.");
+        } else {
+          toast.error(`Error al enviar (${res.status}). Intenta nuevamente.`);
+        }
+        void errDetails;
         setSubmitting(false);
         return;
       }
 
       localStorage.removeItem(STORAGE_KEY);
+      const marker: SubmittedMarker = {
+        email: String(data.email ?? ""),
+        startup_name: String(data.startup_name ?? ""),
+        founder_name: `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
+        submitted_at: new Date().toISOString(),
+      };
+      try {
+        localStorage.setItem(SUBMITTED_KEY, JSON.stringify(marker));
+      } catch {
+        // ignore quota errors
+      }
       onSuccess();
-    } catch {
-      toast.error("Error de conexión. Intentá nuevamente.");
+    } catch (e) {
+      console.error("[submitForm] unexpected error:", e);
+      toast.error("Error de conexión. Intenta nuevamente.");
       setSubmitting(false);
     }
   }
@@ -334,6 +509,39 @@ export function ChatForm({ onSuccess }: Props) {
             className={inputCls}
             autoFocus
           />
+        );
+
+      case "phone":
+        return (
+          <div className="flex gap-2">
+            <select
+              value={phoneCode}
+              onChange={(e) => {
+                setPhoneCode(e.target.value);
+                setInputVal(`${e.target.value}${phoneNum}`);
+                setError(null);
+              }}
+              className="rounded-lg border border-[rgba(229,0,126,0.35) bg-(--brand-dark) text-white px-2 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-(--brand-pink)/50 focus:border-(--brand-pink) w-44 flex-shrink-0"
+            >
+              {PHONE_CODES.map((c) => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
+            </select>
+            <Input
+              type="text"
+              value={phoneNum}
+              onChange={(e) => {
+                const num = e.target.value.replace(/\D/g, "");
+                setPhoneNum(num);
+                setInputVal(`${phoneCode}${num}`);
+                setError(null);
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleNext(); }}
+              placeholder="912345678"
+              className={inputCls}
+              autoFocus
+            />
+          </div>
         );
 
       case "number":
@@ -366,9 +574,9 @@ export function ChatForm({ onSuccess }: Props) {
           <select
             value={inputVal as string}
             onChange={(e) => { setInputVal(e.target.value); setError(null); }}
-            className="w-full rounded-lg border border-white/20 bg-slate-800 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="w-full rounded-lg border border-[rgba(229,0,126,0.35) bg-(--brand-dark) text-white px-3 py-2 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-(--brand-pink)/50 focus:border-(--brand-pink)"
           >
-            <option value="">Seleccioná una opción</option>
+            <option value="">Selecciona una opción</option>
             {q.options?.map((o) => (
               <option key={o} value={o}>{o}</option>
             ))}
@@ -383,7 +591,9 @@ export function ChatForm({ onSuccess }: Props) {
                 key={opt}
                 type="button"
                 onClick={() => handleNext(opt)}
-                className="px-4 py-2 rounded-xl text-sm font-medium border border-white/20 bg-white/10 text-white hover:bg-blue-600 hover:border-blue-600 transition-all"
+                className="px-4 py-2 rounded-xl text-sm font-sans font-medium border border-[rgba(229,0,126,0.35) bg-white/10 text-white transition-all hover:border-(--brand-pink)"
+                onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, #e5007e, #e217cf)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
               >
                 {opt}
               </button>
@@ -418,8 +628,8 @@ export function ChatForm({ onSuccess }: Props) {
             ) : (
               <label className="cursor-pointer">
                 <span className="text-sm text-white/60">
-                  Arrastrá tu logo aquí o{" "}
-                  <span className="text-blue-400 font-medium">hacé clic para seleccionar</span>
+                  Arrastra tu logo aquí o{" "}
+                  <span className="font-medium" style={{ color: "#e5007e" }}>haz clic para seleccionar</span>
                 </span>
                 <input
                   type="file"
@@ -451,9 +661,9 @@ export function ChatForm({ onSuccess }: Props) {
             />
             <label htmlFor="legal" className="text-sm text-white/80 cursor-pointer leading-relaxed">
               He leído y acepto las{" "}
-              <a href="/bases-legales" target="_blank" className="text-blue-400 underline">
+              <button type="button" onClick={() => setShowBasesLegales(true)} className="underline" style={{ color: "#e5007e" }}>
                 Bases Legales de Modo Fundraising 2026
-              </a>
+              </button>
               <span className="text-red-400 ml-1">*</span>
             </label>
           </div>
@@ -466,17 +676,70 @@ export function ChatForm({ onSuccess }: Props) {
   const showNextBtn = currentQ?.type !== "radio";
   const progress = QUESTIONS.length > 0 ? Math.round((Math.max(0, qIdx) / QUESTIONS.length) * 100) : 0;
 
+  if (previousSubmission) {
+    const submittedDate = new Date(previousSubmission.submitted_at);
+    const fechaTxt = isNaN(submittedDate.getTime())
+      ? ""
+      : submittedDate.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" });
+
+    return (
+      <div className="flex flex-col min-h-screen" style={{ background: "linear-gradient(135deg, #181b2f 0%, #1a0d2e 50%, #181b2f 100%)" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+          <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={180} height={54} className="object-contain" />
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full text-center space-y-6 bg-white/5 border border-white/10 rounded-2xl p-8">
+            <div className="text-5xl">✅</div>
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-2">Ya enviaste tu postulación</h1>
+              <p className="text-white/70 text-sm leading-relaxed">
+                Tenemos registrada tu postulación de{" "}
+                <strong className="text-white">{previousSubmission.startup_name || "tu startup"}</strong>
+                {fechaTxt && <> enviada el <strong className="text-white">{fechaTxt}</strong></>}
+                {" "}con el email <strong className="text-white">{previousSubmission.email}</strong>.
+              </p>
+            </div>
+
+            <div className="border-t border-white/10 pt-6 space-y-3">
+              <p className="text-white/60 text-sm">¿Qué quieres hacer?</p>
+
+              <button
+                type="button"
+                onClick={startFreshApplication}
+                className="w-full px-5 py-3 rounded-xl text-white font-medium transition-opacity hover:opacity-90"
+                style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)" }}
+              >
+                Postular con otra empresa
+              </button>
+
+              <a
+                href="mailto:maca@impacta.vc?subject=Modificar%20postulaci%C3%B3n%20Modo%20Fundraising%202026"
+                className="block w-full px-5 py-3 rounded-xl text-white/80 font-medium border border-white/20 hover:bg-white/5 transition-colors"
+              >
+                Modificar mi postulación anterior
+              </a>
+            </div>
+
+            <p className="text-white/40 text-xs leading-relaxed pt-2">
+              Para postular con otra empresa necesitas usar un email distinto. Para editar tu postulación enviada, escríbenos a maca@impacta.vc.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
+    <div className="flex flex-col h-screen" style={{ background: "linear-gradient(135deg, #181b2f 0%, #1a0d2e 50%, #181b2f 100%)" }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0">
-        <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={120} height={36} className="object-contain brightness-0 invert" />
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+        <Image src="/logo-mf.png" alt="Modo Fundraising 2026" width={180} height={54} className="object-contain" />
         <div className="text-right">
           <p className="text-xs text-white/40 mb-1">Progreso</p>
           <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-500 rounded-full transition-all duration-500"
-              style={{ width: `${progress}%` }}
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${progress}%`, background: "linear-gradient(90deg, #e5007e, #e217cf)" }}
             />
           </div>
         </div>
@@ -495,8 +758,8 @@ export function ChatForm({ onSuccess }: Props) {
 
         {botTyping && (
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">IV</span>
+            <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden border-2" style={{ borderColor: "#e5007e" }}>
+              <Image src="/ifsp/victor-lau.webp" alt="Impacta VC" width={32} height={32} className="w-full h-full object-cover" />
             </div>
             <div className="bg-white/10 rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex gap-1 items-center">
@@ -544,7 +807,8 @@ export function ChatForm({ onSuccess }: Props) {
                 type="button"
                 onClick={() => handleNext()}
                 disabled={uploadingLogo}
-                className="bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-2"
+                className="text-white flex items-center gap-2"
+                style={{ background: "linear-gradient(135deg, #e5007e, #e217cf)" }}
               >
                 {uploadingLogo ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Subiendo...</>
@@ -563,6 +827,69 @@ export function ChatForm({ onSuccess }: Props) {
         <div className="flex-shrink-0 border-t border-white/10 bg-black/20 px-4 py-6 text-center space-y-2">
           <Loader2 className="h-6 w-6 animate-spin text-blue-400 mx-auto" />
           <p className="text-sm text-white/60">Enviando tu postulación...</p>
+        </div>
+      )}
+
+      {/* Modal Bases Legales */}
+      {showBasesLegales && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+          <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/10 overflow-hidden" style={{ background: "#181b2f" }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+              <h2 className="text-white font-semibold text-lg">Bases Legales — Modo Fundraising 2026</h2>
+              <button onClick={() => setShowBasesLegales(false)} className="text-white/40 hover:text-white/80 transition-colors text-2xl leading-none">&times;</button>
+            </div>
+            <div className="overflow-y-auto px-6 py-5 text-white/70 text-sm leading-relaxed space-y-4">
+              <p>Este documento describe los términos y condiciones (en adelante los <strong className="text-white">"Bases Legales"</strong>) aplicables a la inscripción y participación en <strong className="text-white">Modo Fundraising 2026</strong>, programa operado por <strong className="text-white">Modo SpA</strong> (en adelante "Modo").</p>
+
+              <h3 className="text-white font-semibold mt-4">I. Objeto del programa</h3>
+              <p>Modo Fundraising 2026 es un programa de preparación para el levantamiento de capital dirigido a fundadores y equipos de startups en etapa temprana. La inscripción implica la aceptación expresa de estas Bases Legales.</p>
+
+              <h3 className="text-white font-semibold mt-4">II. Proceso de postulación y selección</h3>
+              <p>La postulación se realiza a través del formulario oficial en este sitio. Modo se reserva el derecho de aceptar o rechazar cualquier postulación a su entera discreción. La recepción del formulario no garantiza la admisión al programa. Los postulantes serán notificados por correo electrónico sobre el resultado de su postulación.</p>
+
+              <h3 className="text-white font-semibold mt-4">III. Condiciones de participación</h3>
+              <p>Al inscribirse, el participante declara que:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>La información proporcionada en el formulario es veraz y completa.</li>
+                <li>Es mayor de edad y tiene capacidad legal para contratar.</li>
+                <li>Cuenta con la representación legal necesaria de la startup que postula.</li>
+                <li>Se compromete a participar activamente en las actividades del programa.</li>
+              </ul>
+
+              <h3 className="text-white font-semibold mt-4">IV. Confidencialidad</h3>
+              <p>Modo se compromete a tratar con confidencialidad la información sensible y no pública que los postulantes compartan durante el proceso de aplicación y el programa, salvo que medie autorización expresa del participante o sea requerido por la ley.</p>
+
+              <h3 className="text-white font-semibold mt-4">V. Propiedad intelectual</h3>
+              <p>La participación en el programa no transfiere a Modo ningún derecho de propiedad intelectual sobre los productos, servicios o tecnología de los participantes. Todos los materiales del programa (metodologías, contenidos, materiales didácticos) son propiedad de Modo y no pueden ser reproducidos sin autorización escrita.</p>
+
+              <h3 className="text-white font-semibold mt-4">VI. Protección de datos personales</h3>
+              <p>Los datos personales recopilados serán utilizados exclusivamente para la gestión del programa y comunicaciones relacionadas. Modo no venderá ni cederá estos datos a terceros sin consentimiento del titular. El participante podrá solicitar en cualquier momento el acceso, rectificación o eliminación de sus datos escribiendo a <strong className="text-white">hola@modofundraising.com</strong>.</p>
+
+              <h3 className="text-white font-semibold mt-4">VII. Responsabilidad</h3>
+              <p>Modo no garantiza resultados específicos de levantamiento de capital como consecuencia de la participación en el programa. El contenido del programa tiene carácter educativo y de preparación. Las decisiones de inversión son responsabilidad exclusiva de los inversores y los participantes.</p>
+
+              <h3 className="text-white font-semibold mt-4">VIII. Modificaciones</h3>
+              <p>Modo se reserva el derecho de modificar estas Bases Legales con aviso previo de al menos 7 días calendario a los participantes inscritos.</p>
+
+              <h3 className="text-white font-semibold mt-4">IX. Legislación aplicable</h3>
+              <p>Estas Bases Legales se rigen por la legislación de la República de Chile. Cualquier disputa será sometida a los tribunales ordinarios de justicia de la ciudad de Santiago de Chile.</p>
+
+              <h3 className="text-white font-semibold mt-4">X. Contacto</h3>
+              <p>Consultas y reclamos: <strong className="text-white">hola@modofundraising.com</strong></p>
+
+              <p className="text-white/40 text-xs mt-6">Vigente desde enero de 2026.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowBasesLegales(false)}
+                className="w-full py-2.5 rounded-lg font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: "#e5007e" }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,20 +1,22 @@
-import { notFound, redirect } from "next/navigation";
-import { obtenerSesion, esAdmin } from "@/lib/auth";
-import { getAllApplications, getClaseById, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
+import { notFound } from "next/navigation";
+import { obtenerSesion } from "@/lib/auth";
+import { getClaseById, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ChevronLeft, Calendar, Target, FileText, Link2,
   Video, ExternalLink, Clock, AlertCircle, CheckCircle2, Circle, Wrench, BookOpen,
 } from "lucide-react";
+import { VideoPlayer } from "@/components/portal/video-player";
+import { Markdown } from "@/components/portal/markdown";
+import { formatFechaConAnio as formatFecha } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
-function formatFecha(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("es-MX", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+// Quita "Sx — " del título para mostrar al founder (UX mobile).
+function stripSemanaPrefix(titulo?: string): string | undefined {
+  if (!titulo) return titulo;
+  return titulo.replace(/^S\d+\s*[—–-]\s*/, "");
 }
 
 function daysLeft(iso?: string) {
@@ -41,6 +43,11 @@ function getEmbedUrl(url?: string): string | null {
     if (u.hostname.includes("loom.com")) {
       const id = u.pathname.split("/").filter(Boolean).pop();
       return `https://www.loom.com/embed/${id}`;
+    }
+    // Google Drive
+    if (u.hostname.includes("drive.google.com")) {
+      const match = u.pathname.match(/\/file\/d\/([^/]+)/);
+      if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
     }
   } catch { /* fallback */ }
   return null;
@@ -79,7 +86,9 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
                 {mision.titulo}
               </h3>
               {mision.descripcion && (
-                <p className="text-sm text-zinc-500 mt-1 leading-relaxed">{mision.descripcion}</p>
+                <div className="mt-1 text-zinc-500">
+                  <Markdown>{mision.descripcion}</Markdown>
+                </div>
               )}
             </div>
           </div>
@@ -93,9 +102,9 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
         </div>
 
         {mision.instrucciones && (
-          <div className="bg-white border border-amber-200 rounded-xl p-4 space-y-1">
+          <div className="bg-white border border-amber-200 rounded-xl p-4 space-y-2">
             <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">Instrucciones</p>
-            <p className="text-sm text-zinc-700 leading-relaxed whitespace-pre-line">{mision.instrucciones}</p>
+            <Markdown>{mision.instrucciones}</Markdown>
           </div>
         )}
 
@@ -123,14 +132,7 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const session = await obtenerSesion();
 
-  const [apps, clase] = await Promise.all([
-    getAllApplications(),
-    getClaseById(id),
-  ]);
-
-  const app = apps.find((a) => a.email === session?.email);
-  const isAdminUser = session?.email ? esAdmin(session.email) : false;
-  if (!isAdminUser && !app?.portal_access) redirect("/portal/sin-acceso");
+  const clase = await getClaseById(id);
   if (!clase) notFound();
 
   const embedUrl = getEmbedUrl(clase.url_grabacion);
@@ -145,12 +147,27 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
         <ChevronLeft className="h-4 w-4" /> Todas las clases
       </Link>
 
+      {/* Portada */}
+      {clase.Portada?.[0] && (
+        <div className="rounded-2xl overflow-hidden bg-zinc-100 w-full aspect-video max-h-52">
+          <Image
+            src={clase.Portada[0].thumbnails?.large?.url ?? clase.Portada[0].url}
+            alt={clase.titulo ?? ""}
+            width={800} height={450}
+            className="w-full h-full object-cover"
+            unoptimized
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="space-y-3">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-            <span className="text-base font-bold text-blue-600">{clase.semana ?? "–"}</span>
-          </div>
+          {!clase.Portada?.[0] && (
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <span className="text-base font-bold text-blue-600">{clase.titulo?.match(/^S(\d+)/)?.[1] ?? clase.semana ?? "–"}</span>
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
@@ -161,7 +178,7 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
                 {isLive ? "🔴 En vivo" : clase.status ?? "Próxima"}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-zinc-800 leading-tight">{clase.titulo}</h1>
+            <h1 className="text-2xl font-bold text-zinc-800 leading-tight">{stripSemanaPrefix(clase.titulo)}</h1>
             {clase.fecha && (
               <p className="text-sm text-zinc-400 mt-1 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" /> {formatFecha(clase.fecha)}
@@ -171,7 +188,9 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
         </div>
 
         {clase.descripcion && (
-          <p className="text-zinc-600 leading-relaxed">{clase.descripcion}</p>
+          <div className="text-zinc-600">
+            <Markdown>{clase.descripcion}</Markdown>
+          </div>
         )}
 
         {/* CTA buttons */}
@@ -199,29 +218,11 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
 
       {/* Video player */}
       {isGrabada && (
-        embedUrl ? (
-          <div className="rounded-2xl overflow-hidden border border-zinc-200 bg-black aspect-video">
-            <iframe
-              src={embedUrl}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className="w-full h-full"
-            />
-          </div>
-        ) : clase.url_grabacion ? (
-          <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-6 text-center space-y-3">
-            <Video className="h-10 w-10 text-zinc-300 mx-auto" />
-            <p className="text-zinc-500 text-sm">El video no puede embeberse directamente.</p>
-            <a href={clase.url_grabacion} target="_blank" rel="noreferrer"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-xl transition-colors text-sm">
-              <Video className="h-4 w-4" /> Ver grabación
-            </a>
-          </div>
-        ) : (
-          <div className="bg-zinc-50 border border-dashed border-zinc-300 rounded-2xl p-10 text-center text-zinc-400 text-sm">
-            La grabación estará disponible próximamente.
-          </div>
-        )
+        <VideoPlayer
+          embedUrl={embedUrl}
+          fallbackUrl={clase.url_grabacion}
+          claseId={id}
+        />
       )}
 
       {!isGrabada && (
@@ -232,17 +233,21 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Misiones */}
-      {clase.misionesData.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2">
-            <Target className="h-5 w-5 text-amber-500" /> Misión de esta clase
-          </h2>
-          {clase.misionesData.map((m) => (
-            <MisionBlock key={m.id} mision={m} />
-          ))}
-        </div>
-      )}
+      {/* Misiones: en el portal del founder solo mostramos las Activas */}
+      {(() => {
+        const visibles = clase.misionesData.filter((m) => m.status === "Activa");
+        if (!visibles.length) return null;
+        return (
+          <div className="space-y-3">
+            <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2">
+              <Target className="h-5 w-5 text-amber-500" /> Misión de esta clase
+            </h2>
+            {visibles.map((m) => (
+              <MisionBlock key={m.id} mision={m} />
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Recursos — solo cuando la clase ya pasó o fue grabada */}
       {(() => {

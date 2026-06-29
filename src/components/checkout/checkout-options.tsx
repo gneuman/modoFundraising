@@ -10,10 +10,11 @@ interface Props {
   monthlyPrice: number;
   fullPrice: number;
   fullSaving: number;
-  hasDiscount: boolean;
+  couponDiscount: number;
+  onetimeDiscount: number;
 }
 
-export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, hasDiscount }: Props) {
+export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, couponDiscount, onetimeDiscount }: Props) {
   const [selected, setSelected] = useState<"subscription" | "payment" | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -56,19 +57,21 @@ export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, ha
 
         <div>
           <div className="text-3xl font-bold text-zinc-800">
-            US${monthlyPrice.toLocaleString("en", { minimumFractionDigits: 0 })}
+            US${monthlyPrice.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             <span className="text-base font-normal text-zinc-400">/mes</span>
           </div>
-          {hasDiscount && (
+          {couponDiscount > 0 && (
             <p className="text-xs text-zinc-400 line-through mt-0.5">US$349/mes</p>
           )}
           <p className="text-sm text-zinc-500 mt-2">
-            Total US${(monthlyPrice * 3).toLocaleString("en", { minimumFractionDigits: 0 })} · 3 cobros automáticos
+            Total US${(monthlyPrice * 3).toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} · 3 cobros automáticos
           </p>
         </div>
 
         <p className="text-xs text-zinc-400">
-          Se cobra mes a mes. Puedes cancelar antes del siguiente cobro.
+          {couponDiscount > 0
+            ? `Tu código de ${couponDiscount}% off aplica a esta opción.`
+            : "Se cobra mes a mes. Puedes cancelar antes del siguiente cobro."}
         </p>
 
         {loading && selected === "subscription" && (
@@ -92,7 +95,7 @@ export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, ha
         {/* Best value badge */}
         <div className="absolute -top-3 right-4">
           <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-            {fullSaving > 0 ? `Ahorra US$${fullSaving}` : "Pago único"}
+            {onetimeDiscount}% OFF
           </span>
         </div>
 
@@ -103,18 +106,16 @@ export function CheckoutOptions({ token, monthlyPrice, fullPrice, fullSaving, ha
 
         <div>
           <div className="text-3xl font-bold text-zinc-800">
-            US${fullPrice.toLocaleString("en", { minimumFractionDigits: 0 })}
+            US${fullPrice.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </div>
-          {hasDiscount && (
-            <p className="text-xs text-zinc-400 line-through mt-0.5">US$1,047</p>
-          )}
+          <p className="text-xs text-zinc-400 line-through mt-0.5">US$1,047</p>
           <p className="text-sm text-zinc-500 mt-2">
-            Un solo cobro · Acceso inmediato
+            Ahorras US${fullSaving.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} · Un solo cobro
           </p>
         </div>
 
         <p className="text-xs text-zinc-400">
-          Sin renovaciones automáticas. Pago completo del programa.
+          20% off automático por pago único. Sin renovaciones.
         </p>
 
         {loading && selected === "payment" && (

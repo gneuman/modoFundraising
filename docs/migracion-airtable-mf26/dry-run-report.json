@@ -1,0 +1,124 @@
+[
+  {
+    "name": "Kawesqar Travels / Intelligence Hub",
+    "startupId": "recl2pTOqJwQDxzmj",
+    "startupPatch": {
+      "startup_website": "www.kawesqartravels.com",
+      "startup_country_ops": "Chile (CL)",
+      "startup_industries": "TravelTech",
+      "startup_description": "Infraestructura tecnológica triple stack para la Patagonia que combina sensores de biodiversidad, blockchain y turismo de ultralujo para créditos de carbono.",
+      "startup_mrr": 0,
+      "startup_sales_12m": 6000000,
+      "round_size": 1200000,
+      "round_series": "Seed",
+      "round_tickets": "1200000",
+      "deck_url": "https://docs.google.com/document/d/1SlPe9thcbIpBuN0l--gbGLgPvt-5V2H8neQHTkIiD4M/edit"
+    },
+    "founderId": "recLAq1You12hlcy9",
+    "founderEmailFound": "kawesqar.travel@gmail.com",
+    "founderPatch": {}
+  },
+  {
+    "name": "PIXLAB CLASS",
+    "startupId": "reca4xbmMQAHCQasL",
+    "startupPatch": {
+      "startup_website": "https://www.pixlabclass.com/",
+      "startup_country_ops": "Costa Rica (CO)",
+      "startup_industries": "EdTech",
+      "startup_description": "Startup rentable que ofrece tecnología aplicada al sistema educativo y/o creativo con facturación anual cercana a US$400k.",
+      "startup_mrr": 33333,
+      "round_size": 1000000,
+      "deck_url": "https://docs.google.com/document/d/1dTGCqv9McdDmbu6ME8RDObuQ9i0motlbckHoO0-he1k/edit"
+    },
+    "founderId": "reccmug3r5kTOlLUF",
+    "founderEmailFound": "xavier@pixdea.com",
+    "founderPatch": {}
+  },
+  {
+    "name": "Maity",
+    "startupId": "recskoKoXauXAXJeg",
+    "startupPatch": {
+      "startup_website": "maity.cloud",
+      "startup_country_ops": "Mexico (MX)",
+      "startup_industries": "EdTech,HRTech",
+      "round_size": 100000,
+      "deck_url": "https://docs.google.com/document/d/1zb1b-iiAI9k1DbUm9JVvRT_mhUNUQ09gOZGv-7v-LV4/edit"
+    },
+    "founderId": "rec2nrYQirv3BteLu",
+    "founderEmailFound": "direccion@maity.cloud",
+    "founderPatch": {}
+  },
+  {
+    "name": "Zeii",
+    "startupId": "rec4Vxld2XgNEfdgi",
+    "startupPatch": {
+      "startup_website": "Https://zeii.com",
+      "startup_country_ops": "Uruguay (UY)",
+      "startup_industries": "Other",
+      "startup_description": "Startup con MVP para gestionar datos de microemprendimientos, seleccionada por IC Ventures para un desafío de IA.",
+      "startup_mrr": 0,
+      "round_size": 200000,
+      "round_tickets": "200000",
+      "deck_url": "https://docs.google.com/document/d/10C4xfqLrink5OGru7IhIlv-LYkh37JtrigHe4H6hZOI/edit"
+    },
+    "founderId": "recDiZZZkKyCerUEd",
+    "founderEmailFound": "leonardo.arroyo@zeii.com",
+    "founderPatch": {}
+  },
+  {
+    "name": "LEAF",
+    "startupId": "recftnlzi1BfkwvY6",
+    "startupPatch": {
+      "startup_website": "https://leaf-si.com",
+      "startup_country_ops": "Argentina (AR)",
+      "startup_industries": "ClimaTech",
+      "round_size": 500
+    },
+    "founderId": "recm7XuGcbwfs1TyE",
+    "founderEmailFound": "ibarutta@leaf-si.com",
+    "founderPatch": {}
+  },
+  {
+    "name": "Aventia Solutions",
+    "startupId": "recbGAU4iuqJWUWvg",
+    "startupPatch": {
+      "startup_website": "www.aventiasolutions.com",
+      "startup_country_ops": "Chile (CL)",
+      "startup_industries": "HealthTech",
+      "round_size": 300000
+    },
+    "founderId": "recFVh0JRahnXZpAD",
+    "founderEmailFound": "patricio@aventiasolutions.com",
+    "founderPatch": {}
+  },
+  {
+    "name": "Finsphera",
+    "startupId": "recAFuBPuirWpGxRU",
+    "startupPatch": {
+      "startup_website": "https://www.finsphera.ai/",
+      "startup_country_ops": "Mexico (MX)",
+      "startup_industries": "FinTech,CleanTech",
+      "round_size": 10000000
+    },
+    "founderId": "recCLul7HqRoeTewQ",
+    "founderEmailFound": "adrian@finsphera.com",
+    "founderPatch": {}
+  },
+  {
+    "name": "Antü",
+    "startupId": "rec8rMr8fr6yWLDMs",
+    "startupPatch": {
+      "startup_website": "www.antuenergia.cl",
+      "startup_country_ops": "Chile (CL)",
+      "startup_industries": "EnergyTech,ClimaTech",
+      "startup_description": "Fintech de condominio solar que permite copropiedad de paneles solares y generó 220 millones en ingresos el último año.",
+      "startup_mrr": 18333,
+      "startup_sales_12m": 5000000,
+      "round_size": 2,
+      "deck_url": "https://docs.google.com/document/d/1nADyIZ4mev2koLII9F5b26U7r7w9n0Jjwok4FQc2XMA/edit"
+    },
+    "founderId": "reczBnqMBy2sU4F9e",
+    "founderEmailFound": "manuel.mata@antuenergia.cl",
+    "founderPatch": {}
+  }
+]

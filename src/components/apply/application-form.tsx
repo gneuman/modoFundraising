@@ -53,6 +53,7 @@ export function ApplicationForm({ onSuccess }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [showBasesLegales, setShowBasesLegales] = useState(false);
 
   const {
     register,
@@ -95,6 +96,7 @@ export function ApplicationForm({ onSuccess }: Props) {
   }, [watch]);
 
   const hasReferrals = watch("has_referrals");
+  const roundOpen = watch("round_open");
   const priorFundraising = watch("prior_fundraising");
   const businessModel = watch("business_model");
   const industries = watch("startup_industries");
@@ -104,7 +106,9 @@ export function ApplicationForm({ onSuccess }: Props) {
     2: ["startup_name", "startup_website", "startup_linkedin", "startup_country_ops", "startup_countries_expansion", "startup_description", "startup_industries", "business_model", "startup_stage", "founder_team_women", "startup_usa_intl", "startup_team_size"],
     3: ["startup_mrr", "startup_sales_12m"],
     4: ["prior_fundraising"],
-    5: ["round_open", "round_series", "round_size", "round_tickets", "runway"],
+    5: watch("round_open") === "Sí"
+      ? ["round_open", "round_series", "round_size", "round_tickets", "runway"]
+      : ["round_open", "runway"],
     6: ["deck_url"],
     7: ["has_referrals"],
     8: ["program_source", "ias_interested", "accept_legal_terms"],
@@ -170,10 +174,11 @@ export function ApplicationForm({ onSuccess }: Props) {
     }
   }
 
-  const inputClass = "w-full rounded-lg border border-white/20 bg-white/10 text-white placeholder-white/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00e5c0] focus:border-transparent";
+  const inputClass = "w-full rounded-lg border border-white/20 bg-white/10 text-white placeholder-white/30 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--brand-teal) focus:border-transparent";
   const errorClass = "border-red-400/60 focus:ring-red-400";
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto">
       <FormProgress currentStep={step} totalSteps={TOTAL_STEPS} stepLabels={STEP_LABELS} />
 
@@ -330,7 +335,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("founder_team_women")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("founder_team_women")} value={opt} className="accent-(--brand-teal)" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -340,7 +345,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No", "Ya operamos en USA"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("startup_usa_intl")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("startup_usa_intl")} value={opt} className="accent-(--brand-teal)" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -370,7 +375,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No (esta sería nuestra primera ronda)"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("prior_fundraising")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("prior_fundraising")} value={opt} className="accent-(--brand-teal)" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -392,38 +397,42 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4 flex-wrap">
               {["Sí", "No (pero la iniciaremos en los próximos 12 meses)"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("round_open")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("round_open")} value={opt} className="accent-(--brand-teal)" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
             </div>
           </FieldWrapper>
-          <div className="grid grid-cols-2 gap-4">
-            <FieldWrapper label="Tipo de ronda" required error={errors.round_series?.message}>
-              <Controller
-                name="round_series"
-                control={control}
-                render={({ field }) => (
-                  <select {...field} className={`${inputClass} ${errors.round_series ? errorClass : ""}`}>
-                    <option value="">Selecciona</option>
-                    {["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"].map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                )}
-              />
-            </FieldWrapper>
-            <FieldWrapper label="Tamaño objetivo de la ronda (USD)" required error={errors.round_size?.message} help="Monto total que buscan levantar">
-              <Input {...register("round_size")} type="number" min="0" placeholder="1000000" className={cn(inputClass, errors.round_size && errorClass)} />
-            </FieldWrapper>
-          </div>
-          <FieldWrapper label="Rango de ticket que buscan" required error={errors.round_tickets?.message} help="Ticket por inversor, no monto total">
-            <Controller
-              name="round_tickets"
-              control={control}
-              render={({ field }) => (
-                <MultiSelect options={TICKET_SIZES} value={field.value ?? []} onChange={field.onChange} error={errors.round_tickets?.message} />
-              )}
-            />
-          </FieldWrapper>
+          {roundOpen === "Sí" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <FieldWrapper label="Tipo de ronda" required error={errors.round_series?.message}>
+                  <Controller
+                    name="round_series"
+                    control={control}
+                    render={({ field }) => (
+                      <select {...field} className={`${inputClass} ${errors.round_series ? errorClass : ""}`}>
+                        <option value="">Selecciona</option>
+                        {["Pre-Seed", "Seed", "Post-Seed", "Pre-Series A", "Series A", "Series B", "Series C+"].map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    )}
+                  />
+                </FieldWrapper>
+                <FieldWrapper label="Tamaño objetivo de la ronda (USD)" required error={errors.round_size?.message} help="Monto total que buscan levantar">
+                  <Input {...register("round_size")} type="number" min="0" placeholder="1000000" className={cn(inputClass, errors.round_size && errorClass)} />
+                </FieldWrapper>
+              </div>
+              <FieldWrapper label="Rango de ticket que buscan" required error={errors.round_tickets?.message} help="Ticket por inversor, no monto total">
+                <Controller
+                  name="round_tickets"
+                  control={control}
+                  render={({ field }) => (
+                    <MultiSelect options={TICKET_SIZES} value={field.value ?? []} onChange={field.onChange} error={errors.round_tickets?.message} />
+                  )}
+                />
+              </FieldWrapper>
+            </>
+          )}
           <FieldWrapper label="Runway actual (meses)" required error={errors.runway?.message} help="Cuántos meses pueden operar con la caja actual">
             <Input {...register("runway")} type="number" min="0" placeholder="12" className={cn(inputClass, errors.runway && errorClass)} />
           </FieldWrapper>
@@ -451,7 +460,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("has_referrals")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("has_referrals")} value={opt} className="accent-(--brand-teal)" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -493,7 +502,7 @@ export function ApplicationForm({ onSuccess }: Props) {
                 <button
                   type="button"
                   onClick={() => setReferralCount((c) => c + 1)}
-                  className="flex items-center gap-2 text-[#00e5c0] text-sm font-medium hover:text-[#00c9aa]"
+                  className="flex items-center gap-2 text-(--brand-teal) text-sm font-medium hover:text-(--brand-teal-dark)"
                 >
                   <Plus className="h-4 w-4" /> Agregar otro recomendador
                 </button>
@@ -528,7 +537,7 @@ export function ApplicationForm({ onSuccess }: Props) {
             <div className="flex gap-4">
               {["Sí", "No"].map((opt) => (
                 <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" {...register("ias_interested")} value={opt} className="accent-[#00e5c0]" />
+                  <input type="radio" {...register("ias_interested")} value={opt} className="accent-(--brand-teal)" />
                   <span className="text-sm">{opt}</span>
                 </label>
               ))}
@@ -544,7 +553,7 @@ export function ApplicationForm({ onSuccess }: Props) {
                 </div>
               ) : (
                 <label className="cursor-pointer">
-                  <span className="text-sm text-white/40">Arrastra tu logo aquí o <span className="text-[#00e5c0] font-medium">haz clic para seleccionar</span></span>
+                  <span className="text-sm text-white/40">Arrastra tu logo aquí o <span className="text-(--brand-teal) font-medium">haz clic para seleccionar</span></span>
                   <input
                     type="file"
                     className="hidden"
@@ -577,13 +586,13 @@ export function ApplicationForm({ onSuccess }: Props) {
                   />
                   <label htmlFor="legal" className="text-sm text-white/60 cursor-pointer">
                     He leído y acepto las{" "}
-                    <a
-                      href="/bases-legales"
-                      target="_blank"
-                      className="text-[#00e5c0] underline"
+                    <button
+                      type="button"
+                      onClick={() => setShowBasesLegales(true)}
+                      className="text-(--brand-teal) underline"
                     >
                       Bases Legales de Modo Fundraising 2026
-                    </a>
+                    </button>
                     <span className="text-red-500 ml-1">*</span>
                   </label>
                 </div>
@@ -602,19 +611,72 @@ export function ApplicationForm({ onSuccess }: Props) {
         ) : <div />}
 
         {step < TOTAL_STEPS ? (
-          <Button type="button" onClick={nextStep} className="flex items-center gap-2 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-bold">
+          <Button type="button" onClick={nextStep} className="flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-bold">
             Siguiente <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
           <Button
             type="submit"
             disabled={submitting || uploadingLogo}
-            className="flex items-center gap-2 bg-[#00e5c0] hover:bg-[#00c9aa] text-[#0a0e1a] font-bold px-8"
+            className="flex items-center gap-2 bg-(--brand-teal) hover:bg-(--brand-teal-dark) text-(--brand-navy) font-bold px-8"
           >
             {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</> : "Enviar postulación 🚀"}
           </Button>
         )}
       </div>
     </form>
+
+      {/* Modal Bases Legales */}
+      {showBasesLegales && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+          <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/10 overflow-hidden" style={{ background: "#181b2f" }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+              <h2 className="text-white font-semibold text-lg">Bases Legales — Modo Fundraising 2026</h2>
+              <button onClick={() => setShowBasesLegales(false)} className="text-white/40 hover:text-white/80 transition-colors text-2xl leading-none">&times;</button>
+            </div>
+            <div className="overflow-y-auto px-6 py-5 text-white/70 text-sm leading-relaxed space-y-4">
+              <p>Este documento describe los términos y condiciones (en adelante los <strong className="text-white">"Bases Legales"</strong>) aplicables a la inscripción y participación en <strong className="text-white">Modo Fundraising 2026</strong>, programa operado por <strong className="text-white">Modo SpA</strong> (en adelante "Modo").</p>
+              <h3 className="text-white font-semibold mt-4">I. Objeto del programa</h3>
+              <p>Modo Fundraising 2026 es un programa de preparación para el levantamiento de capital dirigido a fundadores y equipos de startups en etapa temprana. La inscripción implica la aceptación expresa de estas Bases Legales.</p>
+              <h3 className="text-white font-semibold mt-4">II. Proceso de postulación y selección</h3>
+              <p>La postulación se realiza a través del formulario oficial en este sitio. Modo se reserva el derecho de aceptar o rechazar cualquier postulación a su entera discreción. La recepción del formulario no garantiza la admisión al programa. Los postulantes serán notificados por correo electrónico sobre el resultado de su postulación.</p>
+              <h3 className="text-white font-semibold mt-4">III. Condiciones de participación</h3>
+              <p>Al inscribirse, el participante declara que:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>La información proporcionada en el formulario es veraz y completa.</li>
+                <li>Es mayor de edad y tiene capacidad legal para contratar.</li>
+                <li>Cuenta con la representación legal necesaria de la startup que postula.</li>
+                <li>Se compromete a participar activamente en las actividades del programa.</li>
+              </ul>
+              <h3 className="text-white font-semibold mt-4">IV. Confidencialidad</h3>
+              <p>Modo se compromete a tratar con confidencialidad la información sensible y no pública que los postulantes compartan durante el proceso de aplicación y el programa, salvo que medie autorización expresa del participante o sea requerido por la ley.</p>
+              <h3 className="text-white font-semibold mt-4">V. Propiedad intelectual</h3>
+              <p>La participación en el programa no transfiere a Modo ningún derecho de propiedad intelectual sobre los productos, servicios o tecnología de los participantes. Todos los materiales del programa (metodologías, contenidos, materiales didácticos) son propiedad de Modo y no pueden ser reproducidos sin autorización escrita.</p>
+              <h3 className="text-white font-semibold mt-4">VI. Protección de datos personales</h3>
+              <p>Los datos personales recopilados serán utilizados exclusivamente para la gestión del programa y comunicaciones relacionadas. Modo no venderá ni cederá estos datos a terceros sin consentimiento del titular. El participante podrá solicitar en cualquier momento el acceso, rectificación o eliminación de sus datos escribiendo a <strong className="text-white">hola@modofundraising.com</strong>.</p>
+              <h3 className="text-white font-semibold mt-4">VII. Responsabilidad</h3>
+              <p>Modo no garantiza resultados específicos de levantamiento de capital como consecuencia de la participación en el programa. El contenido del programa tiene carácter educativo y de preparación. Las decisiones de inversión son responsabilidad exclusiva de los inversores y los participantes.</p>
+              <h3 className="text-white font-semibold mt-4">VIII. Modificaciones</h3>
+              <p>Modo se reserva el derecho de modificar estas Bases Legales con aviso previo de al menos 7 días calendario a los participantes inscritos.</p>
+              <h3 className="text-white font-semibold mt-4">IX. Legislación aplicable</h3>
+              <p>Estas Bases Legales se rigen por la legislación de la República de Chile. Cualquier disputa será sometida a los tribunales ordinarios de justicia de la ciudad de Santiago de Chile.</p>
+              <h3 className="text-white font-semibold mt-4">X. Contacto</h3>
+              <p>Consultas y reclamos: <strong className="text-white">hola@modofundraising.com</strong></p>
+              <p className="text-white/40 text-xs mt-6">Vigente desde enero de 2026.</p>
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowBasesLegales(false)}
+                className="w-full py-2.5 rounded-lg font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: "#e5007e" }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

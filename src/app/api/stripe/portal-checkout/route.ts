@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obtenerSesion } from "@/lib/auth";
-import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
-import { createStripeCustomer, createSubscriptionCheckout, createOneTimeCheckout, PROGRAM_PRICE_USD } from "@/lib/stripe";
+import { obtenerSesion, normalizarEmail } from "@/lib/auth";
+import { getAllApplications, getAllCoupons, updateApplicationStatus } from "@/lib/airtable";
+import { createStripeCustomer, createSubscriptionCheckout, createOneTimeCheckout, PROGRAM_PRICE_USD, STRIPE_PRICE_ID_MONTHLY } from "@/lib/stripe";
 
 // POST /api/stripe/portal-checkout
 // Body: { mode: "subscription" | "payment" }
@@ -12,8 +12,9 @@ export async function POST(req: NextRequest) {
 
   const { mode = "subscription" } = await req.json().catch(() => ({}));
 
-  const apps = await getAllApplications();
-  const app = apps.find((a) => a.email === session.email);
+  const [apps, coupons] = await Promise.all([getAllApplications(), getAllCoupons()]);
+  const sessionEmail = normalizarEmail(session.email);
+  const app = apps.find((a) => a.email && normalizarEmail(a.email) === sessionEmail);
 
   if (!app?.id) {
     return NextResponse.json({ error: "Postulación no encontrada" }, { status: 404 });
@@ -39,21 +40,29 @@ export async function POST(req: NextRequest) {
 
     let checkoutSession;
 
-    const couponId = app.stripe_coupon_id as string | undefined;
+    // Resolve coupon IDs by coupon_code (most reliable, immune to stale IDs)
+    const couponCode = app.coupon_code as string | undefined;
+    const storedId = app.stripe_coupon_id as string | undefined;
+    const couponRecord = couponCode
+      ? coupons.find((c) => c.code === couponCode)
+      : coupons.find((c) => c.stripe_coupon_id === storedId || c.stripe_promotion_code_id === storedId);
+    const couponId = couponRecord?.stripe_coupon_id;
+    const promotionCodeId = couponRecord?.stripe_promotion_code_id;
 
     if (mode === "subscription") {
       checkoutSession = await createSubscriptionCheckout({
         customerId,
-        priceId: process.env.STRIPE_PRICE_ID_MONTHLY!,
+        priceId: STRIPE_PRICE_ID_MONTHLY,
         couponId,
+        promotionCodeId,
         successUrl,
         cancelUrl,
         metadata,
       });
     } else {
+      // Pago único: siempre 20% fijo. Cupones NO aplican.
       checkoutSession = await createOneTimeCheckout({
         customerId,
-        couponId,
         successUrl,
         cancelUrl,
         metadata,

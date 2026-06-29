@@ -1,0 +1,688 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  X, ExternalLink, CheckCircle, XCircle, Send, Loader2,
+  Building2, Globe, Phone, Mail, Tag, CreditCard, Banknote,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import type { ApplicationRecord, ApplicationStatus, CouponRecord, PagoRecord } from "@/lib/airtable";
+
+interface Props {
+  app: ApplicationRecord;
+  coupons: CouponRecord[];
+  pagos?: PagoRecord[];
+  onClose: () => void;
+  onStatusChange: (id: string, status: ApplicationStatus) => void;
+  onCouponAssign: (id: string, coupon: CouponRecord) => void;
+}
+
+function Field({ label, value }: { label: string; value?: string | number | null }) {
+  if (!value && value !== 0) return null;
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-0.5">{label}</p>
+      <p className="text-sm text-zinc-700">{value}</p>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1">{title}</p>
+      <div className="grid grid-cols-2 gap-3">{children}</div>
+    </div>
+  );
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  "Nueva postulación": "bg-zinc-100 text-zinc-600",
+  "Admitida": "bg-blue-100 text-blue-700",
+  "Rechazada": "bg-red-100 text-red-700",
+  "Sin Respuesta": "bg-zinc-100 text-zinc-500",
+  "Inscrita": "bg-green-100 text-green-700",
+  "Invitada institucional": "bg-purple-100 text-purple-700",
+  "Churn": "bg-red-100 text-red-600",
+};
+
+export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatusChange, onCouponAssign }: Props) {
+  const [admitting, setAdmitting] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState(app.coupon_code as string ?? "");
+  const [assigningCoupon, setAssigningCoupon] = useState(false);
+  const [manualPayOpen, setManualPayOpen] = useState(false);
+  const [manualPaying, setManualPaying] = useState(false);
+  const [mpCuota, setMpCuota] = useState(3);
+  const [mpMetodo, setMpMetodo] = useState("Transferencia Chile");
+  const [mpMoneda, setMpMoneda] = useState("USD");
+  const [mpMonto, setMpMonto] = useState("349");
+  const [mpTC, setMpTC] = useState("");
+  const [mpNota, setMpNota] = useState("");
+
+  async function handleAdmit() {
+    setAdmitting(true);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: app.id,
+          status: "Admitida",
+          appData: {
+            email: app.email,
+            firstName: app.first_name,
+            startupName: app.startup_name,
+            stripeCouponId: app.stripe_coupon_id,
+            discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error();
+      onStatusChange(app.id!, "Admitida");
+      toast.success(`✅ ${app.startup_name} admitida — email con link de pago enviado`);
+      onClose();
+    } catch {
+      toast.error("Error al admitir");
+    } finally {
+      setAdmitting(false);
+    }
+  }
+
+  async function handleReject() {
+    setRejecting(true);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: app.id,
+          status: "Rechazada",
+          appData: { email: app.email, firstName: app.first_name, startupName: app.startup_name },
+        }),
+      });
+      if (!res.ok) throw new Error();
+      onStatusChange(app.id!, "Rechazada");
+      toast.success(`${app.startup_name} rechazada`);
+      onClose();
+    } catch {
+      toast.error("Error al rechazar");
+    } finally {
+      setRejecting(false);
+    }
+  }
+
+  async function handleSendLink() {
+    setSendingLink(true);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: app.id,
+          action: "resend_checkout",
+          appData: {
+            email: app.email,
+            firstName: app.first_name,
+            startupName: app.startup_name,
+            stripeCouponId: app.stripe_coupon_id,
+            discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      toast.success("Email con link de pago enviado");
+    } catch (err) {
+      toast.error(`Error al enviar link: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setSendingLink(false);
+    }
+  }
+
+  async function handleManualPay() {
+    const monto = Number(mpMonto);
+    const tc = mpMoneda === "USD" ? 1 : Number(mpTC);
+    if (!monto || monto <= 0) { toast.error("Monto inválido"); return; }
+    if (mpMoneda !== "USD" && (!tc || tc <= 0)) { toast.error("Tipo de cambio requerido"); return; }
+    setManualPaying(true);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: app.id,
+          action: "mark_paid_manual",
+          cuota: mpCuota,
+          metodo: mpMetodo,
+          montoOriginal: monto,
+          moneda: mpMoneda,
+          tipoCambio: tc,
+          nota: mpNota || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      onStatusChange(app.id!, "Inscrita");
+      toast.success(`✅ Pago manual registrado (US$ ${data.amountUSD}) — ${app.startup_name} Inscrita`);
+      setManualPayOpen(false);
+      onClose();
+    } catch (err) {
+      toast.error(`Error al marcar pago: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setManualPaying(false);
+    }
+  }
+
+  async function handleCouponAssign() {
+    const removing = !selectedCoupon;
+    const coupon = coupons.find((c) => c.code === selectedCoupon);
+    if (!removing && !coupon) return;
+    setAssigningCoupon(true);
+    try {
+      const res = await fetch("/api/admin/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recordId: app.id,
+          coupon_code: coupon?.code ?? "",
+          discount_percent: coupon?.discount_percent ?? 0,
+          stripe_coupon_id: coupon?.stripe_coupon_id ?? "",
+          stripe_promotion_code_id: coupon?.stripe_promotion_code_id ?? "",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+      onCouponAssign(app.id!, coupon ?? { id: "", code: "", discount_percent: 0, stripe_coupon_id: "", active: true });
+      toast.success(removing ? "Cupón eliminado" : `Cupón ${coupon!.code} (${coupon!.discount_percent}% off) asignado`);
+    } catch (err) {
+      toast.error(`${removing ? "Error al eliminar cupón" : "Error al asignar cupón"}: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setAssigningCoupon(false);
+    }
+  }
+
+  const canAdmit = app.status === "Nueva postulación" || app.status === "Sin Respuesta" || app.status === "En revisión";
+  const canSendLink = app.status === "Admitida";
+
+  const followUpNum = app.follow_up_2_sent ? 2 : app.follow_up_1_sent ? 1 : 0;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-white shadow-2xl overflow-y-auto flex flex-col">
+
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-zinc-100 px-6 py-4 flex items-start justify-between gap-4 z-10">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-bold text-zinc-800 truncate">{app.startup_name}</h2>
+              {app.ias_interested === "Sí" && (
+                <span className="flex items-center gap-1 text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                  <Building2 className="h-3 w-3" /> Inv. Institucional
+                </span>
+              )}
+              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", STATUS_COLORS[app.status ?? ""] ?? "bg-zinc-100 text-zinc-600")}>
+                {app.status}
+              </span>
+              {followUpNum > 0 && (
+                <span className={cn(
+                  "flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold",
+                  followUpNum === 2 ? "bg-red-500 text-white" : "bg-amber-400 text-white"
+                )} title={`Seguimiento ${followUpNum}/2 enviado`}>
+                  {followUpNum}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-zinc-400 mt-0.5">{app.first_name} {app.last_name} · {app.email}</p>
+          </div>
+          <button onClick={onClose} className="shrink-0 p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Coupon */}
+        <div className="px-6 py-3 bg-zinc-50 border-b border-zinc-100 flex items-center gap-2">
+          <Tag className="h-4 w-4 text-purple-500 shrink-0" />
+          <select
+            value={selectedCoupon}
+            onChange={(e) => setSelectedCoupon(e.target.value)}
+            className="flex-1 rounded-lg border border-zinc-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+          >
+            <option value="">Sin cupón</option>
+            {coupons.filter((c) => c.active).map((c) => (
+              <option key={c.id} value={c.code}>{c.code} — {c.discount_percent}% off</option>
+            ))}
+          </select>
+          <Button
+            onClick={handleCouponAssign}
+            disabled={selectedCoupon === (app.coupon_code as string ?? "") || assigningCoupon}
+            className={selectedCoupon ? "bg-purple-600 hover:bg-purple-700 text-white h-8 text-sm px-3 shrink-0" : "bg-zinc-200 hover:bg-zinc-300 text-zinc-700 h-8 text-sm px-3 shrink-0"}
+          >
+            {assigningCoupon ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedCoupon ? "Asignar" : "Quitar"}
+          </Button>
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 py-3 bg-white border-b border-zinc-100 flex gap-2 flex-wrap">
+          {canAdmit && (
+            <>
+              <Button
+                onClick={handleAdmit}
+                disabled={admitting}
+                className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 h-9 text-sm"
+              >
+                {admitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                Admitir y enviar link
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleReject}
+                disabled={rejecting}
+                className="gap-1.5 h-9 text-sm text-red-600 border-red-200 hover:bg-red-50"
+              >
+                {rejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                Rechazar
+              </Button>
+            </>
+          )}
+          {canSendLink && (
+            <>
+              <Button
+                onClick={handleSendLink}
+                disabled={sendingLink}
+                className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 h-9 text-sm"
+              >
+                {sendingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Reenviar link de pago
+              </Button>
+              <Button
+                onClick={() => setManualPayOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-9 text-sm"
+                title="Marcar pago manual cuando entra plata por transferencia (fuera de Stripe)"
+              >
+                <Banknote className="h-4 w-4" />
+                Marcar pago manual
+              </Button>
+            </>
+          )}
+          {app.deck_url && (
+            <a
+              href={app.deck_url as string}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-100 transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" /> Ver deck
+            </a>
+          )}
+        </div>
+
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-6 flex-1">
+
+          {/* Founder */}
+          <Section title="Founder">
+            <Field label="Nombre" value={`${app.first_name} ${app.last_name}`} />
+            <Field label="Rol" value={app.founder_role} />
+            <div className="col-span-2 flex flex-wrap gap-3 text-sm">
+              {app.email && (
+                <a href={`mailto:${app.email}`} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-800">
+                  <Mail className="h-3.5 w-3.5" />{app.email}
+                </a>
+              )}
+              {app.whatsapp && (
+                <a href={`https://wa.me/${app.whatsapp?.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-800">
+                  <Phone className="h-3.5 w-3.5" />{app.whatsapp}
+                </a>
+              )}
+              {app.linkedin_founder && (
+                <a href={app.linkedin_founder as string} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-800">
+                  <ExternalLink className="h-3.5 w-3.5" />LinkedIn
+                </a>
+              )}
+            </div>
+            <Field label="País de residencia" value={app.country_residence} />
+          </Section>
+
+          {/* Startup */}
+          <Section title="Startup">
+            <Field label="País de operación" value={app.startup_country_ops} />
+            <Field label="Etapa" value={app.startup_stage} />
+            <Field label="Equipo" value={app.startup_team_size ? `${app.startup_team_size} personas` : undefined} />
+            <Field label="Modelo de negocio" value={app.business_model} />
+            {app.startup_description && (
+              <div className="col-span-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-0.5">Descripción</p>
+                <p className="text-sm text-zinc-700 leading-relaxed">{app.startup_description}</p>
+              </div>
+            )}
+            <Field label="Industrias" value={app.startup_industries} />
+            <Field label="Expansión" value={app.startup_countries_expansion} />
+            <Field label="USA / Internacional" value={app.startup_usa_intl} />
+            <div className="col-span-2 flex flex-wrap gap-3 text-sm">
+              {app.startup_website && (
+                <a href={app.startup_website as string} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-800">
+                  <Globe className="h-3.5 w-3.5" />Website
+                </a>
+              )}
+              {app.startup_linkedin && (
+                <a href={app.startup_linkedin as string} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-800">
+                  <ExternalLink className="h-3.5 w-3.5" />LinkedIn startup
+                </a>
+              )}
+            </div>
+          </Section>
+
+          {/* Financials */}
+          <Section title="Finanzas">
+            <Field label="MRR" value={app.startup_mrr ? `$${Number(app.startup_mrr).toLocaleString()}/mo` : undefined} />
+            <Field label="Ventas 12m" value={app.startup_sales_12m ? `$${Number(app.startup_sales_12m).toLocaleString()}` : undefined} />
+            <Field label="Runway" value={app.runway ? `${app.runway} meses` : undefined} />
+            <Field label="Fundraising previo" value={app.prior_fundraising} />
+            {(app.prior_fundraising_amount ?? 0) > 0 && (
+              <Field label="Monto previo" value={`$${Number(app.prior_fundraising_amount).toLocaleString()}`} />
+            )}
+          </Section>
+
+          {/* Round */}
+          {(app.round_open || app.round_series || (app.round_size ?? 0) > 0) && (
+            <Section title="Ronda actual">
+              <Field label="Ronda abierta" value={app.round_open} />
+              <Field label="Serie" value={app.round_series} />
+              <Field label="Tamaño" value={app.round_size ? `$${Number(app.round_size).toLocaleString()}` : undefined} />
+              <Field label="Tickets" value={app.round_tickets} />
+            </Section>
+          )}
+
+          {/* Application meta */}
+          <Section title="Postulación">
+            <Field label="Fuente" value={app.program_source} />
+            <Field label="Fecha" value={app.created_at ? new Date(app.created_at as string).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" }) : undefined} />
+            {app.coupon_code && (
+              <div className="col-span-2 flex items-center gap-1.5 text-sm text-purple-700 bg-purple-50 px-3 py-2 rounded-lg border border-purple-100">
+                <Tag className="h-3.5 w-3.5" />
+                <span>Cupón: <strong>{app.coupon_code as string}</strong> — {app.discount_percent as number}% off</span>
+              </div>
+            )}
+          </Section>
+
+          {/* Inscripción — visible when any of these fields have data */}
+          {(app.payment_status || app.portal_access !== undefined || app.follow_up_1_sent || app.follow_up_2_sent) && (
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1">Inscripción</p>
+              <div className="grid grid-cols-2 gap-3">
+                {app.payment_status && (
+                  <Field label="Estado de pago" value={app.payment_status} />
+                )}
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-0.5">Acceso al portal</p>
+                  <p className="text-sm text-zinc-700">{app.portal_access ? "Habilitado" : "Sin acceso"}</p>
+                </div>
+                <div className="col-span-2 flex flex-wrap gap-2">
+                  <span className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border",
+                    app.follow_up_1_sent
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-zinc-50 text-zinc-400 border-zinc-200"
+                  )}>
+                    Seguimiento 1: {app.follow_up_1_sent ? "Enviado" : "Pendiente"}
+                  </span>
+                  <span className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium border",
+                    app.follow_up_2_sent
+                      ? "bg-red-50 text-red-600 border-red-200"
+                      : "bg-zinc-50 text-zinc-400 border-zinc-200"
+                  )}>
+                    Seguimiento 2: {app.follow_up_2_sent ? "Enviado" : "Pendiente"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Historial de pagos — solo para Inscrita */}
+          {app.status === "Inscrita" && (() => {
+            const pagosFiltrados = pagos.filter(
+              (p) => p.startup_name === app.startup_name || p.email === app.email
+            );
+            return (
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1">
+                  Historial de pagos
+                </p>
+                {pagosFiltrados.length === 0 ? (
+                  <p className="text-sm text-zinc-400 italic">Sin pagos registrados</p>
+                ) : (
+                  <div className="space-y-2">
+                    {pagosFiltrados.map((p, i) => (
+                      <div
+                        key={p.id ?? i}
+                        className="flex items-center justify-between gap-2 bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                          <div>
+                            <p className="font-medium text-zinc-700">
+                              Cuota {p.cuota ?? "—"}
+                            </p>
+                            {p.paid_at && (
+                              <p className="text-xs text-zinc-400">
+                                {new Date(p.paid_at).toLocaleDateString("es", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {p.amount != null && (
+                            <p className="font-semibold text-green-700">
+                              ${Number(p.amount).toLocaleString()}
+                            </p>
+                          )}
+                          {p.status && (
+                            <p className="text-xs text-zinc-400 capitalize">{p.status}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Referrals */}
+          {(app.referral_1_name || app.referral_2_name || app.referral_3_name) && (
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 pb-1">Referencias</p>
+              {[
+                { name: app.referral_1_name, email: app.referral_1_email, linkedin: app.referral_1_linkedin, relation: app.referral_1_relation },
+                { name: app.referral_2_name, email: app.referral_2_email, linkedin: app.referral_2_linkedin, relation: app.referral_2_relation },
+                { name: app.referral_3_name, email: app.referral_3_email, linkedin: app.referral_3_linkedin, relation: app.referral_3_relation },
+              ].filter((r) => r.name).map((r, i) => (
+                <div key={i} className="flex items-start justify-between gap-2 bg-zinc-50 rounded-lg px-3 py-2 text-sm">
+                  <div>
+                    <p className="font-medium text-zinc-700">{r.name}</p>
+                    <p className="text-xs text-zinc-400">{r.relation} · {r.email}</p>
+                  </div>
+                  {r.linkedin && (
+                    <a href={r.linkedin} target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-zinc-700 shrink-0">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* Modal: Marcar pago manual ────────────────────────────────────────── */}
+      {manualPayOpen && (() => {
+        const monto = Number(mpMonto) || 0;
+        const tc = mpMoneda === "USD" ? 1 : Number(mpTC) || 0;
+        const equivalenteUSD = tc > 0 ? Math.round((monto / tc) * 100) / 100 : 0;
+        const canConfirm = monto > 0 && (mpMoneda === "USD" || tc > 0) && !manualPaying;
+
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => !manualPaying && setManualPayOpen(false)}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-zinc-800">Marcar pago manual</h3>
+                  <p className="text-sm text-zinc-500 mt-0.5">{app.startup_name} — {app.first_name} {app.last_name}</p>
+                </div>
+                <button onClick={() => !manualPaying && setManualPayOpen(false)} className="text-zinc-400 hover:text-zinc-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Cuota */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Cuota</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setMpCuota(n)}
+                      className={cn(
+                        "flex-1 h-9 rounded-lg border text-sm font-medium transition-colors",
+                        mpCuota === n
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"
+                      )}
+                    >
+                      {n}{n === 3 ? " (completo)" : ""}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Método */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Método</label>
+                <select
+                  value={mpMetodo}
+                  onChange={(e) => setMpMetodo(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                >
+                  <option>Transferencia Chile</option>
+                  <option>Transferencia USA</option>
+                  <option>Transferencia México</option>
+                  <option>Transferencia Argentina</option>
+                  <option>Efectivo</option>
+                  <option>Otro</option>
+                </select>
+              </div>
+
+              {/* Monto + Moneda */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Monto pagado</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={mpMonto}
+                    onChange={(e) => setMpMonto(e.target.value)}
+                    placeholder="349"
+                    className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Moneda</label>
+                  <select
+                    value={mpMoneda}
+                    onChange={(e) => setMpMoneda(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  >
+                    <option>USD</option>
+                    <option>CLP</option>
+                    <option>MXN</option>
+                    <option>ARS</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tipo de cambio + equivalente */}
+              {mpMoneda !== "USD" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+                    Tipo de cambio (1 USD = N {mpMoneda})
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={mpTC}
+                    onChange={(e) => setMpTC(e.target.value)}
+                    placeholder="1018"
+                    className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              )}
+
+              {/* Equivalente USD */}
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-700">Equivalente en USD:</span>
+                  <span className="font-bold text-emerald-800 font-mono">
+                    {equivalenteUSD > 0 ? `US$ ${equivalenteUSD.toLocaleString()}` : "—"}
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-600/80 mt-1">Este es el monto que se guardará en el historial de pagos.</p>
+              </div>
+
+              {/* Nota */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Nota interna (opcional)</label>
+                <textarea
+                  value={mpNota}
+                  onChange={(e) => setMpNota(e.target.value)}
+                  placeholder="Ref banco, fecha de transferencia, etc."
+                  rows={2}
+                  className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                />
+              </div>
+
+              {/* Aviso */}
+              <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2 text-xs text-blue-700">
+                Al confirmar: postulación → <strong>Inscrita</strong>, portal habilitado, correo de pago enviado, invitación a Calendar.
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleManualPay}
+                  disabled={!canConfirm}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  {manualPaying ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Procesando...</> : "Confirmar pago"}
+                </Button>
+                <Button variant="outline" onClick={() => setManualPayOpen(false)} disabled={manualPaying} className="flex-1">
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </>
+  );
+}

@@ -1,17 +1,60 @@
-import { getAllApplications, getAllPagos } from "@/lib/airtable";
-import { DollarSign, TrendingUp, CreditCard, AlertCircle } from "lucide-react";
+import { getAllApplications } from "@/lib/airtable";
+import { listRecentRefunds, listAllPagosFromStripe } from "@/lib/stripe";
+import { TrendingUp, AlertCircle, Undo2 } from "lucide-react";
+import { RecuperarPagosSection } from "./recuperar-pagos-section";
+import { RefundsYearFilter } from "./refunds-year-filter";
 
 export const dynamic = "force-dynamic";
 
 const PRECIO_CUOTA = 349;
 
-export default async function RevenuePage() {
-  const [apps, pagos] = await Promise.all([getAllApplications(), getAllPagos()]);
+const REFUND_REASON_LABEL: Record<string, string> = {
+  requested_by_customer: "Pedido por el cliente",
+  duplicate: "Duplicado",
+  fraudulent: "Fraude",
+  expired_uncaptured_charge: "Charge expirado",
+};
+
+const REFUNDS_START_YEAR = 2026;
+
+export default async function RevenuePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ refundsYear?: string }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const currentYear = new Date().getUTCFullYear();
+  const parsedYear = Number(params.refundsYear);
+  const refundsYear =
+    Number.isInteger(parsedYear) && parsedYear >= REFUNDS_START_YEAR && parsedYear <= currentYear
+      ? parsedYear
+      : currentYear;
+
+  const yearStart = Math.floor(Date.UTC(refundsYear, 0, 1) / 1000);
+  const yearEnd = Math.floor(Date.UTC(refundsYear + 1, 0, 1) / 1000);
+
+  const [apps, pagos, refunds] = await Promise.all([
+    getAllApplications(),
+    listAllPagosFromStripe().catch(() => []),
+    listRecentRefunds({ createdGte: yearStart, createdLt: yearEnd }).catch(() => []),
+  ]);
+  const totalReembolsado = refunds.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const refundsYearOptions: number[] = [];
+  for (let y = currentYear; y >= REFUNDS_START_YEAR; y--) refundsYearOptions.push(y);
+
+  // Mapa de email → startup_name para resolver el nombre desde el customer de Stripe.
+  const startupNameByEmail = new Map<string, string>();
+  apps.forEach((a) => {
+    if (a.startup_name && a.email) {
+      startupNameByEmail.set(a.email.toLowerCase(), a.startup_name);
+    }
+  });
 
   const inscritas = apps.filter((a) => a.status === "Inscrita" || a.status === "Invitada institucional");
-  const pagosTotales = pagos.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  // Revenue bruto (suma de charges succeeded) desde Stripe. Los reembolsos
+  // tienen su propia sección abajo y se muestran aparte.
+  const pagosTotales = pagos.reduce((sum, p) => sum + p.amount, 0);
   const pagosConFallo = apps.filter((a) => a.payment_status === "Baja").length;
-  const mrr = inscritas.length * PRECIO_CUOTA;
 
   const cuota1 = apps.filter((a) => a.payment_status === "Cuota 1 pagada").length;
   const cuota2 = apps.filter((a) => a.payment_status === "Cuota 2 pagada").length;
@@ -25,32 +68,16 @@ export default async function RevenuePage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-4 w-4 text-green-500" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">MRR actual</p>
-          </div>
-          <p className="text-2xl font-bold text-green-600">US${mrr.toLocaleString()}</p>
-          <p className="text-xs text-zinc-400 mt-1">{inscritas.length} startups × $349</p>
-        </div>
-
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="h-4 w-4 text-blue-500" />
             <p className="text-xs text-zinc-500 uppercase tracking-wide">Revenue total</p>
           </div>
-          <p className="text-2xl font-bold text-blue-600">US${pagosTotales.toLocaleString()}</p>
-          <p className="text-xs text-zinc-400 mt-1">{pagos.length} pagos registrados</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <div className="flex items-center gap-2 mb-2">
-            <CreditCard className="h-4 w-4 text-zinc-500" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">ARR estimado</p>
-          </div>
-          <p className="text-2xl font-bold text-zinc-800">US${(mrr * 3).toLocaleString()}</p>
-          <p className="text-xs text-zinc-400 mt-1">Programa de 3 cuotas</p>
+          <p className="text-2xl font-bold text-blue-600">
+            US${pagosTotales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs text-zinc-400 mt-1">{pagos.length} pagos en Stripe · {inscritas.length} startups inscritas</p>
         </div>
 
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
@@ -89,10 +116,94 @@ export default async function RevenuePage() {
         </div>
       </div>
 
-      {/* Historial de pagos */}
+      {/* Recuperar pagos pendientes (Billing Portal + Checkout) */}
+      <RecuperarPagosSection />
+
+      {/* Reembolsos Stripe */}
+      <div id="reembolsos" className="bg-white rounded-xl border border-zinc-200 overflow-hidden scroll-mt-6">
+        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Undo2 className="h-4 w-4 text-rose-500" />
+            <h2 className="text-sm font-semibold text-zinc-700">Reembolsos Stripe</h2>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-zinc-500">
+            <RefundsYearFilter current={refundsYear} options={refundsYearOptions} />
+            <span>
+              {refunds.length} reembolso{refunds.length !== 1 ? "s" : ""} ·{" "}
+              <span className="font-semibold text-rose-600">
+                US${totalReembolsado.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>{" "}
+              devueltos en {refundsYear}
+            </span>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-zinc-50 border-b border-zinc-100">
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Email</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Monto</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Razón</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Estado</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Fecha</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Recibo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {refunds.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-zinc-400">
+                    No hay reembolsos registrados en Stripe en {refundsYear}
+                  </td>
+                </tr>
+              )}
+              {refunds.map((r) => (
+                <tr key={r.refundId} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                  <td className="px-4 py-3 text-zinc-700 text-xs">{r.email || "—"}</td>
+                  <td className="px-4 py-3 font-mono text-rose-700 font-semibold">
+                    US${r.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </td>
+                  <td className="px-4 py-3 text-zinc-600 text-xs">
+                    {r.reason ? (REFUND_REASON_LABEL[r.reason] ?? r.reason) : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      r.status === "succeeded"
+                        ? "bg-rose-100 text-rose-700"
+                        : r.status === "pending"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-zinc-100 text-zinc-600"
+                    }`}>
+                      {r.status === "succeeded" ? "Reembolsado" : r.status === "pending" ? "Pendiente" : r.status ?? "—"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-zinc-400">
+                    {new Date(r.created).toLocaleDateString("es")}
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    {r.receiptUrl ? (
+                      <a
+                        href={r.receiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        Ver
+                      </a>
+                    ) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Historial de pagos — fuente: Stripe charges */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100">
+        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-zinc-700">Historial de pagos</h2>
+          <span className="text-xs text-zinc-400">desde Stripe</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -100,40 +211,63 @@ export default async function RevenuePage() {
               <tr className="bg-zinc-50 border-b border-zinc-100">
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Startup</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Email</th>
-                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Cuota</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Monto</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Reembolsado</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Estado</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Fecha</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Recibo</th>
               </tr>
             </thead>
             <tbody>
               {pagos.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-zinc-400">
-                    No hay pagos registrados aún
+                  <td colSpan={7} className="px-4 py-12 text-center text-zinc-400">
+                    No hay pagos registrados en Stripe
                   </td>
                 </tr>
               )}
-              {pagos.map((p) => (
-                <tr key={p.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-zinc-800">{p.startup_name || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-500 text-xs">{p.email || "—"}</td>
-                  <td className="px-4 py-3 text-zinc-600">{p.cuota ? `${p.cuota}/3` : "—"}</td>
-                  <td className="px-4 py-3 font-mono text-zinc-700">
-                    {p.amount ? `US$${Number(p.amount).toLocaleString()}` : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      p.status === "Pagado" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                    }`}>
-                      {p.status || "—"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-zinc-400">
-                    {p.paid_at ? new Date(p.paid_at).toLocaleDateString("es") : "—"}
-                  </td>
-                </tr>
-              ))}
+              {pagos.map((p) => {
+                const startupName = p.startupName ?? (p.email ? startupNameByEmail.get(p.email.toLowerCase()) : null) ?? null;
+                const isRefunded = p.refunded || p.amountRefunded > 0;
+                return (
+                  <tr key={p.chargeId} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-zinc-800">{startupName || "—"}</td>
+                    <td className="px-4 py-3 text-zinc-500 text-xs">{p.email || "—"}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-700">
+                      US${p.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-rose-600 text-xs">
+                      {p.amountRefunded > 0
+                        ? `−US$${p.amountRefunded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        isRefunded
+                          ? "bg-rose-100 text-rose-700"
+                          : "bg-green-100 text-green-700"
+                      }`}>
+                        {isRefunded ? (p.amountRefunded >= p.amount ? "Reembolsado" : "Reemb. parcial") : "Pagado"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-zinc-400">
+                      {new Date(p.created).toLocaleDateString("es")}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {p.receiptUrl ? (
+                        <a
+                          href={p.receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          Ver
+                        </a>
+                      ) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

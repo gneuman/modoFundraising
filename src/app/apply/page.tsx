@@ -1,9 +1,5 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { ChatForm } from "@/components/apply/chat-form";
+import { redirect } from "next/navigation";
 
 export default function ApplyPage() {
-  const router = useRouter();
-  return <ChatForm onSuccess={() => router.push("/apply/success")} />;
+  redirect("/");
 }

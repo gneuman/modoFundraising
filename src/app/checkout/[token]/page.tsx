@@ -11,16 +11,20 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
   const { firstName, startupName, discountPercent } = payload;
   const BASE = 349;
   const TOTAL = BASE * 3; // $1,047
-  const discount = discountPercent ?? 0;
-  const monthlyPrice = Math.round(BASE * (1 - discount / 100) * 100) / 100;
-  const fullPrice = Math.round(TOTAL * (1 - discount / 100) * 100) / 100;
+  // Pago único: precio fijo $837 (US$210 de ahorro sobre $1,047 ≈ 20% off).
+  const ONETIME_FULL_PRICE = 837;
+  const couponDiscount = discountPercent ?? 0;
+  // Cuotas: solo aplica el descuento del cupón.
+  const monthlyPrice = Math.round(BASE * (1 - couponDiscount / 100));
+  const fullPrice = ONETIME_FULL_PRICE;
   const fullSaving = TOTAL - fullPrice;
+  const onetimeDiscount = Math.round((fullSaving / TOTAL) * 100);
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-zinc-100 px-6 py-4">
-        <Image src="/logo-mf.png" alt="Modo Fundraising" width={140} height={48} className="object-contain" />
+      <header className="bg-white border-b border-zinc-100 px-6 py-4 flex justify-center">
+        <Image src="/logo-mf-azul.png" alt="Modo Fundraising" width={140} height={48} className="object-contain" />
       </header>
 
       <main className="flex-1 flex items-start justify-center px-4 py-12">
@@ -34,9 +38,9 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
               <span className="font-semibold text-zinc-700">{startupName}</span> fue admitida a Modo Fundraising 2026.
               <br />Elige cómo quieres pagar para activar tu acceso.
             </p>
-            {discount > 0 && (
+            {couponDiscount > 0 && (
               <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full">
-                🎁 Tienes un descuento del {discount}% aplicado
+                🎁 Tienes un descuento del {couponDiscount}% aplicado en mensualidades
               </div>
             )}
           </div>
@@ -46,8 +50,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
             <h3 className="font-semibold text-zinc-700 text-sm uppercase tracking-wide">Incluye</h3>
             <ul className="space-y-2 text-sm text-zinc-600">
               {[
-                "12 semanas de clases en vivo con mentores top de LATAM",
-                "Acceso a red de 200+ inversores activos",
+                "13 semanas de clases en vivo con mentores top de LATAM",
+                "Acceso a red de 400+ VC firms activos",
                 "Misiones semanales con feedback personalizado",
                 "Portal exclusivo para founders y equipo",
                 "Comunidad privada de founders en programa",
@@ -67,7 +71,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ token
             monthlyPrice={monthlyPrice}
             fullPrice={fullPrice}
             fullSaving={fullSaving}
-            hasDiscount={discount > 0}
+            couponDiscount={couponDiscount}
+            onetimeDiscount={onetimeDiscount}
           />
 
           <p className="text-center text-xs text-zinc-400">

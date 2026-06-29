@@ -8,14 +8,15 @@ export interface CheckoutPayload {
   firstName: string;
   startupName: string;
   stripeCouponId?: string;
+  stripePromotionCodeId?: string;
   discountPercent?: number;
 }
 
-// 7-day checkout link token
+// 30-day checkout link token
 export async function createCheckoutToken(payload: CheckoutPayload): Promise<string> {
   return new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
+    .setExpirationTime("30d")
     .setIssuedAt()
     .sign(SECRET);
 }

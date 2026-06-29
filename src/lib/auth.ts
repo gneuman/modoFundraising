@@ -1,8 +1,8 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT, jwtVerify, decodeJwt } from "jose";
 import { cookies } from "next/headers";
 
-const SECRETO_SESION = new TextEncoder().encode(process.env.JWT_SECRET!);
-const SECRETO_MAGIC = new TextEncoder().encode(process.env.MAGIC_LINK_SECRET!);
+const getSecretoSesion = () => new TextEncoder().encode(process.env.JWT_SECRET!);
+const getSecretoMagic = () => new TextEncoder().encode(process.env.MAGIC_LINK_SECRET!);
 
 export type PayloadSesion = {
   email: string;
@@ -10,40 +10,71 @@ export type PayloadSesion = {
   recordId?: string;
 };
 
-// ── Token de magic link (15 min) ─────────────────────────────────────────────
-export async function crearTokenMagic(email: string) {
-  return new SignJWT({ email })
+// Normaliza email para comparación: minúsculas + sin espacios.
+// David.Alvo@X.com === david.alvo@x.com en todo el flujo de auth y búsquedas.
+export function normalizarEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+// ── Token de magic link ──────────────────────────────────────────────────────
+// TTL por defecto 15 min (login recurrente). Onboarding/invitación pasa "72h".
+export const TTL_MAGIC_LOGIN = "15m";
+export const TTL_MAGIC_ONBOARDING = "72h";
+
+export async function crearTokenMagic(email: string, ttl: string = TTL_MAGIC_LOGIN) {
+  return new SignJWT({ email: normalizarEmail(email) })
     .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("15m")
+    .setExpirationTime(ttl)
     .setIssuedAt()
-    .sign(SECRETO_MAGIC);
+    .sign(getSecretoMagic());
 }
 
 export async function verificarTokenMagic(token: string): Promise<string | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRETO_MAGIC);
-    return payload.email as string;
+    const { payload } = await jwtVerify(token, getSecretoMagic());
+    return normalizarEmail(payload.email as string);
   } catch {
     return null;
   }
 }
 
-// ── Cookie de sesión (7 días) ─────────────────────────────────────────────────
-export async function crearSesion(payload: PayloadSesion) {
-  const token = await new SignJWT(payload as unknown as Record<string, unknown>)
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
-    .setIssuedAt()
-    .sign(SECRETO_SESION);
+// Lee el email de un token (vencido o no) SIN validar la firma.
+// Úsalo solo para decidir a qué correo auto-reenviar un link nuevo cuando expiró.
+// No confíes en este valor para autenticar.
+export function decodificarEmailToken(token: string): string | null {
+  try {
+    const payload = decodeJwt(token);
+    const email = payload.email;
+    return typeof email === "string" ? normalizarEmail(email) : null;
+  } catch {
+    return null;
+  }
+}
 
+// ── Cookie de sesión (90 días, renovación automática) ────────────────────────
+const DURACION_SESION_DIAS = 90;
+const DURACION_SESION_SEGUNDOS = 60 * 60 * 24 * DURACION_SESION_DIAS;
+
+export async function crearTokenSesion(payload: PayloadSesion): Promise<string> {
+  return new SignJWT(payload as unknown as Record<string, unknown>)
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(`${DURACION_SESION_DIAS}d`)
+    .setIssuedAt()
+    .sign(getSecretoSesion());
+}
+
+export const COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  maxAge: DURACION_SESION_SEGUNDOS,
+  path: "/",
+};
+
+export async function crearSesion(payload: PayloadSesion) {
+  const token = await crearTokenSesion(payload);
   const cookies_ = await cookies();
-  cookies_.set("mf_session", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-    path: "/",
-  });
+  cookies_.set("mf_session", token, COOKIE_OPTS);
 }
 
 export async function obtenerSesion(): Promise<PayloadSesion | null> {
@@ -51,12 +82,30 @@ export async function obtenerSesion(): Promise<PayloadSesion | null> {
   const token = cookies_.get("mf_session")?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, SECRETO_SESION);
-    return payload as unknown as PayloadSesion;
+    const { payload } = await jwtVerify(token, getSecretoSesion());
+    const sesion: PayloadSesion = {
+      email: payload.email as string,
+      role: payload.role as "admin" | "founder",
+      recordId: payload.recordId as string | undefined,
+    };
+
+    // Renovación deslizante: si la cookie tiene más de 1 día, renovar
+    const emitidoEn = (payload.iat as number | undefined) ?? 0;
+    const ahora = Math.floor(Date.now() / 1000);
+    if (ahora - emitidoEn > 60 * 60 * 24) {
+      try {
+        await crearSesion(sesion);
+      } catch {
+        // No bloquear la request si falla la renovación
+      }
+    }
+
+    return sesion;
   } catch {
     return null;
   }
 }
+
 
 export async function destruirSesion() {
   const cookies_ = await cookies();
@@ -64,6 +113,19 @@ export async function destruirSesion() {
 }
 
 export function esAdmin(email: string): boolean {
-  const admins = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim());
-  return admins.includes(email);
+  const normalizado = email.trim().toLowerCase();
+  const patrones = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  for (const patron of patrones) {
+    if (patron.startsWith("*@")) {
+      const dominio = patron.slice(2);
+      if (normalizado.endsWith(`@${dominio}`)) return true;
+    } else if (patron === normalizado) {
+      return true;
+    }
+  }
+  return false;
 }

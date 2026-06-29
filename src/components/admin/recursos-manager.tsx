@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, FileText, Video, BookOpen, Wrench, Link2, ExternalLink, Calendar, Edit2, Check, X, Loader2 } from "lucide-react";
+import { Plus, FileText, Video, BookOpen, Wrench, Link2, ExternalLink, Edit2, Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -19,11 +19,6 @@ const TIPO_COLOR: Record<string, string> = {
   "Artículo":    "bg-emerald-50 text-emerald-600",
   "Otro":        "bg-zinc-100 text-zinc-500",
 };
-
-function formatFecha(iso?: string) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-}
 
 function TipoIcon({ tipo }: { tipo?: string }) {
   const t = tipo?.toLowerCase() ?? "";
@@ -59,28 +54,7 @@ function NuevoRecursoForm({ clases, onCreated }: {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [claseId, setClaseId] = useState("");
-  const [diasOffset, setDiasOffset] = useState(0);
-  const [form, setForm] = useState({ titulo: "", url: "", tipo: "PDF", descripcion: "", fecha_disponible: "" });
-
-  function calcFecha(id: string, dias: number) {
-    const clase = clases.find((c) => c.id === id);
-    if (clase?.fecha) {
-      const d = new Date(clase.fecha);
-      d.setDate(d.getDate() + dias);
-      return d.toISOString().slice(0, 16);
-    }
-    return "";
-  }
-
-  function onClaseChange(id: string) {
-    setClaseId(id);
-    if (id) setForm((f) => ({ ...f, fecha_disponible: calcFecha(id, diasOffset) }));
-  }
-
-  function onDiasChange(dias: number) {
-    setDiasOffset(dias);
-    if (claseId) setForm((f) => ({ ...f, fecha_disponible: calcFecha(claseId, dias) }));
-  }
+  const [form, setForm] = useState({ titulo: "", url: "", tipo: "PDF", descripcion: "" });
 
   async function submit() {
     if (!form.titulo) return toast.error("El título es obligatorio");
@@ -91,15 +65,13 @@ function NuevoRecursoForm({ clases, onCreated }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          fecha_disponible: form.fecha_disponible || undefined,
-          dias_offset: diasOffset,
           claseId: claseId || undefined,
         }),
       });
       if (!res.ok) throw new Error();
       const { id } = await res.json();
       onCreated({ id, ...form, clase: claseId ? [claseId] : undefined } as RecursoRecord);
-      setForm({ titulo: "", url: "", tipo: "PDF", descripcion: "", fecha_disponible: "" });
+      setForm({ titulo: "", url: "", tipo: "PDF", descripcion: "" });
       setClaseId("");
       setOpen(false);
       toast.success("Recurso creado");
@@ -126,19 +98,6 @@ function NuevoRecursoForm({ clases, onCreated }: {
       </div>
       <Input placeholder="URL" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
       <Input placeholder="Descripción breve" value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} />
-      <div className="space-y-1">
-        <p className="text-xs text-zinc-500 font-medium">Días después de la clase</p>
-        <div className="flex items-center gap-2">
-          <Input type="number" min={0} max={60} value={diasOffset}
-            onChange={(e) => onDiasChange(Number(e.target.value))}
-            className="w-24 text-center" />
-          <span className="text-xs text-zinc-400">
-            {form.fecha_disponible
-              ? `→ ${new Date(form.fecha_disponible).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}`
-              : "días (0 = mismo día de la clase)"}
-          </span>
-        </div>
-      </div>
       <div className="flex gap-2">
         <Button onClick={submit} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Crear recurso"}
@@ -161,7 +120,6 @@ function RecursoRow({ recurso, clases, onChange }: {
     url: recurso.url ?? "",
     tipo: recurso.tipo ?? "PDF",
     descripcion: recurso.descripcion ?? "",
-    fecha_disponible: recurso.fecha_disponible ? new Date(recurso.fecha_disponible).toISOString().slice(0, 16) : "",
     claseId: (recurso.clase as string[] | undefined)?.[0] ?? "",
   });
 
@@ -180,7 +138,6 @@ function RecursoRow({ recurso, clases, onChange }: {
           url: draft.url || undefined,
           tipo: draft.tipo,
           descripcion: draft.descripcion || undefined,
-          fecha_disponible: draft.fecha_disponible || undefined,
           claseId: draft.claseId || undefined,
         }),
       });
@@ -190,7 +147,6 @@ function RecursoRow({ recurso, clases, onChange }: {
         url: draft.url || undefined,
         tipo: draft.tipo,
         descripcion: draft.descripcion || undefined,
-        fecha_disponible: draft.fecha_disponible || undefined,
         clase: draft.claseId ? [draft.claseId] : undefined,
       });
       setEditing(false);
@@ -212,11 +168,6 @@ function RecursoRow({ recurso, clases, onChange }: {
         </div>
         <Input value={draft.url} onChange={(e) => setDraft({ ...draft, url: e.target.value })} placeholder="URL" />
         <Input value={draft.descripcion} onChange={(e) => setDraft({ ...draft, descripcion: e.target.value })} placeholder="Descripción" />
-        <div className="space-y-1">
-          <p className="text-xs text-zinc-500 font-medium">Disponible desde</p>
-          <Input type="datetime-local" value={draft.fecha_disponible}
-            onChange={(e) => setDraft({ ...draft, fecha_disponible: e.target.value })} />
-        </div>
         <div className="flex gap-2">
           <Button onClick={save} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5" /> Guardar</>}
@@ -239,12 +190,6 @@ function RecursoRow({ recurso, clases, onChange }: {
           {recurso.descripcion && <span className="text-xs text-zinc-400 truncate">{recurso.descripcion}</span>}
         </div>
       </div>
-      {recurso.fecha_disponible && (
-        <span className="flex items-center gap-1 text-xs text-zinc-400 shrink-0">
-          <Calendar className="h-3 w-3" />
-          {formatFecha(recurso.fecha_disponible)}
-        </span>
-      )}
       {recurso.tipo && (
         <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium shrink-0", TIPO_COLOR[recurso.tipo] ?? "bg-zinc-100 text-zinc-500")}>
           {recurso.tipo}
