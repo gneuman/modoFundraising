@@ -136,7 +136,8 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
   if (!clase) notFound();
 
   const embedUrl = getEmbedUrl(clase.url_grabacion);
-  const isGrabada = clase.status === "Grabada";
+  const tieneGrabacion = Boolean(clase.url_grabacion);
+  const isGrabada = clase.status === "Grabada" || tieneGrabacion;
   const isLive = clase.status === "En vivo";
 
   return (
@@ -149,11 +150,11 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
 
       {/* Portada */}
       {clase.Portada?.[0] && (
-        <div className="rounded-2xl overflow-hidden bg-zinc-100 w-full aspect-video max-h-52">
+        <div className="rounded-2xl overflow-hidden bg-zinc-100 w-full aspect-video">
           <Image
             src={clase.Portada[0].thumbnails?.large?.url ?? clase.Portada[0].url}
             alt={clase.titulo ?? ""}
-            width={800} height={450}
+            width={1280} height={720}
             className="w-full h-full object-cover"
             unoptimized
           />
