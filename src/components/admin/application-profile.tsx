@@ -56,7 +56,11 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
   const [assigningCoupon, setAssigningCoupon] = useState(false);
   const [manualPayOpen, setManualPayOpen] = useState(false);
   const [manualPaying, setManualPaying] = useState(false);
-  const [mpCuota, setMpCuota] = useState(3);
+  const cuotaSugerida =
+    app.payment_status === "Cuota 1 pagada" ? 2 :
+    app.payment_status === "Cuota 2 pagada" ? 3 :
+    3;
+  const [mpCuota, setMpCuota] = useState(cuotaSugerida);
   const [mpMetodo, setMpMetodo] = useState("Transferencia Chile");
   const [mpMoneda, setMpMoneda] = useState("USD");
   const [mpMonto, setMpMonto] = useState("349");
@@ -211,6 +215,11 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
 
   const canAdmit = app.status === "Nueva postulación" || app.status === "Sin Respuesta" || app.status === "En revisión";
   const canSendLink = app.status === "Admitida";
+  const cuotasPendientes =
+    app.status === "Inscrita" &&
+    app.payment_status !== "Cuota 3 pagada" &&
+    app.payment_status !== "Baja";
+  const canMarkManual = canSendLink || cuotasPendientes;
 
   const followUpNum = app.follow_up_2_sent ? 2 : app.follow_up_1_sent ? 1 : 0;
 
@@ -297,24 +306,24 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
             </>
           )}
           {canSendLink && (
-            <>
-              <Button
-                onClick={handleSendLink}
-                disabled={sendingLink}
-                className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 h-9 text-sm"
-              >
-                {sendingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Reenviar link de pago
-              </Button>
-              <Button
-                onClick={() => setManualPayOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-9 text-sm"
-                title="Marcar pago manual cuando entra plata por transferencia (fuera de Stripe)"
-              >
-                <Banknote className="h-4 w-4" />
-                Marcar pago manual
-              </Button>
-            </>
+            <Button
+              onClick={handleSendLink}
+              disabled={sendingLink}
+              className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 h-9 text-sm"
+            >
+              {sendingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Reenviar link de pago
+            </Button>
+          )}
+          {canMarkManual && (
+            <Button
+              onClick={() => setManualPayOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-9 text-sm"
+              title="Marcar pago manual cuando entra plata por transferencia (fuera de Stripe)"
+            >
+              <Banknote className="h-4 w-4" />
+              Marcar pago manual
+            </Button>
           )}
           {app.deck_url && (
             <a

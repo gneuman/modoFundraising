@@ -1,5 +1,6 @@
 import { getAllApplications, getEmpresasStats } from "@/lib/airtable";
 import { Building2, TrendingUp } from "lucide-react";
+import { EmpresaPagoButton } from "@/components/admin/empresa-pago-button";
 
 export const dynamic = "force-dynamic";
 
@@ -97,12 +98,13 @@ export default async function EmpresasPage() {
                 <th className="text-center px-4 py-3 font-semibold text-zinc-600">Asistencia</th>
                 <th className="text-center px-4 py-3 font-semibold text-zinc-600">Misiones</th>
                 <th className="text-center px-4 py-3 font-semibold text-zinc-600">Engagement</th>
+                <th className="text-center px-4 py-3 font-semibold text-zinc-600">Acción</th>
               </tr>
             </thead>
             <tbody>
               {inscritas.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-zinc-400">
+                  <td colSpan={8} className="px-4 py-12 text-center text-zinc-400">
                     No hay empresas inscritas aún
                   </td>
                 </tr>
@@ -161,6 +163,14 @@ export default async function EmpresasPage() {
                       }`}>
                         {engagement}%
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <EmpresaPagoButton
+                        recordId={a.id!}
+                        startupName={a.startup_name ?? "—"}
+                        contactName={[a.first_name, a.last_name].filter(Boolean).join(" ") || undefined}
+                        paymentStatus={a.payment_status}
+                      />
                     </td>
                   </tr>
                 );
