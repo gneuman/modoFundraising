@@ -24,6 +24,12 @@ import { upsertCalendarEvent } from "@/lib/calendar";
 //     para que el checkbox quede como "botón de publicar". Editar la clase
 //     después es seguro; para republicar hay que volver a marcar.
 //
+// Modo prueba:
+//   - Si el body trae `testEmail: "alguien@x.com"`, el endpoint IGNORA la
+//     lista de Founders activos y usa solo ese email como attendee. Sirve
+//     para validar el flujo end-to-end sin invitar a todos los Founders.
+//     Tras validar, quitar el `testEmail` del payload de la Automation.
+//
 // Setup en Airtable (UI): ver docs/setup-airtable-webhook-clases.md sección 7.
 //
 // Seguridad: shared secret en env var AIRTABLE_WEBHOOK_SECRET.
@@ -38,7 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
-  let body: { secret?: string; recordId?: string };
+  let body: { secret?: string; recordId?: string; testEmail?: string };
   try {
     body = await req.json();
   } catch {
@@ -78,9 +84,13 @@ export async function POST(req: NextRequest) {
   }
 
   // ─── Founders activos (solo se usan si el evento se crea por primera vez) ─
+  // Modo prueba: si viene testEmail, usamos solo ese (no resolvemos Founders).
   const isFoundersCreating = !clase.calendar_event_id;
+  const testEmail = body.testEmail?.trim();
   const founderEmails = isFoundersCreating
-    ? (await getAllFoundersWithAccess()).map((f) => f.email)
+    ? testEmail
+      ? [testEmail]
+      : (await getAllFoundersWithAccess()).map((f) => f.email)
     : undefined;
 
   // ─── Founders event ──────────────────────────────────────────────────────
@@ -136,6 +146,7 @@ export async function POST(req: NextRequest) {
     recordId,
     titulo: clase.titulo,
     fecha: clase.fecha,
+    testMode: testEmail ? `enabled (only ${testEmail} invited)` : undefined,
     checkboxResetToFalse: !!(foundersResult && teamResult),
     founders: foundersResult
       ? {
