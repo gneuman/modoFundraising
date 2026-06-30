@@ -1105,6 +1105,7 @@ export interface ClaseRecord {
   descripcion?: string;
   semana?: number;
   fecha?: string;
+  duracion_minutos?: number;
   url_live?: string;
   url_live_team?: string;
   url_grabacion?: string;
@@ -1112,6 +1113,9 @@ export interface ClaseRecord {
   meet_link_team?: string;
   calendar_event_id?: string;
   calendar_event_id_team?: string;
+  // Gate del webhook clase-upsert. Mientras esté en false (o vacío) el webhook
+  // no toca Google Calendar. Permite editar campos sin generar ruido.
+  listo_publicar?: boolean;
   status?: "Próxima" | "En vivo" | "Grabada";
   Portada?: { url: string; thumbnails?: { large?: { url: string } } }[];
   // Inverse linked fields (auto-created by Airtable)
@@ -1124,6 +1128,7 @@ export interface ClaseInput {
   descripcion?: string;
   semana?: number;
   fecha?: string;
+  duracion_minutos?: number;
   url_live?: string;
   url_live_team?: string;
   url_grabacion?: string;
@@ -1131,6 +1136,7 @@ export interface ClaseInput {
   meet_link_team?: string;
   calendar_event_id?: string;
   calendar_event_id_team?: string;
+  listo_publicar?: boolean;
   status?: string;
 }
 
@@ -1276,6 +1282,17 @@ export async function getClaseById(id: string): Promise<(ClaseRecord & {
 }) | null> {
   const all = await getClasesWithContentCached();
   return all.find((c) => c.id === id) ?? null;
+}
+
+// Variante sin cache para el webhook clase-upsert. Lee directo de Airtable para
+// no decidir gate / diff sobre datos viejos.
+export async function getClaseByIdFresh(id: string): Promise<ClaseRecord | null> {
+  try {
+    const record = await base(Tables.CLASES).find(id);
+    return { id: record.id, ...(record.fields as ClaseRecord) };
+  } catch {
+    return null;
+  }
 }
 
 // ─── Asistencias ──────────────────────────────────────────────────────────────

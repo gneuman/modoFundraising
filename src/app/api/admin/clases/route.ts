@@ -2,8 +2,26 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getClasesWithContent, createClase, updateClase, getClaseById } from "@/lib/airtable";
-import { createCalendarEvent, updateCalendarEvent } from "@/lib/calendar";
+import {
+  getClasesWithContent,
+  createClase,
+  updateClase,
+  getClaseByIdFresh,
+  getAllFoundersWithAccess,
+} from "@/lib/airtable";
+import { upsertCalendarEvent } from "@/lib/calendar";
+
+// Endpoints del portal /admin/clases.
+//
+// El botón Guardar (POST nueva clase, PATCH clase existente) usa el mismo
+// upsertCalendarEvent que el webhook /api/airtable/clase-upsert para mantener
+// un solo comportamiento en las dos puertas:
+//   - En CREATE: invita a todos los Founders activos (portal_access = 1).
+//   - En UPDATE: hace diff y solo patchea Calendar si cambió título/fecha/descripción.
+//     NO toca attendees en updates (eso lo hace el flujo de inscripción/churn).
+//     sendUpdates: 'all' si cambia título o fecha. Descripción sola → 'none'.
+
+const TEAM_PREFIX = "[Equipo] ";
 
 export async function GET(req: NextRequest) {
   const denied = await verificarAdmin(req);
@@ -20,23 +38,27 @@ export async function POST(req: NextRequest) {
   // 1. Crear en Airtable
   const id = await createClase(body);
 
-  // 2. Crear DOS eventos en Calendar (founders + equipo) si tiene fecha
-  if (body.fecha) {
+  // 2. Crear eventos Calendar (founders + equipo) si tiene fecha
+  if (body.fecha && body.titulo) {
     try {
+      const founderEmails = (await getAllFoundersWithAccess()).map((f) => f.email);
+
       const [main, team] = await Promise.all([
-        createCalendarEvent({
+        upsertCalendarEvent({
           titulo: body.titulo,
           descripcion: body.descripcion,
           fecha: body.fecha,
-          duracionMinutos: 90,
+          duracionMinutos: body.duracion_minutos,
+          attendeeEmails: founderEmails,
         }),
-        createCalendarEvent({
-          titulo: `[Equipo] ${body.titulo}`,
+        upsertCalendarEvent({
+          titulo: `${TEAM_PREFIX}${body.titulo}`,
           descripcion: body.descripcion,
           fecha: body.fecha,
-          duracionMinutos: 90,
+          duracionMinutos: body.duracion_minutos,
         }),
       ]);
+
       await updateClase(id, {
         calendar_event_id: main.eventId,
         meet_link: main.meetLink,
@@ -45,6 +67,7 @@ export async function POST(req: NextRequest) {
         meet_link_team: team.meetLink,
         url_live_team: body.url_live_team || team.meetLink,
       });
+
       revalidateTag("clases-content", { expire: 0 });
       return NextResponse.json({
         id,
@@ -52,9 +75,10 @@ export async function POST(req: NextRequest) {
         meet_link: main.meetLink,
         calendar_event_id_team: team.eventId,
         meet_link_team: team.meetLink,
+        attendeesAdded: main.attendeesAdded,
       });
     } catch (err) {
-      console.error("Calendar error:", err instanceof Error ? err.message : err);
+      console.error("[admin/clases POST] Calendar error:", err instanceof Error ? err.message : err);
     }
   }
 
@@ -67,39 +91,55 @@ export async function PATCH(req: NextRequest) {
   if (denied) return denied;
   const { id, ...data } = await req.json();
 
-  // Actualizar en Airtable
+  // 1. Actualizar en Airtable
   await updateClase(id, data);
 
-  // Si cambia fecha o título, actualizar el evento de Calendar existente (no crear uno nuevo)
-  const calendarFields = ["fecha", "titulo", "descripcion"];
+  // 2. Si cambió título/fecha/descripción, propagar a Calendar con diff
+  const calendarFields = ["fecha", "titulo", "descripcion", "duracion_minutos"];
   const needsCalendarUpdate = calendarFields.some((f) => f in data);
+
+  let foundersResult = null;
+  let teamResult = null;
 
   if (needsCalendarUpdate) {
     try {
-      const clase = await getClaseById(id);
-      const nuevoTitulo = data.titulo ?? clase?.titulo;
-      const nuevaDescripcion = data.descripcion ?? clase?.descripcion;
-      const nuevaFecha = data.fecha ?? clase?.fecha;
-      // Solo actualizar si ya tiene evento — nunca crear uno nuevo desde PATCH
-      if (clase?.calendar_event_id) {
-        await updateCalendarEvent(clase.calendar_event_id, {
-          titulo: nuevoTitulo,
-          descripcion: nuevaDescripcion,
-          fecha: nuevaFecha,
-        });
-      }
-      if (clase?.calendar_event_id_team) {
-        await updateCalendarEvent(clase.calendar_event_id_team, {
-          titulo: nuevoTitulo ? `[Equipo] ${nuevoTitulo}` : undefined,
-          descripcion: nuevaDescripcion,
-          fecha: nuevaFecha,
-        });
+      // Releer fresh para tener el estado mergeado (no solo el delta del PATCH)
+      const clase = await getClaseByIdFresh(id);
+      if (clase?.titulo && clase?.fecha) {
+        [foundersResult, teamResult] = await Promise.all([
+          clase.calendar_event_id
+            ? upsertCalendarEvent({
+                eventId: clase.calendar_event_id,
+                titulo: clase.titulo,
+                descripcion: clase.descripcion,
+                fecha: clase.fecha,
+                duracionMinutos: clase.duracion_minutos,
+              })
+            : Promise.resolve(null),
+          clase.calendar_event_id_team
+            ? upsertCalendarEvent({
+                eventId: clase.calendar_event_id_team,
+                titulo: `${TEAM_PREFIX}${clase.titulo}`,
+                descripcion: clase.descripcion,
+                fecha: clase.fecha,
+                duracionMinutos: clase.duracion_minutos,
+              })
+            : Promise.resolve(null),
+        ]);
       }
     } catch (err) {
-      console.error("Calendar update error:", err instanceof Error ? err.message : err);
+      console.error("[admin/clases PATCH] Calendar error:", err instanceof Error ? err.message : err);
     }
   }
 
   revalidateTag("clases-content", { expire: 0 });
-  return NextResponse.json({ success: true });
+  return NextResponse.json({
+    success: true,
+    founders: foundersResult
+      ? { action: foundersResult.action, changedFields: foundersResult.changedFields }
+      : null,
+    team: teamResult
+      ? { action: teamResult.action, changedFields: teamResult.changedFields }
+      : null,
+  });
 }

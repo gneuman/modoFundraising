@@ -188,6 +188,155 @@ export async function updateCalendarEvent(eventId: string, data: {
   });
 }
 
+// ─── Upsert con diff (usado por el webhook clase-upsert) ──────────────────────
+
+export interface UpsertCalendarInput {
+  eventId?: string; // si viene, intenta UPDATE; si no, CREATE
+  titulo: string;
+  descripcion?: string;
+  fecha: string; // ISO
+  duracionMinutos?: number;
+  // Emails a agregar como attendees. Solo agrega los nuevos (no quita a nadie).
+  attendeeEmails?: string[];
+}
+
+export interface UpsertCalendarResult {
+  eventId: string;
+  meetLink: string;
+  htmlLink: string;
+  action: "created" | "updated" | "noop";
+  // Cuáles campos cambiaron (vacío si action === "noop")
+  changedFields: string[];
+  // Cuántos attendees nuevos se agregaron
+  attendeesAdded: number;
+}
+
+// Decide si dos strings de fecha apuntan al mismo instante (con tolerancia
+// de 1 segundo para evitar falsos positivos por redondeo de ms).
+function sameInstant(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return a === b;
+  const da = new Date(a).getTime();
+  const db = new Date(b).getTime();
+  return Math.abs(da - db) < 1000;
+}
+
+// Upsert idempotente: si no hay eventId crea; si hay eventId y los campos
+// materiales no cambiaron, no llama a Calendar (noop). Si cambiaron, hace
+// update con sendUpdates dependiendo de la materialidad.
+//
+// Attendees:
+//   - Solo se invitan en CREATE (cuando se genera el evento por primera vez).
+//   - En UPDATE NO se agregan attendees nuevos — el mantenimiento de la
+//     lista de invitados vive en el flujo de inscripción/churn aparte
+//     (addAttendeesToAllEvents / removeAttendeeFromAllEvents).
+//
+// Materialidad de campos (afecta sendUpdates):
+//   - hora/fecha → cambio MATERIAL → sendUpdates: 'all' (notifica a Founders)
+//   - cancelación → MATERIAL
+//   - título → MATERIAL (sale en el invite)
+//   - descripción → NO material por sí solo → sendUpdates: 'none'
+export async function upsertCalendarEvent(
+  data: UpsertCalendarInput,
+): Promise<UpsertCalendarResult> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+  const start = new Date(data.fecha);
+  const end = new Date(start.getTime() + (data.duracionMinutos ?? 90) * 60_000);
+
+  // CREATE path
+  if (!data.eventId) {
+    const created = await createCalendarEvent({
+      titulo: data.titulo,
+      descripcion: data.descripcion,
+      fecha: data.fecha,
+      duracionMinutos: data.duracionMinutos,
+    });
+
+    let attendeesAdded = 0;
+    if (data.attendeeEmails?.length) {
+      const results = await Promise.allSettled(
+        data.attendeeEmails.map((email) => addAttendeeToEvent(created.eventId, email)),
+      );
+      attendeesAdded = results.filter((r) => r.status === "fulfilled").length;
+    }
+
+    return {
+      eventId: created.eventId,
+      meetLink: created.meetLink,
+      htmlLink: created.htmlLink,
+      action: "created",
+      changedFields: ["created"],
+      attendeesAdded,
+    };
+  }
+
+  // UPDATE path — primero fetch para diff
+  const current = await calendar.events.get({ calendarId: CALENDAR_ID, eventId: data.eventId });
+  const ev = current.data;
+
+  const changedFields: string[] = [];
+  const patch: Record<string, unknown> = {};
+
+  if (ev.summary !== data.titulo) {
+    patch.summary = data.titulo;
+    changedFields.push("titulo");
+  }
+
+  const newDesc = data.descripcion ?? "";
+  if ((ev.description ?? "") !== newDesc) {
+    patch.description = newDesc;
+    changedFields.push("descripcion");
+  }
+
+  const currentStart = ev.start?.dateTime ?? ev.start?.date;
+  const currentEnd = ev.end?.dateTime ?? ev.end?.date;
+  const fechaCambio = !sameInstant(currentStart, start.toISOString());
+  const finCambio = !sameInstant(currentEnd, end.toISOString());
+  if (fechaCambio || finCambio) {
+    patch.start = { dateTime: start.toISOString(), timeZone: TZ };
+    patch.end = { dateTime: end.toISOString(), timeZone: TZ };
+    changedFields.push("fecha");
+  }
+
+  // ¿Es material? Cambios que afectan al asistente (hora/título/cancelación).
+  // Descripción sola no es material — typos no deben spamear.
+  const isMaterial = changedFields.includes("fecha") || changedFields.includes("titulo");
+
+  const meetLink =
+    ev.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === "video")?.uri ?? "";
+
+  // NO se tocan attendees en UPDATE — la lista de invitados se mantiene en
+  // el flujo de inscripción/churn (no en cada save de la clase).
+  const attendeesAdded = 0;
+
+  // Si no cambió ningún campo material/no-material → noop
+  if (Object.keys(patch).length === 0) {
+    return {
+      eventId: data.eventId,
+      meetLink,
+      htmlLink: ev.htmlLink ?? "",
+      action: "noop",
+      changedFields,
+      attendeesAdded,
+    };
+  }
+
+  await calendar.events.patch({
+    calendarId: CALENDAR_ID,
+    eventId: data.eventId,
+    sendUpdates: isMaterial ? "all" : "none",
+    requestBody: patch,
+  });
+
+  return {
+    eventId: data.eventId,
+    meetLink,
+    htmlLink: ev.htmlLink ?? "",
+    action: "updated",
+    changedFields,
+    attendeesAdded,
+  };
+}
+
 // Crea un calendario dedicado para el programa (solo se ejecuta una vez)
 export async function createProgramCalendar(name: string): Promise<string> {
   const calendar = google.calendar({ version: "v3", auth: getAuth() });
