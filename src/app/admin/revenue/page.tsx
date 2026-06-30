@@ -16,6 +16,9 @@ const REFUND_REASON_LABEL: Record<string, string> = {
 };
 
 const REFUNDS_START_YEAR = 2026;
+// Inicio del ciclo de revenue MF2026 (1 abril 2026, UTC). Todos los pagos
+// previos pertenecen a ciclos anteriores y no representan el revenue actual.
+const REVENUE_START_TS = Math.floor(Date.UTC(2026, 3, 1) / 1000);
 
 export default async function RevenuePage({
   searchParams,
@@ -35,7 +38,7 @@ export default async function RevenuePage({
 
   const [apps, pagos, refunds] = await Promise.all([
     getAllApplications(),
-    listAllPagosFromStripe().catch(() => []),
+    listAllPagosFromStripe({ createdGte: REVENUE_START_TS }).catch(() => []),
     listRecentRefunds({ createdGte: yearStart, createdLt: yearEnd }).catch(() => []),
   ]);
   const totalReembolsado = refunds.reduce((sum, r) => sum + (r.amount || 0), 0);
@@ -77,7 +80,7 @@ export default async function RevenuePage({
           <p className="text-2xl font-bold text-blue-600">
             US${pagosTotales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
-          <p className="text-xs text-zinc-400 mt-1">{pagos.length} pagos en Stripe · {inscritas.length} startups inscritas</p>
+          <p className="text-xs text-zinc-400 mt-1">{pagos.length} pagos en Stripe desde abr 2026 · {inscritas.length} startups inscritas</p>
         </div>
 
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
@@ -203,7 +206,7 @@ export default async function RevenuePage({
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-zinc-700">Historial de pagos</h2>
-          <span className="text-xs text-zinc-400">desde Stripe</span>
+          <span className="text-xs text-zinc-400">desde Stripe · abr 2026 →</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
