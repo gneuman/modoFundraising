@@ -64,7 +64,7 @@ function parseArgs(): Args {
 }
 
 async function getEventosKeep(keep: string[] | null) {
-  const clases = await base("Clases MF26")
+  const clases = await base("tblHRJ35xMM3rQa85")
     .select({ fields: ["titulo", "fecha", "calendar_event_id"], filterByFormula: `{calendar_event_id} != ""`, sort: [{ field: "fecha" }] })
     .all();
   return clases
@@ -78,7 +78,7 @@ async function getEventosKeep(keep: string[] | null) {
 }
 
 async function getNextPendiente() {
-  const recs = await base("Founders MF26")
+  const recs = await base("tblTif15ehnRN4K74")
     .select({
       filterByFormula: `AND({portal_access} = 1, {onboarding_enviado_at} = "")`,
       fields: ["email", "first_name", "last_name"],

@@ -9,36 +9,41 @@ function base(table: string) {
     .base(process.env.AIRTABLE_BASE_ID!)(table);
 }
 
+// Usamos tableIds (tbl...) en lugar de nombres porque el equipo a veces renombra
+// tablas en Airtable (ej. agregar emojis) y un nombre obsoleto rompe TODO el
+// backend en silencio (403 NOT_AUTHORIZED). Los tableIds son estables.
+// Si agregas una tabla nueva, ve a la URL de la tabla en Airtable: el segmento
+// tblXXX despues del baseId es el id que va aca.
 export const Tables = {
-  POSTULACIONES: "Postulaciones MF26",
-  FOUNDERS: "Founders MF26",
-  STARTUPS: "Startups MF26",
-  PAGOS: "Pagos MF26",
-  CUPONES: "Cupones MF26",
-  CLASES: "Clases MF26",
-  MISIONES: "Misiones MF26",
-  TAREAS: "Tareas MF26",
-  RECURSOS: "Recursos MF26",
-  ASISTENCIAS: "Asistencias MF26",
-  MISIONES_COMPLETADAS: "Misiones Completadas MF26",
-  FEEDBACK: "Feedback MF26",
-  EMAIL_TEMPLATES: "Email Templates MF26",
-  AUTOMATION_RULES: "Automation Rules MF26",
-  RECHAZOS: "Rechazos MF26",
+  POSTULACIONES: "tblqj2eJMHpEqLxqv", // Postulaciones MF26
+  FOUNDERS: "tblTif15ehnRN4K74", // Founders MF26
+  STARTUPS: "tblBv45W1M9ZITEpe", // Startups MF26
+  PAGOS: "tblmUbeh3ji4Y5GK7", // Pagos MF26
+  CUPONES: "tblPLWXu3lElRzBFo", // Cupones MF26
+  CLASES: "tblHRJ35xMM3rQa85", // Clases MF26
+  MISIONES: "tbl0ySIkDEmBJWRsx", // Misiones MF26
+  TAREAS: "tblbuljOsP9zSSMpn", // Tareas MF26
+  RECURSOS: "tblySmsPq0avXa4KS", // Recursos MF26
+  ASISTENCIAS: "tblfauyUdGIT1xVBn", // Asistencias MF26
+  MISIONES_COMPLETADAS: "tblkyLEqxHO4n18CK", // Misiones Completadas MF26
+  FEEDBACK: "tblQCMVaKvzyfERct", // Feedback MF26
+  EMAIL_TEMPLATES: "tblZ3Tm34wzThvXl2", // Email Templates MF26
+  AUTOMATION_RULES: "tblpcQ6EdiczQRbTI", // Automation Rules MF26
+  RECHAZOS: "tblnlhYJ6F108NxHN", // Rechazos MF26
   // CMS público
-  HOME_METRICS: "home_metrics",
-  HOME_TESTIMONIOS: "home_testimonios",
-  HOME_CASOS_EXITO: "home_casos_exito",
-  HOME_LOGOS_ALUMNI: "home_logos_alumni",
-  HOME_LOGOS_PARTNERS: "home_logos_partners",
-  ADVISORS: "advisors",
-  MASTERCLASSES: "masterclasses",
-  LIVE_INTERVIEWS: "live_interviews",
-  HOUSE_RULES: "house_rules",
-  ROCKSTARS: "rockstars",
-  QA: "qa",
-  DESIGN_TOKENS: "design_tokens",
-  INSTRUCTORES: "instructores_mf26",
+  HOME_METRICS: "tbldiTqFOaVV1dKLl", // home_metrics
+  HOME_TESTIMONIOS: "tblV3lNWn8hMoojiz", // home_testimonios
+  HOME_CASOS_EXITO: "tbl3U945eSGJ2knM9", // home_casos_exito
+  HOME_LOGOS_ALUMNI: "tblmrS8XiMD8Vg5SM", // home_logos_alumni
+  HOME_LOGOS_PARTNERS: "tblnZuqKZrgDdi0yV", // home_logos_partners
+  ADVISORS: "tbl6dtAI92wjuwsha", // advisors
+  MASTERCLASSES: "tblbUOCrTxtjzwc7b", // masterclasses
+  LIVE_INTERVIEWS: "tblY4PA0XzxyI4jDM", // live_interviews
+  HOUSE_RULES: "tbl5L7PVgPPhxmre4", // house_rules
+  ROCKSTARS: "tblP8fGyAP1pphojt", // rockstars
+  QA: "tbl3UOUadAxp5CLIq", // qa
+  DESIGN_TOKENS: "tblgW7HauSvzf6vVr", // design_tokens
+  INSTRUCTORES: "tblNOJ1xTl9hpOy9q", // instructores_mf26
 } as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────

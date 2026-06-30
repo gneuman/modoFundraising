@@ -5,6 +5,7 @@ import {
   getFutureCalendarEventIds,
   markFounderOnboardingSent,
   markFoundersAsInvited,
+  Tables,
 } from "@/lib/airtable";
 import Airtable from "airtable";
 import { sendOnboardingEmail } from "@/lib/email-engine";
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   const startupId = (app.startup_record as string[] | undefined)?.[0];
 
   // Crear el founder en Airtable
-  const founderRecord = await base("Founders MF26").create({
+  const founderRecord = await base(Tables.FOUNDERS).create({
     email,
     first_name: nombre,
     last_name: apellido,
@@ -49,10 +50,10 @@ export async function POST(req: NextRequest) {
   } as never);
 
   // Ligar el nuevo founder a la postulación existente (append al linked field)
-  const postulacion = await base("Postulaciones MF26").find(postulacionId);
+  const postulacion = await base(Tables.POSTULACIONES).find(postulacionId);
   const founderIds: string[] = ((postulacion.fields as Record<string, unknown>).founder_record as string[]) ?? [];
 
-  await base("Postulaciones MF26").update(postulacionId, {
+  await base(Tables.POSTULACIONES).update(postulacionId, {
     founder_record: [...founderIds, founderRecord.id],
   } as never);
 

@@ -12,7 +12,7 @@ const base = new Airtable({ apiKey: process.env.AIRTABLE_PAT }).base(process.env
 const ADMIN_EMAIL = "gnb@teknobuilding.com";
 
 async function main() {
-  const todos = await base("Founders MF26")
+  const todos = await base("tblTif15ehnRN4K74")
     .select({
       filterByFormula: `{portal_access} = 1`,
       fields: ["email", "first_name", "onboarding_enviado_at", "invitado_calendar_at"],
