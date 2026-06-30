@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
+import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink, sendPaymentConfirmation } from "@/lib/email-engine";
 import { createCheckoutToken } from "@/lib/checkout-token";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
@@ -11,9 +11,10 @@ const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 
 async function inviteStartupToCalendar(startupId: string) {
   try {
+    // Solo S1 y S2 — el resto cae con el drip semanal (decision de Gabriel 2026-06-29)
     const [emails, eventIds] = await Promise.all([
       getFounderEmailsByStartup(startupId),
-      getCalendarEventIds(),
+      getFutureCalendarEventIds(),
     ]);
     if (emails.length && eventIds.length) {
       await addAttendeesToAllEvents(eventIds, emails);

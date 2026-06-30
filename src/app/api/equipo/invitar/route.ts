@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obtenerSesion, crearTokenMagic, TTL_MAGIC_ONBOARDING, normalizarEmail } from "@/lib/auth";
-import { getAllApplications, getCalendarEventIds } from "@/lib/airtable";
+import { obtenerSesion, normalizarEmail } from "@/lib/auth";
+import {
+  getAllApplications,
+  getFutureCalendarEventIds,
+  markFounderOnboardingSent,
+  markFoundersAsInvited,
+} from "@/lib/airtable";
 import Airtable from "airtable";
-import { sendMagicLink } from "@/lib/email-engine";
+import { sendOnboardingEmail } from "@/lib/email-engine";
 import { addAttendeeToEvents } from "@/lib/calendar";
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_PAT }).base(process.env.AIRTABLE_BASE_ID!);
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com").replace(/\/$/, "");
+const PORTAL_URL = `${APP_URL}/portal`;
+const SYSTEM_EMAIL = "system@modofundraising.com";
 
 export async function POST(req: NextRequest) {
   const session = await obtenerSesion();
@@ -48,14 +56,28 @@ export async function POST(req: NextRequest) {
     founder_record: [...founderIds, founderRecord.id],
   } as never);
 
-  // Enviar magic link por Gmail (onboarding: 72h para que no dependa de cuándo abran el correo)
-  const token = await crearTokenMagic(email, TTL_MAGIC_ONBOARDING);
-  await sendMagicLink(email, token, "founder", "72 horas");
-
-  // Agregar al nuevo founder a todos los eventos de Calendar
+  // Onboarding completo (mismo correo que reciben los titulares vía drip masivo).
+  // El correo lleva el magic link generado por el endpoint /auth/magic-link cuando
+  // el cofounder hace click en "Ingresar al portal" desde el botón del template.
+  // No bloqueante: si falla, igual marcamos el calendar para no dejar el founder
+  // en limbo doble.
   try {
-    const eventIds = await getCalendarEventIds();
-    if (eventIds.length) await addAttendeeToEvents(eventIds, email);
+    await sendOnboardingEmail(email, nombre, PORTAL_URL);
+    await markFounderOnboardingSent(founderRecord.id);
+  } catch (err) {
+    console.error("Onboarding email error (non-blocking):", err instanceof Error ? err.message : err);
+  }
+
+  // Agregar al nuevo founder solo a las clases FUTURAS de Calendar.
+  // No invitamos a clases pasadas (Google manda email "invitación a evento del pasado"
+  // que confunde y satura la bandeja). Si entra a mitad del programa, solo va a
+  // las que faltan.
+  try {
+    const eventIds = await getFutureCalendarEventIds();
+    if (eventIds.length) {
+      await addAttendeeToEvents(eventIds, email);
+      await markFoundersAsInvited([founderRecord.id], session.email ?? SYSTEM_EMAIL);
+    }
   } catch (err) {
     console.error("Calendar invite error (non-blocking):", err instanceof Error ? err.message : err);
   }

@@ -5,7 +5,7 @@ import {
   getFounderEmailsByStartup,
   getFoundersForOnboardingByStartup,
   markFounderOnboardingSent,
-  getCalendarEventIds,
+  getFutureCalendarEventIds,
 } from "@/lib/airtable";
 import { sendPaymentConfirmation, sendOnboardingEmail } from "@/lib/email-engine";
 import { addAttendeesToAllEvents } from "@/lib/calendar";
@@ -51,9 +51,10 @@ export async function activatePortalForStartup(opts: {
 
   if (startupRecordId) {
     try {
+      // Solo S1 y S2 — el resto cae con el drip semanal (decision de Gabriel 2026-06-29)
       const [emails, eventIds] = await Promise.all([
         getFounderEmailsByStartup(startupRecordId),
-        getCalendarEventIds(),
+        getFutureCalendarEventIds(),
       ]);
       if (emails.length && eventIds.length) {
         await addAttendeesToAllEvents(eventIds, emails);

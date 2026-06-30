@@ -3,7 +3,7 @@ export const maxDuration = 60; // 26 eventos × ~1s cada uno con sendUpdates="al
 
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllFoundersWithAccess, getCalendarEventIds, markFoundersAsInvited } from "@/lib/airtable";
+import { getAllFoundersWithAccess, getFutureCalendarEventIds, markFoundersAsInvited } from "@/lib/airtable";
 import { addAttendeesToAllEvents } from "@/lib/calendar";
 import { obtenerSesion } from "@/lib/auth";
 
@@ -22,9 +22,10 @@ export async function POST(req: NextRequest) {
   const adminEmail = session?.email ?? "unknown";
   const force = new URL(req.url).searchParams.get("force") === "1";
 
+  // Solo S1 y S2 — el resto cae con el drip semanal (decision de Gabriel 2026-06-29)
   const [founders, eventIds] = await Promise.all([
     getAllFoundersWithAccess({ excludeAlreadyInvited: !force }),
-    getCalendarEventIds(),
+    getFutureCalendarEventIds(),
   ]);
 
   if (!eventIds.length) {

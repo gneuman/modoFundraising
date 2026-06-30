@@ -420,6 +420,35 @@ export async function getCalendarEventIds(): Promise<string[]> {
     .filter(Boolean);
 }
 
+// Devuelve los calendar_event_id de S1 y S2 (las dos primeras clases del programa).
+//
+// Regla fija (decision de Gabriel, 2026-06-29): cuando se incorpora un founder
+// o cofounder ahora, SIEMPRE invitarlo SOLO a S1 y S2. El resto se manda con
+// el drip semanal (scripts/flujo-real-masivo.ts) para no saturar la bandeja.
+// Esta regla aplica HASTA NUEVO AVISO — no abrir el alcance solo porque S1/S2
+// "ya pasaron"; si llega ese momento, Gabriel decide que hacer.
+//
+// El prefijo S1/S2 sale de la primera palabra del titulo de la clase,
+// igual que en el script masivo (ej: "S1 — Bienvenida" -> "S1").
+export async function getFutureCalendarEventIds(): Promise<string[]> {
+  const records = await base(Tables.CLASES)
+    .select({
+      fields: ["calendar_event_id", "titulo"],
+      filterByFormula: `{calendar_event_id} != ""`,
+    })
+    .all();
+
+  return records
+    .map((r) => {
+      const f = r.fields as Record<string, unknown>;
+      const titulo = (f.titulo as string) ?? "";
+      const prefix = titulo.split(/[\s—-]/)[0].toUpperCase();
+      return { eventId: f.calendar_event_id as string, prefix };
+    })
+    .filter((e) => e.eventId && (e.prefix === "S1" || e.prefix === "S2"))
+    .map((e) => e.eventId);
+}
+
 // Devuelve todos los calendar_event_id_team (eventos de equipo) que existen
 export async function getTeamCalendarEventIds(): Promise<string[]> {
   const records = await base(Tables.CLASES)

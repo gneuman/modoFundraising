@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getCalendarEventIds, getTeamCalendarEventIds } from "@/lib/airtable";
+import { getCalendarEventIds, getFutureCalendarEventIds, getTeamCalendarEventIds } from "@/lib/airtable";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 import { sendOnboardingEmail } from "@/lib/email-engine";
 
@@ -45,12 +45,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // invite / remove → resolver event ids según audiencia
+  // invite / remove → resolver event ids según audiencia.
+  // invite: solo S1 y S2 (decision de Gabriel 2026-06-29 — el resto cae con drip semanal).
+  // remove: TODOS los eventos (queremos sacar al churn de cualquier clase, pasada o futura).
   const wantsFounders = audience === "founders" || audience === "both";
   const wantsTeam = audience === "team" || audience === "both";
 
+  const founderEventIdsFn = action === "invite" ? getFutureCalendarEventIds : getCalendarEventIds;
   const [mainIds, teamIds] = await Promise.all([
-    wantsFounders ? getCalendarEventIds() : Promise.resolve([]),
+    wantsFounders ? founderEventIdsFn() : Promise.resolve([]),
     wantsTeam ? getTeamCalendarEventIds() : Promise.resolve([]),
   ]);
   const eventIds = [...mainIds, ...teamIds];

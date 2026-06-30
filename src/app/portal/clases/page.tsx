@@ -1,6 +1,5 @@
 import { obtenerSesion } from "@/lib/auth";
 import { getClasesWithContentCached } from "@/lib/airtable";
-import { Calendar, ExternalLink } from "lucide-react";
 import { ClaseCard } from "@/components/clases/clase-card";
 
 export const dynamic = "force-dynamic";
@@ -68,39 +67,6 @@ export default async function ClasesPage() {
           {clases.map((clase) => (
             <ClaseCard key={clase.id} clase={clase} mode="view" />
           ))}
-        </div>
-      )}
-
-      {/* Agregar al calendario */}
-      {process.env.GOOGLE_CALENDAR_ID && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-          <Calendar className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-          <div className="flex-1 space-y-2">
-            <p className="text-sm font-semibold text-blue-800">
-              Agrega todas las clases a tu agenda
-            </p>
-            <p className="text-xs text-blue-600">
-              Agrega el calendario del programa a Google Calendar, Apple
-              Calendar o cualquier app de agenda.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <a
-                href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(process.env.GOOGLE_CALENDAR_ID)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
-              >
-                <Calendar className="h-3.5 w-3.5" /> Agregar a Google Calendar
-              </a>
-              <a
-                href={`https://calendar.google.com/calendar/ical/${encodeURIComponent(process.env.GOOGLE_CALENDAR_ID)}/public/basic.ics`}
-                className="inline-flex items-center gap-1.5 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-medium px-3 py-2 rounded-lg transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5" /> Descargar .ics (Apple /
-                Outlook)
-              </a>
-            </div>
-          </div>
         </div>
       )}
 
