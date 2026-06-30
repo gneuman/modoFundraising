@@ -3,9 +3,9 @@ import { getFounderProfileCached, getClasesWithContentCached, type ClaseRecord }
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
-import { Video, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { formatHora, TZ } from "@/lib/timezone";
-import { EnterMeetButton } from "@/components/portal/enter-meet-button";
+import { ClaseCardCTA } from "@/components/portal/clase-card-cta";
 
 export const dynamic = "force-dynamic";
 
@@ -214,27 +214,12 @@ function ClaseCard({ clase }: { clase: ClaseRecord }) {
             </p>
           )}
           <div className="mt-auto pt-3">
-            {isLive && clase.url_live ? (
-              <span onClick={(e) => e.stopPropagation()} className="inline-block">
-                <EnterMeetButton
-                  claseId={clase.id!}
-                  meetUrl={clase.url_live}
-                  label="Entrar a la clase"
-                />
-              </span>
-            ) : clase.url_grabacion ? (
-              <a
-                href={clase.url_grabacion}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Video className="h-3 w-3" /> Ver grabación
-              </a>
-            ) : (
-              <span className="text-xs text-zinc-400">Próxima</span>
-            )}
+            <ClaseCardCTA
+              claseId={clase.id!}
+              isLive={isLive}
+              meetUrl={clase.url_live}
+              recordingUrl={clase.url_grabacion}
+            />
           </div>
         </div>
 
