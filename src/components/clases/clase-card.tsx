@@ -801,7 +801,11 @@ function StatusPill({
   mode: Mode;
   onSave: (v: string) => Promise<void> | void;
 }) {
-  const isGrabada = clase.status === "Grabada";
+  // En view, si hay grabación tratamos la clase como Grabada aunque el status
+  // de Airtable siga como "Próxima" (puede pasar si subieron la grabación a mano).
+  // En admin respetamos el status real para que el badge no mienta sobre el campo.
+  const tieneGrabacion = Boolean(clase.url_grabacion);
+  const isGrabada = clase.status === "Grabada" || (mode === "view" && tieneGrabacion);
   const isLive = clase.status === "En vivo";
   const isProxima = !isGrabada && !isLive;
 
@@ -848,7 +852,8 @@ export function ClaseCard({
     onChange?.(next);
   }
 
-  const isGrabada = clase.status === "Grabada";
+  const tieneGrabacion = Boolean(clase.url_grabacion);
+  const isGrabada = clase.status === "Grabada" || (mode === "view" && tieneGrabacion);
   const isLive = clase.status === "En vivo";
 
   async function patchClase(field: string, value: unknown) {
@@ -992,7 +997,16 @@ export function ClaseCard({
               <EnterMeetButton claseId={clase.id!} meetUrl={clase.url_live} label="Entrar" />
             </span>
           )}
-          {isGrabada && clase.url_grabacion && (
+          {isGrabada && clase.url_grabacion && mode === "view" && (
+            <Link
+              href={`/portal/clases/${clase.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Video className="h-3 w-3" /> Ver grabación
+            </Link>
+          )}
+          {isGrabada && clase.url_grabacion && mode === "admin" && (
             <a
               href={clase.url_grabacion}
               target="_blank"

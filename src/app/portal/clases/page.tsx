@@ -14,9 +14,11 @@ export default async function ClasesPage() {
   await obtenerSesion();
   const clases = await getClasesWithContentCached();
 
-  const grabadas = clases.filter((c) => c.status === "Grabada").length;
+  const grabadas = clases.filter(
+    (c) => c.status === "Grabada" || Boolean(c.url_grabacion),
+  ).length;
   const proxima = clases.find(
-    (c) => c.status === "Próxima" || c.status === "En vivo",
+    (c) => !c.url_grabacion && (c.status === "Próxima" || c.status === "En vivo"),
   );
   const misionesActivas = clases
     .flatMap((c) => c.misionesData)
