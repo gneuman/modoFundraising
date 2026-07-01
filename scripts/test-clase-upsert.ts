@@ -74,12 +74,18 @@ async function main() {
   console.log(`   titulo: ${titulo}`);
   console.log(`   fecha:  ${fechaIso}`);
 
+  // Creamos con listo_publicar = true para que el endpoint pase el gate.
+  //
+  // ⚠️ Si tenés la Automation de Airtable PRENDIDA (trigger listo_publicar =
+  // checked), este create la dispara y vas a tener eventos duplicados
+  // (2 desde Automation + 2 desde el fetch de abajo). APAGÁ la Automation
+  // antes de correr este script, o usá --skip-fetch para dejar que la
+  // Automation sea la única que dispare.
   const created = (await base(CLASES_TABLE_ID).create({
     titulo,
     fecha: fechaIso,
     descripcion: "TEST — clase de prueba del webhook. Borrar después.",
     duracion_minutos: 30,
-    // Lo seteamos true para que el endpoint pase el gate al llamarlo directo.
     listo_publicar: true,
   } as never)) as unknown as { id: string };
 

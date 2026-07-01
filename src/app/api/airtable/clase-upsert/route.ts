@@ -20,9 +20,15 @@ import { upsertCalendarEvent } from "@/lib/calendar";
 //   - Si ya existen → diff: solo patchea si cambió título/fecha/descripción.
 //     NO toca attendees en updates (eso lo hace el flujo de inscripción/churn).
 //     sendUpdates: 'all' si cambia título o fecha. Descripción sola → 'none'.
-//   - Auto-off: tras un upsert exitoso, desmarca listo_publicar en Airtable
-//     para que el checkbox quede como "botón de publicar". Editar la clase
-//     después es seguro; para republicar hay que volver a marcar.
+//   - Auto-off TEMPRANO: apenas pasa el gate, escribe listo_publicar = false
+//     en Airtable ANTES de tocar Calendar. Sirve dos propósitos:
+//     1) El checkbox se comporta como "botón de publicar" (para republicar,
+//        volver a marcar — con diff es seguro).
+//     2) Cross-process lock: si Airtable Automations retryea el webhook o
+//        Vercel lanza dos handlers en paralelo, el segundo lee listo_publicar
+//        = false por el gate y responde skipped en vez de duplicar eventos.
+//   - Lock in-memory adicional por recordId contra retries dentro del mismo
+//     proceso serverless.
 //
 // Modo prueba:
 //   - Si el body trae `testEmail: "alguien@x.com"`, el endpoint IGNORA la
@@ -36,6 +42,29 @@ import { upsertCalendarEvent } from "@/lib/calendar";
 
 const FOUNDERS_EVENT_TITLE_PREFIX = "";
 const TEAM_EVENT_TITLE_PREFIX = "[Equipo] ";
+
+// Lock in-memory por recordId. Airtable Automations puede retryar o mandar el
+// mismo evento dos veces con milisegundos de diferencia. Como el flujo hace
+// getFresh() → create Calendar → persistID, sin un lock la segunda petición
+// también lee calendar_event_id="" y crea un evento duplicado.
+//
+// Este Map cubre el caso del MISMO proceso serverless (>90% en Vercel para
+// requests seguidos). Complemento con auto-off temprano de listo_publicar al
+// principio del handler para cubrir cross-process.
+const inflightLocks = new Map<string, number>();
+const LOCK_TTL_MS = 30_000;
+
+function acquireLock(recordId: string): boolean {
+  const now = Date.now();
+  const existing = inflightLocks.get(recordId);
+  if (existing && now - existing < LOCK_TTL_MS) return false;
+  inflightLocks.set(recordId, now);
+  return true;
+}
+
+function releaseLock(recordId: string) {
+  inflightLocks.delete(recordId);
+}
 
 export async function POST(req: NextRequest) {
   const expectedSecret = process.env.AIRTABLE_WEBHOOK_SECRET;
@@ -61,6 +90,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "recordId required" }, { status: 400 });
   }
 
+  // ─── Lock in-memory (mismo proceso Vercel) ───────────────────────────────
+  if (!acquireLock(recordId)) {
+    console.warn(`[clase-upsert] lock activo para ${recordId} — request duplicado ignorado`);
+    return NextResponse.json({
+      ok: true,
+      skipped: "otra ejecución del mismo recordId en progreso",
+      recordId,
+    });
+  }
+
+  try {
+    return await handleUpsert(recordId, body.testEmail);
+  } finally {
+    releaseLock(recordId);
+  }
+}
+
+async function handleUpsert(
+  recordId: string,
+  testEmailRaw?: string,
+): Promise<NextResponse> {
   const clase = await getClaseByIdFresh(recordId);
   if (!clase) {
     return NextResponse.json({ error: "Clase not found" }, { status: 404 });
@@ -83,10 +133,18 @@ export async function POST(req: NextRequest) {
     }, { status: 400 });
   }
 
+  // ─── Auto-off TEMPRANO del checkbox (cross-process lock) ──────────────────
+  // Escribimos listo_publicar = false ANTES de tocar Calendar. Si Airtable
+  // Automations retryea a otro proceso Vercel, la segunda petición leerá
+  // listo_publicar = false por el gate de arriba y responderá skipped.
+  await updateClase(recordId, { listo_publicar: false }).catch((e) => {
+    console.error("[clase-upsert] early auto-off fail:", e instanceof Error ? e.message : e);
+  });
+
   // ─── Founders activos (solo se usan si el evento se crea por primera vez) ─
   // Modo prueba: si viene testEmail, usamos solo ese (no resolvemos Founders).
   const isFoundersCreating = !clase.calendar_event_id;
-  const testEmail = body.testEmail?.trim();
+  const testEmail = testEmailRaw?.trim();
   const founderEmails = isFoundersCreating
     ? testEmail
       ? [testEmail]
@@ -122,9 +180,9 @@ export async function POST(req: NextRequest) {
     return null;
   });
 
-  // ─── Persistir IDs nuevos + auto-off del checkbox ────────────────────────
-  // Ya no persistimos meet_link porque los eventos se crean sin Meet (la
-  // plataforma real es Streamyard, en url_live / url_live_team).
+  // ─── Persistir IDs nuevos en Airtable ────────────────────────────────────
+  // El auto-off del checkbox ya se hizo arriba (temprano) para evitar la
+  // race condition de dobles disparos.
   const persistFields: Record<string, unknown> = {};
   if (foundersResult?.action === "created" && !clase.calendar_event_id) {
     persistFields.calendar_event_id = foundersResult.eventId;
@@ -132,14 +190,9 @@ export async function POST(req: NextRequest) {
   if (teamResult?.action === "created" && !clase.calendar_event_id_team) {
     persistFields.calendar_event_id_team = teamResult.eventId;
   }
-  // Auto-off del checkbox solo si todo salió bien.
-  // false desmarca el checkbox en Airtable.
-  if (foundersResult && teamResult) {
-    persistFields.listo_publicar = false;
-  }
   if (Object.keys(persistFields).length) {
     await updateClase(recordId, persistFields).catch((e) => {
-      console.error("[clase-upsert] persist fields fail:", e instanceof Error ? e.message : e);
+      console.error("[clase-upsert] persist ids fail:", e instanceof Error ? e.message : e);
     });
   }
 
