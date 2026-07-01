@@ -18,12 +18,16 @@ export interface CalendarEventResult {
   htmlLink: string;
 }
 
-// Crea un evento en Google Calendar con Google Meet automático
+// Crea un evento en Google Calendar SIN Google Meet.
+// El equipo usa Streamyard como plataforma real de streaming; el link se pone
+// en `url_live` (Airtable) y se antepone a la descripción del evento vía
+// buildDescription() más abajo. Meet no aplica y confundía a los Founders.
 export async function createCalendarEvent(data: {
   titulo: string;
   descripcion?: string;
   fecha: string; // ISO string
   duracionMinutos?: number;
+  urlLive?: string; // se antepone a la descripción como "🔴 EN VIVO: <url>"
 }): Promise<CalendarEventResult> {
   const calendar = google.calendar({ version: "v3", auth: getAuth() });
 
@@ -32,34 +36,31 @@ export async function createCalendarEvent(data: {
 
   const res = await calendar.events.insert({
     calendarId: CALENDAR_ID,
-    conferenceDataVersion: 1, // necesario para crear Meet automáticamente
     requestBody: {
       summary: data.titulo,
-      description: data.descripcion ?? "",
+      description: buildDescription(data.urlLive, data.descripcion),
       start: { dateTime: start.toISOString(), timeZone: TZ },
       end: { dateTime: end.toISOString(), timeZone: TZ },
-      // Genera Google Meet automáticamente
-      conferenceData: {
-        createRequest: {
-          requestId: `mf26-${Date.now()}`,
-          conferenceSolutionKey: { type: "hangoutsMeet" },
-        },
-      },
-      // Los asistentes no se ven entre sí
       guestsCanSeeOtherGuests: false,
       guestsCanInviteOthers: false,
     },
   });
 
   const event = res.data;
-  const meetLink =
-    event.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === "video")?.uri ?? "";
 
   return {
     eventId: event.id!,
-    meetLink,
+    meetLink: "", // ya no se genera Meet
     htmlLink: event.htmlLink ?? "",
   };
+}
+
+// Antepone el link de Streamyard a la descripción para que los Founders vean
+// dónde conectarse. Si no hay url_live todavía, deja solo la descripción.
+export function buildDescription(urlLive?: string, descripcion?: string): string {
+  const desc = descripcion?.trim() ?? "";
+  if (!urlLive?.trim()) return desc;
+  return `🔴 EN VIVO: ${urlLive.trim()}\n\n${desc}`.trim();
 }
 
 // Agrega un attendee a un evento existente (sin notificar al resto)
@@ -196,6 +197,8 @@ export interface UpsertCalendarInput {
   descripcion?: string;
   fecha: string; // ISO
   duracionMinutos?: number;
+  // URL de Streamyard. Se antepone a la descripción como "🔴 EN VIVO: ...".
+  urlLive?: string;
   // Emails a agregar como attendees. Solo agrega los nuevos (no quita a nadie).
   attendeeEmails?: string[];
 }
@@ -249,6 +252,7 @@ export async function upsertCalendarEvent(
       descripcion: data.descripcion,
       fecha: data.fecha,
       duracionMinutos: data.duracionMinutos,
+      urlLive: data.urlLive,
     });
 
     let attendeesAdded = 0;
@@ -281,10 +285,17 @@ export async function upsertCalendarEvent(
     changedFields.push("titulo");
   }
 
-  const newDesc = data.descripcion ?? "";
+  const newDesc = buildDescription(data.urlLive, data.descripcion);
   if ((ev.description ?? "") !== newDesc) {
     patch.description = newDesc;
-    changedFields.push("descripcion");
+    // Distinguimos si lo que cambió es el link o solo el texto
+    const currentHasLive = (ev.description ?? "").startsWith("🔴 EN VIVO:");
+    const newHasLive = newDesc.startsWith("🔴 EN VIVO:");
+    if (currentHasLive !== newHasLive) {
+      changedFields.push("url_live");
+    } else {
+      changedFields.push("descripcion");
+    }
   }
 
   const currentStart = ev.start?.dateTime ?? ev.start?.date;
@@ -297,9 +308,12 @@ export async function upsertCalendarEvent(
     changedFields.push("fecha");
   }
 
-  // ¿Es material? Cambios que afectan al asistente (hora/título/cancelación).
+  // ¿Es material? Cambios que afectan al asistente (hora/título/link para conectarse).
   // Descripción sola no es material — typos no deben spamear.
-  const isMaterial = changedFields.includes("fecha") || changedFields.includes("titulo");
+  const isMaterial =
+    changedFields.includes("fecha") ||
+    changedFields.includes("titulo") ||
+    changedFields.includes("url_live");
 
   const meetLink =
     ev.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === "video")?.uri ?? "";

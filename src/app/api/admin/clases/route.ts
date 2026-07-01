@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
           descripcion: body.descripcion,
           fecha: body.fecha,
           duracionMinutos: body.duracion_minutos,
+          urlLive: body.url_live,
           attendeeEmails: founderEmails,
         }),
         upsertCalendarEvent({
@@ -56,25 +57,21 @@ export async function POST(req: NextRequest) {
           descripcion: body.descripcion,
           fecha: body.fecha,
           duracionMinutos: body.duracion_minutos,
+          urlLive: body.url_live_team,
         }),
       ]);
 
+      // Los eventos ya no traen Meet — url_live queda tal cual la puso el usuario.
       await updateClase(id, {
         calendar_event_id: main.eventId,
-        meet_link: main.meetLink,
-        url_live: body.url_live || main.meetLink,
         calendar_event_id_team: team.eventId,
-        meet_link_team: team.meetLink,
-        url_live_team: body.url_live_team || team.meetLink,
       });
 
       revalidateTag("clases-content", { expire: 0 });
       return NextResponse.json({
         id,
         calendar_event_id: main.eventId,
-        meet_link: main.meetLink,
         calendar_event_id_team: team.eventId,
-        meet_link_team: team.meetLink,
         attendeesAdded: main.attendeesAdded,
       });
     } catch (err) {
@@ -94,8 +91,15 @@ export async function PATCH(req: NextRequest) {
   // 1. Actualizar en Airtable
   await updateClase(id, data);
 
-  // 2. Si cambió título/fecha/descripción, propagar a Calendar con diff
-  const calendarFields = ["fecha", "titulo", "descripcion", "duracion_minutos"];
+  // 2. Si cambió título/fecha/descripción/url_live/duración, propagar a Calendar con diff
+  const calendarFields = [
+    "fecha",
+    "titulo",
+    "descripcion",
+    "duracion_minutos",
+    "url_live",
+    "url_live_team",
+  ];
   const needsCalendarUpdate = calendarFields.some((f) => f in data);
 
   let foundersResult = null;
@@ -114,6 +118,7 @@ export async function PATCH(req: NextRequest) {
                 descripcion: clase.descripcion,
                 fecha: clase.fecha,
                 duracionMinutos: clase.duracion_minutos,
+                urlLive: clase.url_live,
               })
             : Promise.resolve(null),
           clase.calendar_event_id_team
@@ -123,6 +128,7 @@ export async function PATCH(req: NextRequest) {
                 descripcion: clase.descripcion,
                 fecha: clase.fecha,
                 duracionMinutos: clase.duracion_minutos,
+                urlLive: clase.url_live_team,
               })
             : Promise.resolve(null),
         ]);

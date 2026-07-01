@@ -94,12 +94,14 @@ export async function POST(req: NextRequest) {
     : undefined;
 
   // ─── Founders event ──────────────────────────────────────────────────────
+  // url_live = link de Streamyard público (donde ven los Founders).
   const foundersResult = await upsertCalendarEvent({
     eventId: clase.calendar_event_id,
     titulo: `${FOUNDERS_EVENT_TITLE_PREFIX}${clase.titulo}`,
     descripcion: clase.descripcion,
     fecha: clase.fecha,
     duracionMinutos: clase.duracion_minutos,
+    urlLive: clase.url_live,
     attendeeEmails: founderEmails,
   }).catch((e) => {
     console.error("[clase-upsert] founders upsert fail:", e instanceof Error ? e.message : e);
@@ -107,26 +109,28 @@ export async function POST(req: NextRequest) {
   });
 
   // ─── Team event (sin attendees Founder, jamás) ───────────────────────────
+  // url_live_team = link interno del equipo (Streamyard studio u otro).
   const teamResult = await upsertCalendarEvent({
     eventId: clase.calendar_event_id_team,
     titulo: `${TEAM_EVENT_TITLE_PREFIX}${clase.titulo}`,
     descripcion: clase.descripcion,
     fecha: clase.fecha,
     duracionMinutos: clase.duracion_minutos,
+    urlLive: clase.url_live_team,
   }).catch((e) => {
     console.error("[clase-upsert] team upsert fail:", e instanceof Error ? e.message : e);
     return null;
   });
 
   // ─── Persistir IDs nuevos + auto-off del checkbox ────────────────────────
+  // Ya no persistimos meet_link porque los eventos se crean sin Meet (la
+  // plataforma real es Streamyard, en url_live / url_live_team).
   const persistFields: Record<string, unknown> = {};
   if (foundersResult?.action === "created" && !clase.calendar_event_id) {
     persistFields.calendar_event_id = foundersResult.eventId;
-    if (foundersResult.meetLink) persistFields.meet_link = foundersResult.meetLink;
   }
   if (teamResult?.action === "created" && !clase.calendar_event_id_team) {
     persistFields.calendar_event_id_team = teamResult.eventId;
-    if (teamResult.meetLink) persistFields.meet_link_team = teamResult.meetLink;
   }
   // Auto-off del checkbox solo si todo salió bien.
   // false desmarca el checkbox en Airtable.
