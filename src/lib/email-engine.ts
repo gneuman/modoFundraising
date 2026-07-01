@@ -267,12 +267,15 @@ export async function sendMisionActivadaEmail(
   mision: { titulo?: string; descripcion?: string; fecha_limite?: string },
   portalUrl: string,
 ) {
+  const { formatFechaConAnio } = await import("@/lib/timezone");
   await sendAutomationEmail("mision_activada", emailAddr, {
     nombre: firstName,
     email: emailAddr,
     mision_titulo: mision.titulo ?? "",
     mision_descripcion: mision.descripcion ?? "",
-    fecha_limite: mision.fecha_limite ?? "",
+    // ISO crudo (2026-07-07T16:00:00.000Z) → "lunes, 7 de julio de 2026 · 12:00 p. m."
+    // formateado a America/Santiago desde timezone.ts para consistencia con el resto del portal.
+    fecha_limite: formatFechaConAnio(mision.fecha_limite) ?? "",
     portal_url: portalUrl,
   });
 }

@@ -5,6 +5,7 @@ import {
   getMisionByIdFresh,
   getAllFoundersWithAccess,
   markMisionNotifSent,
+  markMisionAsActual,
 } from "@/lib/airtable";
 import { sendMisionActivadaEmail } from "@/lib/email-engine";
 
@@ -161,6 +162,20 @@ async function handleActivada(
     .map((r, i) => (r.status === "rejected" ? { email: destinatarios[i].email, error: String(r.reason) } : null))
     .filter(Boolean);
 
+  // Auto-transición de status: Activa → Actual solo si el envío fue 100% exitoso.
+  // Si hay fallos, la misión queda en "Activa" y el operador puede reintentar
+  // vaciando notif_enviada_at (que hace que la Automation vuelva a disparar).
+  // En modo test NO cambiamos el status para no alterar la misión real.
+  let statusPatched = false;
+  if (!testEmail && ok > 0 && failed === 0) {
+    try {
+      await markMisionAsActual(recordId);
+      statusPatched = true;
+    } catch (err) {
+      console.error("[mision-activada] fallo al patchear status=Actual:", err instanceof Error ? err.message : err);
+    }
+  }
+
   // Revalidar el portal para que refleje el cambio de status.
   revalidateTag("clases-content", { expire: 0 });
 
@@ -173,5 +188,6 @@ async function handleActivada(
     enviados: ok,
     fallidos: failed,
     failures: failures.length ? failures : undefined,
+    statusPatched: statusPatched ? "Activa → Actual" : undefined,
   });
 }

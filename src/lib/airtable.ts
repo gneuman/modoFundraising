@@ -1169,7 +1169,7 @@ export interface MisionRecord {
   semana?: number;
   dias_offset?: number;
   fecha_limite?: string;
-  status?: "Próxima" | "Activa" | "Cerrada";
+  status?: "Próxima" | "Activa" | "Actual" | "Cerrada";
   clase?: string[];
 }
 
@@ -1253,6 +1253,14 @@ export async function getMisionByIdFresh(
 // Marca la misión como ya notificada (idempotencia del webhook mision-activada).
 export async function markMisionNotifSent(id: string): Promise<void> {
   await base(Tables.MISIONES).update(id, { notif_enviada_at: new Date().toISOString() } as never);
+}
+
+// Transiciona una misión de "Activa" a "Actual" después de que el webhook
+// mandó todos los correos sin fallos. Semántica:
+//   - Activa  = recién publicada, se dispara el aviso.
+//   - Actual  = ya notificada, sigue siendo la misión en curso.
+export async function markMisionAsActual(id: string): Promise<void> {
+  await base(Tables.MISIONES).update(id, { status: "Actual" } as never);
 }
 
 

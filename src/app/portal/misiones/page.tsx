@@ -92,12 +92,22 @@ function MisionCard({
   feedbackSubmitted: boolean;
 }) {
   const days = daysLeft(mision.fecha_limite);
+  // "Activa" y "Actual" son ambos estados en curso — la diferencia es solo
+  // que "Actual" ya notificó a los founders (aviso Activada disparado).
+  // Ambos muestran tareas y deadline. Los distinguimos por badge (color).
   const isActiva = mision.status === "Activa";
+  const isActual = mision.status === "Actual";
+  const isEnCurso = isActiva || isActual;
   const isCerrada = mision.status === "Cerrada";
 
   let urgencyBorder = "border-zinc-200";
-  if (isActiva) {
-    urgencyBorder = days !== null && days <= 2 ? "border-red-300" : "border-amber-300";
+  if (isEnCurso) {
+    urgencyBorder =
+      days !== null && days <= 2
+        ? "border-red-300"
+        : isActual
+        ? "border-blue-300"
+        : "border-amber-300";
   }
 
   const tareasSinNps = mision.tareasData.filter((t) => t.tipo !== "NPS");
@@ -114,6 +124,8 @@ function MisionCard({
                 ? <CheckCircle2 className="h-5 w-5 text-green-500" />
                 : isActiva
                 ? <AlertCircle className="h-5 w-5 text-amber-500" />
+                : isActual
+                ? <AlertCircle className="h-5 w-5 text-blue-500" />
                 : <Circle className="h-5 w-5 text-zinc-300" />}
             </div>
             <div>
@@ -131,6 +143,7 @@ function MisionCard({
           <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
             isCerrada ? "bg-zinc-100 text-zinc-400" :
             isActiva ? "bg-amber-100 text-amber-700" :
+            isActual ? "bg-blue-100 text-blue-700" :
             "bg-zinc-100 text-zinc-500"
           }`}>
             {mision.status ?? "Próxima"}
@@ -141,8 +154,8 @@ function MisionCard({
           <p className="text-sm text-zinc-500 leading-relaxed">{mision.descripcion}</p>
         )}
 
-        {/* Tareas — solo cuando está activa o cerrada */}
-        {(isActiva || isCerrada) && mision.tareasData.length > 0 && (
+        {/* Tareas — solo cuando está en curso (Activa/Actual) o cerrada */}
+        {(isEnCurso || isCerrada) && mision.tareasData.length > 0 && (
           <div className="space-y-3">
             {/* Tarea NPS primero */}
             {tareaNps && clasesTitulos.length > 0 && (
@@ -165,7 +178,7 @@ function MisionCard({
         )}
 
         {/* Próxima: preview de tareas */}
-        {!isActiva && !isCerrada && mision.tareasData.length > 0 && (
+        {!isEnCurso && !isCerrada && mision.tareasData.length > 0 && (
           <div className="text-xs text-zinc-400 flex items-center gap-1.5">
             <ListChecks className="h-3.5 w-3.5" />
             {mision.tareasData.length} tareas · disponibles cuando la misión esté activa
@@ -240,16 +253,21 @@ export default async function MisionesPage() {
     }
   }
 
-  // Ordenar: Activa → Próxima → Cerrada
-  const ORDER: Record<string, number> = { Activa: 0, Próxima: 1, Cerrada: 2 };
+  // Ordenar: Activa → Actual → Próxima → Cerrada.
+  // Activa arriba porque acaba de publicarse (más urgente ver el aviso);
+  // Actual sigue en curso pero ya notificada.
+  const ORDER: Record<string, number> = { Activa: 0, Actual: 1, Próxima: 2, Cerrada: 3 };
   allMisiones.sort((a, b) => {
-    const oa = ORDER[a.mision.status ?? "Próxima"] ?? 1;
-    const ob = ORDER[b.mision.status ?? "Próxima"] ?? 1;
+    const oa = ORDER[a.mision.status ?? "Próxima"] ?? 2;
+    const ob = ORDER[b.mision.status ?? "Próxima"] ?? 2;
     if (oa !== ob) return oa - ob;
     return (a.clase.semana ?? 0) - (b.clase.semana ?? 0);
   });
 
-  const activas = allMisiones.filter((m) => m.mision.status === "Activa").length;
+  // "Activa" y "Actual" cuentan igual en el card de "Activas" (ambas en curso).
+  const activas = allMisiones.filter(
+    (m) => m.mision.status === "Activa" || m.mision.status === "Actual",
+  ).length;
   const cerradas = allMisiones.filter((m) => m.mision.status === "Cerrada").length;
 
   // Mapa de clases por ID para lookup rápido

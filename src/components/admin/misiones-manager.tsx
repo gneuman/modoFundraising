@@ -11,7 +11,10 @@ import { dateOnlyToISO, toSantiagoDate } from "@/lib/timezone";
 
 type ClaseFull = ClaseRecord & { misionesData: MisionRecord[]; recursosData: RecursoRecord[] };
 
-const STATUS_MISION = ["Próxima", "Activa", "Cerrada"] as const;
+// "Actual" = misión ya notificada por correo (auto-transición desde el webhook
+// mision-activada tras un envío exitoso). El admin puede mover a "Actual" manual
+// también, pero lo normal es que sea Activa → correo → Actual automático.
+const STATUS_MISION = ["Próxima", "Activa", "Actual", "Cerrada"] as const;
 const STATUS_COLOR: Record<string, string> = {
   "Próxima": "bg-zinc-100 text-zinc-500",
   "Activa":  "bg-amber-100 text-amber-700",
