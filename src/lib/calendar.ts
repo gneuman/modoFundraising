@@ -63,6 +63,14 @@ export function buildDescription(urlLive?: string, descripcion?: string): string
   return `🔴 EN VIVO: ${urlLive.trim()}\n\n${desc}`.trim();
 }
 
+// Extrae el URL que sigue a "🔴 EN VIVO: " en la primera linea de una descripcion.
+// Retorna null si no hay linea EN VIVO. Sirve para detectar cambios de link
+// (aparicion, desaparicion o cambio de URL) en el diff de upsertCalendarEvent.
+export function extractLiveUrl(description: string): string | null {
+  const m = description.match(/^🔴 EN VIVO:\s*(\S+)/);
+  return m ? m[1] : null;
+}
+
 // Agrega un attendee a un evento existente (sin notificar al resto)
 export async function addAttendeeToEvent(eventId: string, email: string): Promise<void> {
   const calendar = google.calendar({ version: "v3", auth: getAuth() });
@@ -288,10 +296,13 @@ export async function upsertCalendarEvent(
   const newDesc = buildDescription(data.urlLive, data.descripcion);
   if ((ev.description ?? "") !== newDesc) {
     patch.description = newDesc;
-    // Distinguimos si lo que cambió es el link o solo el texto
-    const currentHasLive = (ev.description ?? "").startsWith("🔴 EN VIVO:");
-    const newHasLive = newDesc.startsWith("🔴 EN VIVO:");
-    if (currentHasLive !== newHasLive) {
+    // El url_live va como primera linea "🔴 EN VIVO: <url>". Si esa linea cambio
+    // (aparecio, desaparecio, o el URL es otro), es MATERIAL — hay que avisar a
+    // los founders porque llegarian al link viejo. Solo si el link es identico y
+    // cambio el texto de descripcion, no notificamos.
+    const currentLive = extractLiveUrl(ev.description ?? "");
+    const newLive = extractLiveUrl(newDesc);
+    if (currentLive !== newLive) {
       changedFields.push("url_live");
     } else {
       changedFields.push("descripcion");
