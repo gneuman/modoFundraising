@@ -19,6 +19,21 @@ function daysLeft(iso?: string): number | null {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 }
 
+// Una mision es visible para el founder si su fecha calculada ya paso.
+// Regla: visible si (clase.fecha + dias_offset dias) <= now.
+// Fallback: si no hay clase.fecha O no hay dias_offset, la mostramos (legacy).
+// "Cerrada" siempre visible (historico).
+function isMisionVisible(
+  mision: { status?: string; dias_offset?: number },
+  claseFecha: string | undefined,
+  now: number,
+): boolean {
+  if (mision.status === "Cerrada") return true;
+  if (!claseFecha || mision.dias_offset === undefined) return true;
+  const activeAt = new Date(claseFecha).getTime() + mision.dias_offset * 86_400_000;
+  return activeAt <= now;
+}
+
 function TipoIcon({ tipo }: { tipo?: string }) {
   if (tipo === "NPS") return <Star className="h-4 w-4 text-blue-500 shrink-0" />;
   if (tipo === "Entrega") return <FileCheck className="h-4 w-4 text-amber-500 shrink-0" />;
@@ -205,15 +220,23 @@ export default async function MisionesPage() {
       .flatMap((f) => f.clase_record ?? [])
   );
 
-  // Flatten misiones con su clase padre
+  // Flatten misiones con su clase padre.
+  // Filtro de visibilidad por fecha (WI-1632): David precarga todas las
+  // misiones al principio del programa. Para no leakear contenido futuro,
+  // mostramos una mision solo si (fecha_clase + dias_offset) <= hoy.
+  // Excepciones que siguen visibles siempre:
+  //   - Sin dias_offset y sin clase.fecha (misiones legacy)
+  //   - Status = "Cerrada" (historico)
   const allMisiones: {
     mision: MisionRecord & { tareasData: TareaRecord[] };
     clase: (typeof clases)[0];
   }[] = [];
 
+  const now = Date.now();
   for (const clase of clases) {
     for (const mision of clase.misionesData) {
-      allMisiones.push({ mision, clase });
+      const visible = isMisionVisible(mision, clase.fecha, now);
+      if (visible) allMisiones.push({ mision, clase });
     }
   }
 

@@ -257,6 +257,26 @@ export async function sendOnboardingEmail(
   });
 }
 
+// Correo a un founder cuando una misión pasa a status "Activa".
+// Se dispara desde el webhook /api/airtable/mision-activada (WI-1623).
+// Variables disponibles en el template: nombre, mision_titulo, mision_descripcion,
+// fecha_limite, portal_url.
+export async function sendMisionActivadaEmail(
+  emailAddr: string,
+  firstName: string,
+  mision: { titulo?: string; descripcion?: string; fecha_limite?: string },
+  portalUrl: string,
+) {
+  await sendAutomationEmail("mision_activada", emailAddr, {
+    nombre: firstName,
+    email: emailAddr,
+    mision_titulo: mision.titulo ?? "",
+    mision_descripcion: mision.descripcion ?? "",
+    fecha_limite: mision.fecha_limite ?? "",
+    portal_url: portalUrl,
+  });
+}
+
 export async function sendPaymentConfirmation(
   emailAddr: string,
   firstName: string,

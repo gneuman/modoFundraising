@@ -1237,6 +1237,24 @@ export async function getAllMisiones(): Promise<MisionRecord[]> {
   return records.map((r) => ({ id: r.id, ...r.fields }) as MisionRecord);
 }
 
+// Lee una misión directo de Airtable sin cache. Uso: webhook mision-activada
+// que necesita el estado fresco al momento del trigger (status + notif_enviada_at).
+export async function getMisionByIdFresh(
+  id: string,
+): Promise<(MisionRecord & { notif_enviada_at?: string }) | null> {
+  try {
+    const r = await base(Tables.MISIONES).find(id);
+    return { id: r.id, ...(r.fields as MisionRecord & { notif_enviada_at?: string }) };
+  } catch {
+    return null;
+  }
+}
+
+// Marca la misión como ya notificada (idempotencia del webhook mision-activada).
+export async function markMisionNotifSent(id: string): Promise<void> {
+  await base(Tables.MISIONES).update(id, { notif_enviada_at: new Date().toISOString() } as never);
+}
+
 
 export async function getAllRecursos(): Promise<RecursoRecord[]> {
   const records = await base(Tables.RECURSOS).select().all();
@@ -1964,7 +1982,8 @@ export type TriggerEvent =
   | "portal_deactivated"
   | "application_received"
   | "onboarding"
-  | "form_abandonado";
+  | "form_abandonado"
+  | "mision_activada";
 
 export interface EmailTemplate {
   id?: string;

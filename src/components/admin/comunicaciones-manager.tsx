@@ -21,6 +21,7 @@ import {
   LogIn,
   MessageSquare,
   Clock,
+  Target,
   ArrowRight,
   ChevronDown,
   ChevronUp,
@@ -158,6 +159,13 @@ const TRIGGER_META: Record<
     color: "text-amber-600 bg-amber-50 border-amber-200",
     dot: "bg-amber-500",
   },
+  mision_activada: {
+    label: "Misión activada",
+    description: "Una misión pasó a status Activa en Airtable — aviso a todos los founders.",
+    icon: <Target className="h-4 w-4" />,
+    color: "text-purple-600 bg-purple-50 border-purple-200",
+    dot: "bg-purple-500",
+  },
 };
 
 const TRIGGER_GROUPS: { label: string; triggers: TriggerEvent[] }[] = [
@@ -187,6 +195,10 @@ const TRIGGER_GROUPS: { label: string; triggers: TriggerEvent[] }[] = [
   {
     label: "Portal",
     triggers: ["onboarding", "subscription_cancelled", "portal_deactivated"],
+  },
+  {
+    label: "Contenido",
+    triggers: ["mision_activada"],
   },
 ];
 
