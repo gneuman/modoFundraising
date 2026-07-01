@@ -230,7 +230,7 @@ function ClaseCard({ clase }: { clase: ClaseRecord }) {
               src={portadaUrl}
               alt={clase.titulo ?? ""}
               fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="object-contain group-hover:scale-105 transition-transform duration-300"
               unoptimized
             />
           </div>

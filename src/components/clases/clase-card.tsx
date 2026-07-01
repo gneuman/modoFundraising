@@ -904,13 +904,13 @@ export function ClaseCard({
       <HeaderWrap {...headerWrapProps}>
         {/* Portada o número */}
         {clase.Portada?.[0] ? (
-          <div className="w-16 h-10 rounded-xl overflow-hidden shrink-0 bg-zinc-100 relative">
+          <div className="w-16 h-9 rounded-xl overflow-hidden shrink-0 bg-zinc-100 relative">
             <Image
               src={clase.Portada[0].thumbnails?.large?.url ?? clase.Portada[0].url}
               alt={clase.titulo ?? ""}
               width={64}
-              height={40}
-              className="w-full h-full object-cover"
+              height={36}
+              className="w-full h-full object-contain"
               unoptimized
             />
             {mode === "admin" && clase.id && (

@@ -154,8 +154,8 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
           <Image
             src={clase.Portada[0].thumbnails?.large?.url ?? clase.Portada[0].url}
             alt={clase.titulo ?? ""}
-            width={1280} height={720}
-            className="w-full h-full object-cover"
+            width={1920} height={1080}
+            className="w-full h-full object-contain"
             unoptimized
           />
         </div>
