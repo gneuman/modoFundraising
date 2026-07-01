@@ -41,7 +41,7 @@ import { upsertCalendarEvent } from "@/lib/calendar";
 // Seguridad: shared secret en env var AIRTABLE_WEBHOOK_SECRET.
 
 const FOUNDERS_EVENT_TITLE_PREFIX = "";
-const TEAM_EVENT_TITLE_PREFIX = "[Equipo] ";
+const TEAM_EVENT_TITLE_PREFIX = "[VIP] ";
 
 // Lock in-memory por recordId. Airtable Automations puede retryar o mandar el
 // mismo evento dos veces con milisegundos de diferencia. Como el flujo hace
