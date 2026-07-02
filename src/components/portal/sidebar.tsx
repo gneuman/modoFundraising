@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutDashboard, BookOpen, Target, Users, CreditCard, LogOut, Rocket, Lock, Menu, X } from "lucide-react";
+import { LayoutDashboard, BookOpen, Target, Users, CreditCard, LogOut, Rocket, Lock, Menu, X, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
@@ -13,6 +13,7 @@ type SidebarProps = {
   needsPayment?: boolean;
   showClases?: boolean;
   showMisiones?: boolean;
+  showRecursos?: boolean;
 };
 
 function SidebarContent({
@@ -21,6 +22,7 @@ function SidebarContent({
   needsPayment = false,
   showClases = false,
   showMisiones = false,
+  showRecursos = false,
   onNavigate,
 }: SidebarProps & { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -30,6 +32,7 @@ function SidebarContent({
     { href: "/portal/startup", label: "Mi Startup", icon: Rocket, locked: false, hidden: false },
     { href: "/portal/clases", label: "Clases", icon: BookOpen, locked: true, hidden: !showClases },
     { href: "/portal/misiones", label: "Misiones", icon: Target, locked: true, hidden: !showMisiones },
+    { href: "/portal/recursos", label: "Recursos", icon: FileText, locked: true, hidden: !showRecursos },
     { href: "/portal/equipo", label: "Equipo", icon: Users, locked: false, hidden: false },
     { href: "/portal/suscripcion", label: "Suscripción", icon: CreditCard, locked: false, hidden: false },
   ];

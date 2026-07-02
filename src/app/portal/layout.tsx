@@ -25,6 +25,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const showMisiones = clases.some((c) =>
     c.misionesData.some((m) => m.status === "Activa")
   );
+  const showRecursos = clases.some((c) => c.recursosData.length > 0);
 
   if (!esAdmin(session.email)) {
     const profile = await getFounderProfileCached(session.email);
@@ -51,6 +52,7 @@ export default async function PortalLayout({ children }: { children: React.React
           needsPayment={needsPayment}
           showClases={showClases}
           showMisiones={showMisiones}
+          showRecursos={showRecursos}
         />
         <PortalMobileHeader
           email={session.email}
@@ -58,6 +60,7 @@ export default async function PortalLayout({ children }: { children: React.React
           needsPayment={needsPayment}
           showClases={showClases}
           showMisiones={showMisiones}
+          showRecursos={showRecursos}
         />
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Banner de pago: solo cuando está admitida pero no ha pagado */}
@@ -85,8 +88,8 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-zinc-50">
-      <PortalSidebar email={session.email} showClases={showClases} showMisiones={showMisiones} />
-      <PortalMobileHeader email={session.email} showClases={showClases} showMisiones={showMisiones} />
+      <PortalSidebar email={session.email} showClases={showClases} showMisiones={showMisiones} showRecursos={showRecursos} />
+      <PortalMobileHeader email={session.email} showClases={showClases} showMisiones={showMisiones} showRecursos={showRecursos} />
       <main className="flex-1 overflow-y-auto min-w-0">
         <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">{children}</div>
       </main>
