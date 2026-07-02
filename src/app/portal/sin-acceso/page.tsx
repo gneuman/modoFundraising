@@ -4,7 +4,6 @@ import { obtenerSesion } from "@/lib/auth";
 import { getFounderProfile, getAllApplications } from "@/lib/airtable";
 import { createCheckoutToken } from "@/lib/checkout-token";
 import { CheckoutOptions } from "@/components/checkout/checkout-options";
-import { ChurnForm } from "./churn-form";
 import { Lock, ArrowRight, CheckCircle, XCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -120,11 +119,11 @@ export default async function SinAccesoPage() {
   if (status === "Churn By Founder") {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-zinc-50">
-        <div className="max-w-md w-full space-y-6">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto">
-              <XCircle className="h-7 w-7 text-zinc-400" />
-            </div>
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center mx-auto">
+            <XCircle className="h-7 w-7 text-zinc-400" />
+          </div>
+          <div className="space-y-2">
             <h1 className="text-xl font-bold text-zinc-800">
               Cancelaste tu suscripción
             </h1>
@@ -133,15 +132,12 @@ export default async function SinAccesoPage() {
               hayas decidido salir del programa.
             </p>
           </div>
-
-          <ChurnForm />
-
-          <p className="text-center text-xs text-zinc-400">
-            ¿Fue un error?{" "}
-            <a href="mailto:admin@impacta.vc" className="underline">
-              admin@impacta.vc
-            </a>
-          </p>
+          <a
+            href="mailto:admin@impacta.vc"
+            className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-700 underline"
+          >
+            ¿Fue un error? admin@impacta.vc
+          </a>
         </div>
       </div>
     );
