@@ -7,10 +7,13 @@ import {
   updateStartupStatus,
   deactivateAllFoundersForApplication,
   createRechazoRecord,
+  getFounderEmailsByStartup,
+  getCalendarEventIds,
   CHURN_REASON_LABELS,
   type ChurnReasonCode,
 } from "@/lib/airtable";
 import { sendChurnEmail } from "@/lib/email-engine";
+import { removeAttendeeFromAllEvents } from "@/lib/calendar";
 
 const VALID_REASONS: ChurnReasonCode[] = [
   "precio",
@@ -47,6 +50,13 @@ export async function POST(req: NextRequest) {
 
   const startupIds = (app.startup_record as string[] | undefined) ?? [];
   const founderIds = (app.founder_record as string[] | undefined) ?? [];
+
+  // Obtener emails de founders ANTES de desactivar. Despues del deactivate,
+  // getFounderEmailsByStartup filtra por portal_access=1 y devuelve vacio.
+  const founderEmails = startupIds[0]
+    ? await getFounderEmailsByStartup(startupIds[0]).catch(() => [] as string[])
+    : [];
+
   await Promise.all([
     updateApplicationStatus(app.id!, "Churn By Founder", { portal_access: false }),
     deactivateAllFoundersForApplication(app.id!),
@@ -61,6 +71,22 @@ export async function POST(req: NextRequest) {
       email: app.email,
     }),
   ]);
+
+  // Sacar a los founders de TODOS los eventos de Calendar (no solo S1/S2).
+  // Churn = perdida total de acceso, incluyendo invitaciones ya enviadas.
+  if (founderEmails.length) {
+    try {
+      const eventIds = await getCalendarEventIds();
+      await Promise.allSettled(
+        founderEmails.map((em) => removeAttendeeFromAllEvents(eventIds, em)),
+      );
+    } catch (err) {
+      console.error(
+        "[cancel] calendar remove error:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
 
   await sendChurnEmail(app.email!, app.first_name!);
 
