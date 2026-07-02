@@ -173,13 +173,16 @@ export interface PostulacionRecord {
   // Linked records (populated from lookups or joins in code)
   founder_record?: string[];
   startup_record?: string[];
-  // Denormalized from Founders table
+  // Denormalized from Founders table (founder principal — el primero de la lista)
   email?: string;
   first_name?: string;
   last_name?: string;
   whatsapp?: string;
   linkedin_founder?: string;
   founder_role?: string;
+  // Emails de TODOS los founders de la postulacion (incluyendo cofounders).
+  // Se usa para permitir que cualquier cofounder acceda al portal, no solo el principal.
+  all_founder_emails?: string[];
   country_residence?: string;
   // Denormalized from Startups table
   startup_name?: string;
@@ -915,7 +918,8 @@ export async function getAllApplications(): Promise<PostulacionRecord[]> {
 
   return postulaciones.filter((p) => {
     const fields = p.fields as Record<string, unknown>;
-    return fields.test !== true;
+    // Airtable field es "Test" (con T mayuscula) — chequear ambos capitalizaciones
+    return fields.test !== true && fields.Test !== true;
   }).map((p) => {
     const fields = p.fields as Record<string, unknown>;
     const founderIds = (fields.founder_record as string[]) ?? [];
@@ -923,12 +927,21 @@ export async function getAllApplications(): Promise<PostulacionRecord[]> {
     const founder = founderIds[0] ? founderMap.get(founderIds[0]) as Record<string, unknown> | undefined : undefined;
     const startup = startupIds[0] ? startupMap.get(startupIds[0]) as Record<string, unknown> | undefined : undefined;
 
+    // Emails de TODOS los cofounders (para que cualquiera pueda usar el portal)
+    const allFounderEmails: string[] = founderIds
+      .map((fid) => {
+        const f = founderMap.get(fid) as Record<string, unknown> | undefined;
+        return (f?.email as string) ?? "";
+      })
+      .filter((e) => e.length > 0);
+
     return {
       id: p.id,
       ...fields,
-      test: fields.test === true,
+      test: fields.test === true || fields.Test === true,
       // Denormalized de Founders
       email: founder?.email as string ?? "",
+      all_founder_emails: allFounderEmails,
       first_name: founder?.first_name as string ?? "",
       last_name: founder?.last_name as string ?? "",
       whatsapp: founder?.whatsapp as string ?? "",

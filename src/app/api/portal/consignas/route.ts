@@ -34,15 +34,21 @@ async function uploadFileToAirtable(
   recordId: string,
   file: File,
 ): Promise<{ url: string; filename: string } | null> {
-  if (!AIRTABLE_PAT || !AIRTABLE_BASE_ID) return null;
+  if (!AIRTABLE_PAT || !AIRTABLE_BASE_ID) {
+    console.error("[consignas/upload] AIRTABLE_PAT o AIRTABLE_BASE_ID no configurados");
+    return null;
+  }
   const bytes = await file.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
-  const url = `https://content.airtable.com/v0/${AIRTABLE_BASE_ID}/${recordId}/adjuntos/uploadAttachment`;
+  // encodeURIComponent del nombre del field — patrón carshi. Si el field tiene
+  // caracteres especiales (espacios, emojis, etc.) sin encodear rompe la URL.
+  const fieldPath = encodeURIComponent("adjuntos");
+  const url = `https://content.airtable.com/v0/${AIRTABLE_BASE_ID}/${recordId}/${fieldPath}/uploadAttachment`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${AIRTABLE_PAT}`,
-      "Content-Type": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
     },
     body: JSON.stringify({
       contentType: file.type || "application/octet-stream",
@@ -52,19 +58,29 @@ async function uploadFileToAirtable(
   });
   if (!res.ok) {
     const err = await res.text();
-    console.error("[consignas/upload] Airtable upload failed:", err);
+    console.error(
+      `[consignas/upload] Airtable upload failed (${res.status}) for recordId=${recordId}, file=${file.name}:`,
+      err,
+    );
     return null;
   }
   const data = await res.json();
-  return {
-    url: data?.attachment?.url ?? data?.url ?? "",
-    filename: file.name,
-  };
+  const attachmentUrl = data?.attachment?.url ?? data?.url ?? "";
+  if (!attachmentUrl) {
+    console.error(
+      `[consignas/upload] Airtable respondio 200 pero sin URL para ${file.name}. Response:`,
+      JSON.stringify(data),
+    );
+    return null;
+  }
+  return { url: attachmentUrl, filename: file.name };
 }
 
 export async function POST(req: NextRequest) {
   const session = await obtenerSesion();
-  if (!session || session.role !== "founder") {
+  // Admins tambien pueden llamar el endpoint (para testear como cualquier
+  // startup). Founders solo pueden llamar como si mismos.
+  if (!session || (session.role !== "founder" && session.role !== "admin")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
@@ -75,6 +91,7 @@ export async function POST(req: NextRequest) {
   let contenido = "";
   let url_extra = "";
   let files: File[] = [];
+  let adminStartupId: string | undefined; // solo valido si session.role === "admin"
 
   if (contentType.includes("multipart/form-data")) {
     const form = await req.formData();
@@ -82,6 +99,7 @@ export async function POST(req: NextRequest) {
     contenido = String(form.get("contenido_texto") ?? "").trim();
     url_extra = String(form.get("url_extra") ?? "").trim();
     files = form.getAll("files").filter((v): v is File => v instanceof File);
+    adminStartupId = String(form.get("startupId") ?? "").trim() || undefined;
   } else {
     // Fallback JSON — sin archivos
     try {
@@ -89,10 +107,12 @@ export async function POST(req: NextRequest) {
         tareaId?: string;
         contenido_texto?: string;
         url_extra?: string;
+        startupId?: string;
       };
       tareaId = (body.tareaId ?? "").trim();
       contenido = (body.contenido_texto ?? "").trim();
       url_extra = (body.url_extra ?? "").trim();
+      adminStartupId = body.startupId?.trim() || undefined;
     } catch {
       return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
     }
@@ -108,16 +128,39 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Derivar startupId de la sesión
-  const apps = await getAllApplications();
-  const app = apps.find(
-    (a) =>
-      a.email === session.email &&
-      (a.status === "Inscrita" || a.status === "Invitada institucional"),
-  );
-  const startupId = app?.startup_record?.[0] as string | undefined;
-  if (!startupId) {
-    return NextResponse.json({ error: "Startup no encontrada" }, { status: 403 });
+  // Derivar startupId:
+  //   - Admin: acepta startupId del body para poder testear como cualquier startup
+  //   - Founder: siempre de la sesion (nunca del body)
+  let startupId: string | undefined;
+  let founderEmail: string;
+  if (session.role === "admin" && adminStartupId) {
+    startupId = adminStartupId;
+    founderEmail = `admin:${session.email}`; // audit trail
+  } else {
+    const apps = await getAllApplications();
+    const emailLower = session.email.toLowerCase();
+    const app = apps.find((a) => {
+      const isEnrolled = a.status === "Inscrita" || a.status === "Invitada institucional";
+      if (!isEnrolled) return false;
+      // Chequea principal + todos los cofounders (case-insensitive)
+      const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
+        .filter(Boolean)
+        .map((e) => e!.toLowerCase());
+      return allEmails.includes(emailLower);
+    });
+    startupId = app?.startup_record?.[0] as string | undefined;
+    founderEmail = session.email;
+    if (!startupId) {
+      return NextResponse.json(
+        {
+          error:
+            session.role === "admin"
+              ? "Como admin, debes pasar `startupId` en el body para testear (tu email no tiene startup asignada)."
+              : "Tu usuario no esta inscrito como founder de una startup activa. Contacta al equipo de Modo Fundraising.",
+        },
+        { status: 403 },
+      );
+    }
   }
 
   // Validar que la tarea existe, es tipo Entrega y sabemos su misión
@@ -146,7 +189,7 @@ export async function POST(req: NextRequest) {
     tareaId,
     contenido_texto: contenido,
     url_extra,
-    founderEmail: session.email,
+    founderEmail,
   });
 
   // 2. Si hay archivos nuevos, subirlos uno a uno al campo "adjuntos" del record.

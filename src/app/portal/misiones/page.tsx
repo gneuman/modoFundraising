@@ -269,21 +269,40 @@ function MisionActivaCard({
   );
 }
 
-export default async function MisionesPage() {
+export default async function MisionesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ as?: string }>;
+}) {
   const session = await obtenerSesion();
-  const [clases, allFeedback, apps] = await Promise.all([
+  const [clases, allFeedback, apps, params] = await Promise.all([
     getClasesWithContentCached(),
     getAllFeedback(),
     getAllApplications(),
+    searchParams,
   ]);
 
-  // Encontrar startupId del founder
-  const app = apps.find(
-    (a) =>
-      a.email === session?.email &&
-      (a.status === "Inscrita" || a.status === "Invitada institucional"),
-  );
-  const startupId = app?.startup_record?.[0] as string | undefined;
+  // Encontrar startupId:
+  //   - Admin con ?as=recXXX en la URL: usa esa startup para testear
+  //   - Founder / admin sin ?as: busca su propia startup por email
+  //     (matchea contra todos los cofounders, no solo el principal)
+  let startupId: string | undefined;
+  let impersonating = false;
+  if (session?.role === "admin" && params.as) {
+    startupId = params.as;
+    impersonating = true;
+  } else if (session?.email) {
+    const emailLower = session.email.toLowerCase();
+    const app = apps.find((a) => {
+      const isEnrolled = a.status === "Inscrita" || a.status === "Invitada institucional";
+      if (!isEnrolled) return false;
+      const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
+        .filter(Boolean)
+        .map((e) => e!.toLowerCase());
+      return allEmails.includes(emailLower);
+    });
+    startupId = app?.startup_record?.[0] as string | undefined;
+  }
 
   // Prefetch consignas + misiones completadas de esta startup
   const [consignas, misionesCompletadas] = await Promise.all([
@@ -365,6 +384,11 @@ export default async function MisionesPage() {
 
   return (
     <div className="space-y-6">
+      {impersonating && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2 text-sm text-purple-800">
+          <strong>Modo admin:</strong> viendo el portal como startup <code className="bg-purple-100 px-1 rounded text-xs">{startupId}</code>. Las respuestas que envies se guardaran para esta startup.
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold text-zinc-800">Misiones</h1>
         <p className="text-sm text-zinc-500 mt-1">Tareas semanales del programa</p>
