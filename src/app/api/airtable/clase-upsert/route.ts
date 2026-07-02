@@ -43,6 +43,20 @@ import { upsertCalendarEvent } from "@/lib/calendar";
 const FOUNDERS_EVENT_TITLE_PREFIX = "";
 const TEAM_EVENT_TITLE_PREFIX = "[VIP] ";
 
+// Correos fijos del team Impacta VC que van a los eventos [VIP] (Team).
+// NUNCA van al evento Founders. Se invitan en CREATE del evento Team.
+// Fuente: swap-team-invitees.ts ejecutado 2026-07-02.
+const TEAM_INVITEES = [
+  "da@impacta.vc",
+  "maca@impacta.vc",
+  "lola@impacta.vc",
+];
+
+// El evento [VIP] arranca N minutos antes que el evento Founders para que el
+// team pueda hacer setup de Streamyard, revisar consignas y estar listo antes
+// de que entren los founders. Termina a la misma hora que el evento Founders.
+const TEAM_LEAD_MINUTES = 5;
+
 // Lock in-memory por recordId. Airtable Automations puede retryar o mandar el
 // mismo evento dos veces con milisegundos de diferencia. Como el flujo hace
 // getFresh() → create Calendar → persistID, sin un lock la segunda petición
@@ -168,13 +182,23 @@ async function handleUpsert(
 
   // ─── Team event (sin attendees Founder, jamás) ───────────────────────────
   // url_live_team = link interno del equipo (Streamyard studio u otro).
+  // Attendees: los 3 correos fijos del team (TEAM_INVITEES). Solo en CREATE —
+  // en UPDATE el upsert respeta la lista existente.
+  // Timing: arranca TEAM_LEAD_MINUTES antes que el evento Founders y termina
+  // a la misma hora → la duración crece en TEAM_LEAD_MINUTES.
+  const isTeamCreating = !clase.calendar_event_id_team;
+  const teamStart = new Date(
+    new Date(clase.fecha).getTime() - TEAM_LEAD_MINUTES * 60_000,
+  ).toISOString();
+  const teamDuracion = (clase.duracion_minutos ?? 90) + TEAM_LEAD_MINUTES;
   const teamResult = await upsertCalendarEvent({
     eventId: clase.calendar_event_id_team,
     titulo: `${TEAM_EVENT_TITLE_PREFIX}${clase.titulo}`,
     descripcion: clase.descripcion,
-    fecha: clase.fecha,
-    duracionMinutos: clase.duracion_minutos,
+    fecha: teamStart,
+    duracionMinutos: teamDuracion,
     urlLive: clase.url_live_team,
+    attendeeEmails: isTeamCreating ? TEAM_INVITEES : undefined,
   }).catch((e) => {
     console.error("[clase-upsert] team upsert fail:", e instanceof Error ? e.message : e);
     return null;
