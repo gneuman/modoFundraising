@@ -182,8 +182,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 1. Upsert la consigna primero (sin nuevos adjuntos). Esto nos da el
-  //    recordId que necesitamos para subir archivos a Airtable Attachment.
+  // 1. Upsert la consigna con texto + URL. Los archivos NO se procesan aquí
+  //    — el frontend los sube uno por uno via POST /api/portal/consignas/[id]/adjuntos
+  //    para poder mostrar feedback por archivo.
   const { id: consignaId, created } = await upsertConsigna({
     startupId,
     tareaId,
@@ -192,8 +193,8 @@ export async function POST(req: NextRequest) {
     founderEmail,
   });
 
-  // 2. Si hay archivos nuevos, subirlos uno a uno al campo "adjuntos" del record.
-  //    Airtable Attachment API append por defecto — no reemplaza los ya subidos.
+  // 2. Si el cliente mandó files por compatibilidad (flujo viejo), subirlos.
+  //    En el flujo nuevo (post-fix) el cliente no los manda aquí.
   const uploadResults: Array<{ filename: string; ok: boolean }> = [];
   for (const file of files) {
     const attach = await uploadFileToAirtable(consignaId, file);

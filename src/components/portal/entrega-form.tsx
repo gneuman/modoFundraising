@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, Paperclip, X, FileCheck } from "lucide-react";
+import { CheckCircle2, Loader2, Paperclip, X, FileCheck, AlertCircle } from "lucide-react";
 import type { TareaRecord, ConsignaRecord } from "@/lib/airtable";
 
 interface EntregaFormProps {
@@ -10,11 +10,17 @@ interface EntregaFormProps {
   initialConsigna?: ConsignaRecord | null;
 }
 
-// Estado visual del EntregaForm
-//   pending   → sin responder (ámbar)
-//   submitted → enviada (verde) — botón dice "Actualizar"
-//   editing   → el founder abrió el form para editar; muestra los campos
-// El estado inicial depende de si viene `initialConsigna` con contenido.
+// Estado de un archivo por subir:
+// - pending: agregado, no subido
+// - uploading: en proceso
+// - success: subido OK
+// - error: falló, muestra mensaje
+type FileUploadStatus = "pending" | "uploading" | "success" | "error";
+type PendingFile = {
+  file: File;
+  status: FileUploadStatus;
+  error?: string;
+};
 
 function hasContent(c?: ConsignaRecord | null): boolean {
   if (!c) return false;
@@ -32,7 +38,7 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
   const [editing, setEditing] = useState(false);
   const [contenido, setContenido] = useState(initialConsigna?.contenido_texto ?? "");
   const [urlExtra, setUrlExtra] = useState(initialConsigna?.url_extra ?? "");
-  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,30 +101,95 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
     );
   }
 
-  // Vista form (nueva o edit)
   const canSubmit =
-    Boolean(contenido.trim() || urlExtra.trim() || newFiles.length > 0 || existingAdjuntos.length > 0) &&
-    !loading;
+    Boolean(
+      contenido.trim() ||
+        urlExtra.trim() ||
+        pendingFiles.length > 0 ||
+        existingAdjuntos.length > 0,
+    ) && !loading;
+
+  // Sube UN archivo a un consignaId. Actualiza el status en pendingFiles.
+  async function uploadOne(consignaId: string, idx: number): Promise<boolean> {
+    const pf = pendingFiles[idx];
+    if (!pf) return false;
+
+    setPendingFiles((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], status: "uploading" };
+      return copy;
+    });
+
+    try {
+      const fd = new FormData();
+      fd.append("file", pf.file);
+      const res = await fetch(`/api/portal/consignas/${consignaId}/adjuntos`, {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.error ?? `HTTP ${res.status}`);
+      }
+      setPendingFiles((prev) => {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], status: "success" };
+        return copy;
+      });
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Error al subir";
+      setPendingFiles((prev) => {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], status: "error", error: msg };
+        return copy;
+      });
+      return false;
+    }
+  }
 
   async function handleSubmit() {
     if (!canSubmit) return;
     setLoading(true);
     setError(null);
-    try {
-      const form = new FormData();
-      if (tarea.id) form.append("tareaId", tarea.id);
-      if (contenido.trim()) form.append("contenido_texto", contenido);
-      if (urlExtra.trim()) form.append("url_extra", urlExtra);
-      for (const f of newFiles) form.append("files", f);
 
-      const res = await fetch("/api/portal/consignas", { method: "POST", body: form });
+    try {
+      // Paso 1: crear/actualizar la consigna con texto y URL (sin adjuntos).
+      const fd = new FormData();
+      if (tarea.id) fd.append("tareaId", tarea.id);
+      if (contenido.trim()) fd.append("contenido_texto", contenido);
+      if (urlExtra.trim()) fd.append("url_extra", urlExtra);
+
+      const res = await fetch("/api/portal/consignas", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data?.error ?? "Error al enviar");
+      if (!res.ok || !data.consignaId) {
+        throw new Error(data?.error ?? `Error al guardar (${res.status})`);
       }
+      const consignaId: string = data.consignaId;
+
+      // Paso 2: si hay archivos pendientes, subirlos secuencialmente y mostrar
+      // el status por cada uno. El form NO se cierra hasta que todos terminen.
+      const filesToUpload = pendingFiles
+        .map((pf, i) => ({ pf, i }))
+        .filter(({ pf }) => pf.status !== "success");
+
+      let failed = 0;
+      for (const { i } of filesToUpload) {
+        const ok = await uploadOne(consignaId, i);
+        if (!ok) failed++;
+      }
+
+      if (failed > 0) {
+        setError(
+          `Se guardó el texto pero ${failed} de ${filesToUpload.length} archivo(s) fallaron. Podés reintentar solo los que fallaron.`,
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Todo OK. Cerramos el form y refrescamos.
       setEditing(false);
-      setNewFiles([]);
-      // Refrescar server component para que traiga la consigna actualizada
+      setPendingFiles([]);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al enviar. Intentá de nuevo.");
@@ -129,11 +200,15 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
 
   function addFiles(files: FileList | null) {
     if (!files) return;
-    setNewFiles((prev) => [...prev, ...Array.from(files)]);
+    const newOnes: PendingFile[] = Array.from(files).map((f) => ({
+      file: f,
+      status: "pending",
+    }));
+    setPendingFiles((prev) => [...prev, ...newOnes]);
   }
 
-  function removeNewFile(idx: number) {
-    setNewFiles((prev) => prev.filter((_, i) => i !== idx));
+  function removePendingFile(idx: number) {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
   const bgColor = alreadySubmitted ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200";
@@ -143,12 +218,20 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
     <div className={`border rounded-xl p-4 space-y-3 ${bgColor}`}>
       <div className="flex items-center gap-2">
         <FileCheck className={`h-4 w-4 ${iconColor}`} />
-        <p className={`text-sm font-semibold ${alreadySubmitted ? "text-green-800" : "text-amber-800"}`}>
+        <p
+          className={`text-sm font-semibold ${
+            alreadySubmitted ? "text-green-800" : "text-amber-800"
+          }`}
+        >
           {tarea.titulo}
         </p>
       </div>
       {tarea.descripcion && (
-        <p className={`text-xs ${alreadySubmitted ? "text-green-700/80" : "text-amber-700"}`}>
+        <p
+          className={`text-xs ${
+            alreadySubmitted ? "text-green-700/80" : "text-amber-700"
+          }`}
+        >
           {tarea.descripcion}
         </p>
       )}
@@ -158,7 +241,8 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
         rows={4}
         value={contenido}
         onChange={(e) => setContenido(e.target.value)}
-        className="w-full text-sm border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 placeholder-zinc-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 bg-white"
+        disabled={loading}
+        className="w-full text-sm border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 placeholder-zinc-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 bg-white disabled:opacity-60"
       />
 
       <input
@@ -166,16 +250,20 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
         placeholder="Link adicional (Google Drive, Notion, etc.) — opcional"
         value={urlExtra}
         onChange={(e) => setUrlExtra(e.target.value)}
-        className="w-full text-sm border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 bg-white"
+        disabled={loading}
+        className="w-full text-sm border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 bg-white disabled:opacity-60"
       />
 
-      {/* Adjuntos ya guardados (readonly, sin botón para eliminar en fase 1) */}
+      {/* Adjuntos ya guardados en Airtable (readonly aquí) */}
       {existingAdjuntos.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs text-zinc-500 font-medium">Adjuntos actuales:</p>
           <ul className="space-y-1">
             {existingAdjuntos.map((a, i) => (
-              <li key={a.url ?? i} className="flex items-center gap-2 text-xs text-zinc-600">
+              <li
+                key={a.url ?? i}
+                className="flex items-center gap-2 text-xs text-zinc-600"
+              >
                 <Paperclip className="h-3.5 w-3.5 shrink-0" />
                 <a
                   href={a.url}
@@ -191,39 +279,77 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
         </div>
       )}
 
-      {/* Nuevos archivos por subir */}
-      {newFiles.length > 0 && (
+      {/* Archivos por subir — con status por archivo */}
+      {pendingFiles.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs text-zinc-500 font-medium">Archivos por subir:</p>
+          <p className="text-xs text-zinc-500 font-medium">
+            Archivos ({pendingFiles.filter((p) => p.status === "success").length}/
+            {pendingFiles.length} subidos):
+          </p>
           <ul className="space-y-1">
-            {newFiles.map((f, i) => (
-              <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 text-xs text-zinc-700 bg-white rounded-lg px-2 py-1.5 border border-zinc-100">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{f.name}</span>
-                  <span className="text-zinc-400 shrink-0">({(f.size / 1024).toFixed(0)} KB)</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeNewFile(i)}
-                  className="text-zinc-400 hover:text-red-600 p-0.5"
-                  aria-label="Quitar"
+            {pendingFiles.map((pf, i) => {
+              const isSuccess = pf.status === "success";
+              const isError = pf.status === "error";
+              const isUploading = pf.status === "uploading";
+              const bg = isSuccess
+                ? "bg-green-50 border-green-200"
+                : isError
+                ? "bg-red-50 border-red-200"
+                : "bg-white border-zinc-100";
+              return (
+                <li
+                  key={`${pf.file.name}-${i}`}
+                  className={`flex items-center justify-between gap-2 text-xs rounded-lg px-2 py-1.5 border ${bg}`}
                 >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </li>
-            ))}
+                  <div className="flex items-center gap-2 min-w-0">
+                    {isSuccess ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-600" />
+                    ) : isError ? (
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-600" />
+                    ) : isUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 text-amber-600 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                    )}
+                    <span className="truncate text-zinc-700">{pf.file.name}</span>
+                    <span className="text-zinc-400 shrink-0">
+                      ({(pf.file.size / 1024).toFixed(0)} KB)
+                    </span>
+                    {isError && pf.error && (
+                      <span className="text-red-600 shrink-0 truncate">
+                        — {pf.error}
+                      </span>
+                    )}
+                  </div>
+                  {!isUploading && !isSuccess && (
+                    <button
+                      type="button"
+                      onClick={() => removePendingFile(i)}
+                      className="text-zinc-400 hover:text-red-600 p-0.5"
+                      aria-label="Quitar"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
 
       <div className="flex items-center gap-2">
-        <label className="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-900 bg-white border border-zinc-200 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-colors">
+        <label
+          className={`text-xs font-medium text-zinc-600 hover:text-zinc-900 bg-white border border-zinc-200 rounded-lg px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
+            loading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          }`}
+        >
           <Paperclip className="h-3.5 w-3.5" />
           Adjuntar archivos
           <input
             type="file"
             multiple
+            disabled={loading}
             className="hidden"
             onChange={(e) => {
               addFiles(e.target.files);
@@ -242,15 +368,19 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
           className="flex-1 py-2 rounded-lg font-semibold text-sm transition-all bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {alreadySubmitted ? "Actualizar" : "Enviar"}
+          {loading
+            ? "Enviando…"
+            : alreadySubmitted
+            ? "Actualizar"
+            : "Enviar"}
         </button>
-        {editing && (
+        {editing && !loading && (
           <button
             onClick={() => {
               setEditing(false);
               setContenido(initialConsigna?.contenido_texto ?? "");
               setUrlExtra(initialConsigna?.url_extra ?? "");
-              setNewFiles([]);
+              setPendingFiles([]);
               setError(null);
             }}
             className="px-4 py-2 rounded-lg text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-white"
