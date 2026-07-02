@@ -207,7 +207,15 @@ export async function PATCH(req: NextRequest) {
   const extra: Record<string, unknown> = {};
   if (rejection_reason) extra.rejection_reason = rejection_reason;
 
-  if (status === "Admitida") extra.admitted_at = new Date().toISOString();
+  if (status === "Admitida") {
+    // Nuevo ciclo de admisión: resetea los flags de follow-up del ciclo anterior
+    // para que el cron no cierre a "Sin Respuesta" con timestamps viejos.
+    extra.admitted_at = new Date().toISOString();
+    extra.follow_up_1_sent = false;
+    extra.follow_up_1_sent_at = null;
+    extra.follow_up_2_sent = false;
+    extra.follow_up_2_sent_at = null;
+  }
   await updateApplicationStatus(recordId, status as ApplicationStatus, extra);
 
   if (status === "Admitida") {
