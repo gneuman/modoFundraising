@@ -1,13 +1,11 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
+import { getAllApplications, updateApplicationStatus, markAdmissionEmailSent, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink, sendPaymentConfirmation } from "@/lib/email-engine";
-import { createCheckoutToken } from "@/lib/checkout-token";
+import { buildCheckoutUrl } from "@/lib/checkout-url";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 import { activatePortalForStartup } from "@/lib/inscripcion";
-
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
 
 async function inviteStartupToCalendar(startupId: string) {
   try {
@@ -22,25 +20,6 @@ async function inviteStartupToCalendar(startupId: string) {
   } catch (err) {
     console.error("Calendar invite error (non-blocking):", err instanceof Error ? err.message : err);
   }
-}
-
-async function buildCheckoutUrl(recordId: string, app: {
-  email?: string; first_name?: string; startup_name?: string;
-  stripe_coupon_id?: unknown; stripe_promotion_code_id?: unknown; discount_percent?: unknown;
-}) {
-  const rawId = (app.stripe_promotion_code_id || app.stripe_coupon_id) as string | undefined;
-  // Stripe coupon IDs start with "coup_"; everything else is treated as a promotion code ID
-  const isCoupon = rawId?.startsWith("coup_");
-  const token = await createCheckoutToken({
-    airtableId: recordId,
-    email: app.email!,
-    firstName: app.first_name!,
-    startupName: app.startup_name!,
-    stripeCouponId: isCoupon ? rawId : undefined,
-    stripePromotionCodeId: isCoupon ? undefined : rawId,
-    discountPercent: app.discount_percent ? Number(app.discount_percent) : undefined,
-  });
-  return `${APP_URL}/checkout/${token}`;
 }
 
 export async function GET(req: NextRequest) {
@@ -71,6 +50,10 @@ export async function PATCH(req: NextRequest) {
       } else {
         await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
       }
+      // Marca idempotencia para el webhook postulacion-admitida
+      await markAdmissionEmailSent(recordId).catch((e) =>
+        console.error(`[resend_checkout] mark fail recordId=${recordId}:`, e instanceof Error ? e.message : e)
+      );
       return NextResponse.json({ success: true, url: checkoutUrl });
     } catch (err) {
       console.error(`[resend_checkout] error recordId=${recordId}`, err);
@@ -210,11 +193,14 @@ export async function PATCH(req: NextRequest) {
   if (status === "Admitida") {
     // Nuevo ciclo de admisión: resetea los flags de follow-up del ciclo anterior
     // para que el cron no cierre a "Sin Respuesta" con timestamps viejos.
+    // También limpia admission_email_sent_at por si el correo falla acá y hay
+    // que dejarle al webhook postulacion-admitida la responsabilidad de disparar.
     extra.admitted_at = new Date().toISOString();
     extra.follow_up_1_sent = false;
     extra.follow_up_1_sent_at = null;
     extra.follow_up_2_sent = false;
     extra.follow_up_2_sent_at = null;
+    extra.admission_email_sent_at = null;
   }
   await updateApplicationStatus(recordId, status as ApplicationStatus, extra);
 
@@ -246,6 +232,10 @@ export async function PATCH(req: NextRequest) {
         } else {
           await sendAdmissionEmail(app.email!, app.first_name!, checkoutUrl);
         }
+        // Marca idempotencia — evita que el webhook postulacion-admitida re-dispare.
+        await markAdmissionEmailSent(recordId).catch((e) =>
+          console.error(`[admit] mark fail recordId=${recordId}:`, e instanceof Error ? e.message : e)
+        );
       } else {
         console.error(`[admit] app not found for recordId=${recordId}`);
       }

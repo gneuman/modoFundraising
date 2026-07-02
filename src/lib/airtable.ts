@@ -143,6 +143,7 @@ export interface PostulacionRecord {
   admitted_at?: string;
   follow_up_1_sent_at?: string;
   follow_up_2_sent_at?: string;
+  admission_email_sent_at?: string;
   coupon_code?: string;
   discount_percent?: number;
   stripe_coupon_id?: string;
@@ -1047,6 +1048,16 @@ export async function markFormReminderSent(recordId: string) {
   await base(Tables.POSTULACIONES).update(
     recordId,
     { form_reminder_sent_at: new Date().toISOString() } as never,
+    { typecast: true }
+  );
+}
+
+// Marca que se disparó el correo admission_approved. Sirve como flag de idempotencia
+// para el webhook /api/airtable/postulacion-admitida. Vaciar manual para forzar re-envío.
+export async function markAdmissionEmailSent(recordId: string) {
+  await base(Tables.POSTULACIONES).update(
+    recordId,
+    { admission_email_sent_at: new Date().toISOString() } as never,
     { typecast: true }
   );
 }
