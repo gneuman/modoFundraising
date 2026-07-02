@@ -2,6 +2,7 @@ import { getAllApplications, listRechazos, type RechazoRecord } from "@/lib/airt
 import { listAllPagosFromStripe } from "@/lib/stripe";
 import { UserMinus, AlertCircle, Clock, DollarSign } from "lucide-react";
 import { ChurnFilters } from "./churn-filters";
+import { RefundButton } from "./refund-button";
 
 export const dynamic = "force-dynamic";
 
@@ -205,12 +206,13 @@ export default async function ChurnPage({
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Reembolsado</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Reembolsable</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Portal</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Accion</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-zinc-400">
+                  <td colSpan={10} className="px-4 py-12 text-center text-zinc-400">
                     Sin resultados con estos filtros
                   </td>
                 </tr>
@@ -260,6 +262,13 @@ export default async function ChurnPage({
                     <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 font-medium">
                       🚫 Bloqueado
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <RefundButton
+                      email={r.email}
+                      amountRefundable={r.amountRefundable}
+                      startup={r.startup}
+                    />
                   </td>
                 </tr>
               ))}
