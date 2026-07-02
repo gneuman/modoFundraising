@@ -64,21 +64,21 @@ function TipoIcon({ tipo }: { tipo?: string }) {
 
 function MisionBlock({ mision }: { mision: MisionRecord }) {
   const days = daysLeft(mision.fecha_limite);
-  const isActiva = mision.status === "Activa";
+  const isEnCurso = mision.status === "Activa" || mision.status === "Actual";
   const isCerrada = mision.status === "Cerrada";
 
-  return (
-    <div className={`rounded-2xl border-2 overflow-hidden ${
-      isCerrada ? "border-zinc-200 bg-white" :
-      isActiva ? "border-amber-300 bg-amber-50/40" :
-      "border-zinc-200 bg-white"
+  const content = (
+    <div className={`rounded-2xl border-2 overflow-hidden transition-all ${
+      isCerrada ? "border-zinc-200 bg-white hover:border-zinc-300" :
+      isEnCurso ? "border-amber-300 bg-amber-50/40 hover:border-amber-400 hover:shadow-md" :
+      "border-zinc-200 bg-white hover:border-zinc-300"
     }`}>
       <div className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 shrink-0">
               {isCerrada ? <CheckCircle2 className="h-5 w-5 text-green-500" />
-                : isActiva ? <AlertCircle className="h-5 w-5 text-amber-500" />
+                : isEnCurso ? <AlertCircle className="h-5 w-5 text-amber-500" />
                 : <Circle className="h-5 w-5 text-zinc-300" />}
             </div>
             <div>
@@ -94,7 +94,7 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
           </div>
           <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
             isCerrada ? "bg-zinc-100 text-zinc-400" :
-            isActiva ? "bg-amber-100 text-amber-700" :
+            isEnCurso ? "bg-amber-100 text-amber-700" :
             "bg-zinc-100 text-zinc-500"
           }`}>
             {mision.status ?? "Próxima"}
@@ -123,9 +123,28 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
               `${days} días restantes — ${formatFecha(mision.fecha_limite)}`}
           </div>
         )}
+
+        {/* CTA para ir a completar la misión */}
+        {isEnCurso && (
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 pt-1">
+            Ir a completar la misión
+            <ExternalLink className="h-3.5 w-3.5" />
+          </div>
+        )}
       </div>
     </div>
   );
+
+  // La misión solo es clickeable si está En curso o Cerrada (no si es "Próxima" sin
+  // detalle todavía). El link va a /portal/misiones (vista principal, muestra Activa).
+  if (isEnCurso || isCerrada) {
+    return (
+      <Link href="/portal/misiones" className="block">
+        {content}
+      </Link>
+    );
+  }
+  return content;
 }
 
 export default async function ClaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -234,9 +253,12 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Misiones: en el portal del founder solo mostramos las Activas */}
+      {/* Misiones: en el portal del founder mostramos las que estan En curso
+          (Activa o Actual). "Actual" = misión ya notificada, sigue en curso. */}
       {(() => {
-        const visibles = clase.misionesData.filter((m) => m.status === "Activa");
+        const visibles = clase.misionesData.filter(
+          (m) => m.status === "Activa" || m.status === "Actual",
+        );
         if (!visibles.length) return null;
         return (
           <div className="space-y-3">
