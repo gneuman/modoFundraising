@@ -3,6 +3,8 @@ import {
   getClasesWithContentCached,
   getAllApplications,
   getMisionesCompletadasByStartup,
+  getConsignasByStartup,
+  getAllFeedback,
 } from "@/lib/airtable";
 import { ClaseCard } from "@/components/clases/clase-card";
 
@@ -43,14 +45,28 @@ export default async function ClasesPage({
     startupId = app?.startup_record?.[0] as string | undefined;
   }
 
-  // Prefetch misiones completadas de la startup para marcarlas "Terminada"
-  const misionesCompletadas = startupId
-    ? await getMisionesCompletadasByStartup(startupId)
-    : [];
+  // Prefetch: para saber cuáles misiones/tareas están completadas por esta startup
+  const [misionesCompletadas, consignas, allFeedback] = await Promise.all([
+    startupId ? getMisionesCompletadasByStartup(startupId) : Promise.resolve([]),
+    startupId ? getConsignasByStartup(startupId) : Promise.resolve([]),
+    startupId ? getAllFeedback() : Promise.resolve([]),
+  ]);
   const misionesCompletadasSet = new Set(
     misionesCompletadas
       .filter((m) => m.completada)
       .flatMap((m) => m.mision_record ?? []),
+  );
+  // Set de tareaId (tipo Entrega) que esta startup ya respondió
+  const tareasRespondidasSet = new Set(
+    consignas.flatMap((c) => c.tarea ?? []),
+  );
+  // Set de claseId con feedback (NPS) enviado por esta startup
+  const feedbackClaseIdsSet = new Set(
+    startupId
+      ? allFeedback
+          .filter((f) => f.startup_record?.includes(startupId))
+          .flatMap((f) => f.clase_record ?? [])
+      : [],
   );
 
   const grabadas = clases.filter(
@@ -111,6 +127,8 @@ export default async function ClasesPage({
               clase={clase}
               mode="view"
               misionesCompletadas={misionesCompletadasSet}
+              tareasRespondidas={tareasRespondidasSet}
+              feedbackClaseIds={feedbackClaseIdsSet}
             />
           ))}
         </div>

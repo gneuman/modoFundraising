@@ -24,12 +24,15 @@ import {
 
 import { formatFecha, formatFechaCorta, toSantiagoInput, santiagoInputToISO } from "@/lib/timezone";
 import { EnterMeetButton } from "@/components/portal/enter-meet-button";
-import type { ClaseRecord, MisionRecord, RecursoRecord } from "@/lib/airtable";
+import type { ClaseRecord, MisionRecord, RecursoRecord, TareaRecord } from "@/lib/airtable";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+// Los `misionesData` incluyen sus `tareasData` cuando vienen de
+// getClasesWithContent (portal), pero pueden no incluirlas en otros contextos
+// (admin manager). Se tipea opcional.
 export type ClaseFull = ClaseRecord & {
-  misionesData: MisionRecord[];
+  misionesData: (MisionRecord & { tareasData?: TareaRecord[] })[];
   recursosData: RecursoRecord[];
 };
 
@@ -624,13 +627,23 @@ function MisionRow({
   mode,
   onUpdate,
   completada,
+  tareasRespondidas,
+  feedbackClaseIds,
+  claseId,
 }: {
-  mision: MisionRecord;
+  mision: MisionRecord & { tareasData?: TareaRecord[] };
   mode: Mode;
   onUpdate: (m: MisionRecord) => void;
   // Si la startup logueada ya completó esta misión (todas sus tareas Entrega + NPS
   // fueron respondidas). Solo aplica en view mode.
   completada?: boolean;
+  // Set de tareaId (Entrega) respondidas por la startup, para dibujar mini-badges.
+  tareasRespondidas?: Set<string>;
+  // Set de claseId con NPS enviado por la startup (para tareas tipo NPS).
+  feedbackClaseIds?: Set<string>;
+  // ID de la clase padre. Se usa para determinar si el NPS de esta misión
+  // ya fue respondido (busca si el claseId asociado a la tarea NPS está en el set).
+  claseId?: string;
 }) {
   const days = daysLeft(mision.fecha_limite);
   // "Activa" = recién publicada. "Actual" = ya notificada, sigue en curso.
@@ -651,6 +664,32 @@ function MisionRow({
       toast.error("Error al guardar");
     }
   }
+
+  // Tareas obligatorias (Entrega + NPS) para el mini-progress. Checklist es
+  // informativo y no cuenta. Solo se muestra en view mode.
+  const tareasObligatorias =
+    mode === "view" && mision.tareasData
+      ? mision.tareasData.filter(
+          (t) => t.tipo === "Entrega" || t.tipo === "NPS",
+        )
+      : [];
+  const showProgress = mode === "view" && tareasObligatorias.length > 0 && !isCerrada;
+
+  function isTareaHecha(t: TareaRecord): boolean {
+    if (t.tipo === "Entrega") {
+      return !!(t.id && tareasRespondidas?.has(t.id));
+    }
+    if (t.tipo === "NPS") {
+      // NPS se considera hecha si todas las clases_nps asociadas ya tienen feedback.
+      // Fallback: si la tarea no tiene clases_nps, usar el claseId de la misión padre.
+      const clases = t.clases_nps?.length ? t.clases_nps : claseId ? [claseId] : [];
+      if (clases.length === 0) return false;
+      return clases.every((cid) => feedbackClaseIds?.has(cid) ?? false);
+    }
+    return false;
+  }
+
+  const tareasHechasCount = tareasObligatorias.filter(isTareaHecha).length;
 
   const content = (
     <>
@@ -693,6 +732,36 @@ function MisionRow({
               mision.descripcion
             )}
           </p>
+        )}
+
+        {/* Mini-progress por tarea */}
+        {showProgress && (
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            <span className="text-xs text-zinc-400 shrink-0">
+              {tareasHechasCount}/{tareasObligatorias.length}
+            </span>
+            {tareasObligatorias.map((t) => {
+              const hecha = isTareaHecha(t);
+              return (
+                <span
+                  key={t.id}
+                  title={`${t.titulo} — ${hecha ? "Enviada" : "Pendiente"}`}
+                  className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
+                    hecha
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : "bg-zinc-50 text-zinc-500 border-zinc-200"
+                  }`}
+                >
+                  {hecha ? (
+                    <Check className="h-2.5 w-2.5" />
+                  ) : (
+                    <span className="h-2.5 w-2.5 rounded-full border border-current inline-block" />
+                  )}
+                  <span className="truncate max-w-[80px]">{t.titulo}</span>
+                </span>
+              );
+            })}
+          </div>
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -890,6 +959,8 @@ export function ClaseCard({
   mode,
   onChange,
   misionesCompletadas,
+  tareasRespondidas,
+  feedbackClaseIds,
 }: {
   clase: ClaseFull;
   mode: Mode;
@@ -897,6 +968,11 @@ export function ClaseCard({
   // Set de misionIds completadas por la startup logueada (para pintar
   // "Terminada" en verde en view mode). Solo aplica en view.
   misionesCompletadas?: Set<string>;
+  // Set de tareaId (tipo Entrega) que la startup ya respondio.
+  // Se usa para pintar mini-badges de progreso en cada MisionRow.
+  tareasRespondidas?: Set<string>;
+  // Set de claseId con NPS feedback ya enviado por la startup.
+  feedbackClaseIds?: Set<string>;
 }) {
   // Estado local para reflejar ediciones inmediatamente en admin
   const [clase, setClase] = useState<ClaseFull>(claseProp);
@@ -1180,6 +1256,9 @@ export function ClaseCard({
             mision={mision}
             mode={mode}
             completada={mision.id ? misionesCompletadas?.has(mision.id) : false}
+            tareasRespondidas={tareasRespondidas}
+            feedbackClaseIds={feedbackClaseIds}
+            claseId={clase.id}
             onUpdate={(m) =>
               update({
                 ...clase,
