@@ -60,7 +60,8 @@ export default async function ClasesPage({
       .filter((m) => m.completada)
       .flatMap((m) => m.mision_record ?? []),
   );
-  // Set de tareaId (tipo Entrega) que esta startup ya respondió
+  // Set de tareaId (Entrega o Checklist) que esta startup ya respondió.
+  // Ambos tipos guardan su respuesta como Consigna (WI-1661).
   const tareasRespondidasSet = new Set(
     consignas.flatMap((c) => c.tarea ?? []),
   );

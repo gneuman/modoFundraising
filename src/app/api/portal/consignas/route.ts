@@ -169,14 +169,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Validar que la tarea existe, es tipo Entrega y sabemos su misión
+  // Validar que la tarea existe y sabemos su misión. Aceptamos Entrega y Checklist
+  // — ambos usan el mismo mecanismo de Consigna (WI-1661: el cliente pidió que
+  // TODAS las tareas se puedan contestar sin importar el tipo). NPS sigue yendo
+  // por Feedback y se maneja en otro endpoint.
   const tarea = await getTareaByIdFresh(tareaId);
   if (!tarea) {
     return NextResponse.json({ error: "Tarea no encontrada" }, { status: 404 });
   }
-  if (tarea.tipo !== "Entrega") {
+  if (tarea.tipo !== "Entrega" && tarea.tipo !== "Checklist") {
     return NextResponse.json(
-      { error: `Solo se pueden guardar consignas para tareas tipo Entrega (esta es "${tarea.tipo}")` },
+      { error: `Solo se pueden guardar consignas para tareas tipo Entrega o Checklist (esta es "${tarea.tipo}")` },
       { status: 400 },
     );
   }
