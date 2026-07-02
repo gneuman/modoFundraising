@@ -20,11 +20,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ratings requerido" }, { status: 400 });
   }
 
-  const apps = await getAllApplications();
+  const apps = await getAllApplications({ includeTest: true });
   const app = apps.find(
     (a) =>
       a.email === session.email &&
-      (a.status === "Inscrita" || a.status === "Invitada institucional")
+      // "Modo Foco - Test" es la startup sandbox: cualquier status vale.
+      (a.status === "Inscrita" ||
+        a.status === "Invitada institucional" ||
+        a.startup_name === "Modo Foco - Test")
   );
   const startupId = app?.startup_record?.[0] as string | undefined;
 
@@ -56,11 +59,14 @@ export async function GET(req: NextRequest) {
 
   const claseIds = req.nextUrl.searchParams.get("claseIds")?.split(",").filter(Boolean) ?? [];
 
-  const apps = await getAllApplications();
+  const apps = await getAllApplications({ includeTest: true });
   const app = apps.find(
     (a) =>
       a.email === session.email &&
-      (a.status === "Inscrita" || a.status === "Invitada institucional")
+      // "Modo Foco - Test" es la startup sandbox: cualquier status vale.
+      (a.status === "Inscrita" ||
+        a.status === "Invitada institucional" ||
+        a.startup_name === "Modo Foco - Test")
   );
   const startupId = app?.startup_record?.[0] as string | undefined;
 

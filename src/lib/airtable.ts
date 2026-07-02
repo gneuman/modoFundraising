@@ -904,7 +904,9 @@ export async function createApplication(
 // Returns postulaciones enriched with founder+startup data for admin/portal use.
 // Las postulaciones marcadas como `test = true` se excluyen para que NO aparezcan
 // en ninguna vista del portal/admin (dashboard, kanban, revenue, empresas, etc).
-export async function getAllApplications(): Promise<PostulacionRecord[]> {
+export async function getAllApplications(
+  opts: { includeTest?: boolean } = {},
+): Promise<PostulacionRecord[]> {
   const [postulaciones, founders, startups] = await Promise.all([
     base(Tables.POSTULACIONES)
       .select({ sort: [{ field: "created_at", direction: "desc" }] })
@@ -917,6 +919,7 @@ export async function getAllApplications(): Promise<PostulacionRecord[]> {
   const startupMap = new Map(startups.map((s) => [s.id, s.fields]));
 
   return postulaciones.filter((p) => {
+    if (opts.includeTest) return true;
     const fields = p.fields as Record<string, unknown>;
     // Airtable field es "Test" (con T mayuscula) — chequear ambos capitalizaciones
     return fields.test !== true && fields.Test !== true;

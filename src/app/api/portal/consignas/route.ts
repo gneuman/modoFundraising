@@ -137,11 +137,17 @@ export async function POST(req: NextRequest) {
     startupId = adminStartupId;
     founderEmail = `admin:${session.email}`; // audit trail
   } else {
-    const apps = await getAllApplications();
+    // includeTest: true para que la sandbox "Modo Foco - Test" no quede filtrada
+    // por el flag test=true de Airtable. La whitelist por startup_name abajo
+    // decide si aplica la validacion relajada de status.
+    const apps = await getAllApplications({ includeTest: true });
     const emailLower = session.email.toLowerCase();
     const app = apps.find((a) => {
+      // "Modo Foco - Test" es la startup sandbox de Gabriel: acepta cualquier
+      // status para poder testear el flujo sin depender de Inscrita/Admitida.
+      const isTestStartup = a.startup_name === "Modo Foco - Test";
       const isEnrolled = a.status === "Inscrita" || a.status === "Invitada institucional";
-      if (!isEnrolled) return false;
+      if (!isEnrolled && !isTestStartup) return false;
       // Chequea principal + todos los cofounders (case-insensitive)
       const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
         .filter(Boolean)
