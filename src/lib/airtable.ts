@@ -1506,13 +1506,23 @@ export interface ConsignaRecord {
   founder_que_envio?: string;
 }
 
+// Nota clave: no podemos filtrar por `startup_record` ni `tarea` con
+// filterByFormula porque son `multipleRecordLinks` y ARRAYJOIN los expande a
+// los primary field values (nombres), no a recordIds. Usamos `id_consigna`
+// que es un `singleLineText` que escribimos como `<startupId>-<tareaId>` en
+// upsertConsigna.
+function makeIdConsigna(startupId: string, tareaId: string): string {
+  return `${startupId}-${tareaId}`;
+}
+
 export async function getConsignaByStartupTarea(
   startupId: string,
   tareaId: string,
 ): Promise<ConsignaRecord | null> {
+  const idConsigna = makeIdConsigna(startupId, tareaId);
   const records = await base(Tables.CONSIGNAS)
     .select({
-      filterByFormula: `AND(SEARCH("${startupId}", ARRAYJOIN({startup_record})), SEARCH("${tareaId}", ARRAYJOIN({tarea})))`,
+      filterByFormula: `{id_consigna} = "${idConsigna}"`,
       maxRecords: 1,
     })
     .firstPage();
@@ -1523,8 +1533,13 @@ export async function getConsignaByStartupTarea(
 export async function getConsignasByStartup(
   startupId: string,
 ): Promise<ConsignaRecord[]> {
+  // El id_consigna empieza siempre con el startupId, así que un simple SEARCH
+  // sobre el texto plano matchea. Alternativamente podríamos bajarnos todo y
+  // filtrar por startup_record en memoria, pero esto es más eficiente.
   const records = await base(Tables.CONSIGNAS)
-    .select({ filterByFormula: `SEARCH("${startupId}", ARRAYJOIN({startup_record}))` })
+    .select({
+      filterByFormula: `FIND("${startupId}", {id_consigna}) = 1`,
+    })
     .all();
   return records.map((r) => ({ id: r.id, ...(r.fields as ConsignaRecord) }));
 }
@@ -1538,7 +1553,7 @@ export async function upsertConsigna(data: {
   founderEmail: string;
 }): Promise<{ id: string; created: boolean }> {
   const now = new Date().toISOString();
-  const idConsigna = `${data.startupId}-${data.tareaId}`;
+  const idConsigna = makeIdConsigna(data.startupId, data.tareaId);
 
   const fields: Record<string, unknown> = {
     id_consigna: idConsigna,
