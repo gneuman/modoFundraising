@@ -1,5 +1,9 @@
 import { obtenerSesion } from "@/lib/auth";
-import { getClasesWithContentCached } from "@/lib/airtable";
+import {
+  getClasesWithContentCached,
+  getAllApplications,
+  getMisionesCompletadasByStartup,
+} from "@/lib/airtable";
 import { ClaseCard } from "@/components/clases/clase-card";
 
 export const dynamic = "force-dynamic";
@@ -10,9 +14,44 @@ function stripSemanaPrefix(titulo?: string): string | undefined {
   return titulo.replace(/^S\d+\s*[—–-]\s*/, "");
 }
 
-export default async function ClasesPage() {
-  await obtenerSesion();
-  const clases = await getClasesWithContentCached();
+export default async function ClasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ as?: string }>;
+}) {
+  const session = await obtenerSesion();
+  const [clases, apps, params] = await Promise.all([
+    getClasesWithContentCached(),
+    getAllApplications(),
+    searchParams,
+  ]);
+
+  // Encontrar startupId (admin puede impersonar con ?as=recXXX)
+  let startupId: string | undefined;
+  if (session?.role === "admin" && params.as) {
+    startupId = params.as;
+  } else if (session?.email) {
+    const emailLower = session.email.toLowerCase();
+    const app = apps.find((a) => {
+      const isEnrolled = a.status === "Inscrita" || a.status === "Invitada institucional";
+      if (!isEnrolled) return false;
+      const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
+        .filter(Boolean)
+        .map((e) => e!.toLowerCase());
+      return allEmails.includes(emailLower);
+    });
+    startupId = app?.startup_record?.[0] as string | undefined;
+  }
+
+  // Prefetch misiones completadas de la startup para marcarlas "Terminada"
+  const misionesCompletadas = startupId
+    ? await getMisionesCompletadasByStartup(startupId)
+    : [];
+  const misionesCompletadasSet = new Set(
+    misionesCompletadas
+      .filter((m) => m.completada)
+      .flatMap((m) => m.mision_record ?? []),
+  );
 
   const grabadas = clases.filter(
     (c) => c.status === "Grabada" || Boolean(c.url_grabacion),
@@ -22,7 +61,7 @@ export default async function ClasesPage() {
   );
   const misionesActivas = clases
     .flatMap((c) => c.misionesData)
-    .filter((m) => m.status === "Activa").length;
+    .filter((m) => m.status === "Activa" || m.status === "Actual").length;
 
   return (
     <div className="space-y-5">
@@ -67,7 +106,12 @@ export default async function ClasesPage() {
       ) : (
         <div className="space-y-2">
           {clases.map((clase) => (
-            <ClaseCard key={clase.id} clase={clase} mode="view" />
+            <ClaseCard
+              key={clase.id}
+              clase={clase}
+              mode="view"
+              misionesCompletadas={misionesCompletadasSet}
+            />
           ))}
         </div>
       )}

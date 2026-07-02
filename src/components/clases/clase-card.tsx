@@ -623,14 +623,21 @@ function MisionRow({
   mision,
   mode,
   onUpdate,
+  completada,
 }: {
   mision: MisionRecord;
   mode: Mode;
   onUpdate: (m: MisionRecord) => void;
+  // Si la startup logueada ya completó esta misión (todas sus tareas Entrega + NPS
+  // fueron respondidas). Solo aplica en view mode.
+  completada?: boolean;
 }) {
   const days = daysLeft(mision.fecha_limite);
-  const isActiva = mision.status === "Activa";
+  // "Activa" = recién publicada. "Actual" = ya notificada, sigue en curso.
+  // Ambos son "en curso" desde el punto de vista del founder.
+  const isEnCurso = mision.status === "Activa" || mision.status === "Actual";
   const isCerrada = mision.status === "Cerrada";
+  const isTerminada = mode === "view" && !!completada;
 
   async function patch(field: string, value: unknown) {
     try {
@@ -645,17 +652,24 @@ function MisionRow({
     }
   }
 
-  return (
-    <div
-      className={`border-t px-5 py-3 flex items-start gap-3
-        ${isActiva ? "bg-amber-50/60 border-amber-100" : "bg-zinc-50/50 border-zinc-100"}`}
-    >
-      <Target
-        className={`h-4 w-4 mt-0.5 shrink-0 ${isActiva ? "text-amber-500" : "text-zinc-300"}`}
-      />
+  const content = (
+    <>
+      {isTerminada ? (
+        <Check className="h-4 w-4 mt-0.5 shrink-0 text-green-600" />
+      ) : (
+        <Target
+          className={`h-4 w-4 mt-0.5 shrink-0 ${isEnCurso ? "text-amber-500" : "text-zinc-300"}`}
+        />
+      )}
       <div className="flex-1 min-w-0">
         <p
-          className={`text-sm font-medium leading-tight ${isCerrada ? "line-through text-zinc-400" : "text-zinc-700"}`}
+          className={`text-sm font-medium leading-tight ${
+            isTerminada
+              ? "text-green-800"
+              : isCerrada
+                ? "line-through text-zinc-400"
+                : "text-zinc-700"
+          }`}
         >
           {mode === "admin" ? (
             <InlineText
@@ -682,7 +696,7 @@ function MisionRow({
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {mision.fecha_limite && !isCerrada && (
+        {mision.fecha_limite && !isCerrada && !isTerminada && (
           <span
             className={`flex items-center gap-1 text-xs font-medium
               ${days !== null && days <= 2 ? "text-red-600" : days !== null && days <= 5 ? "text-amber-600" : "text-zinc-400"}`}
@@ -707,9 +721,17 @@ function MisionRow({
         )}
         <span
           className={`text-xs px-2 py-0.5 rounded-full font-medium
-            ${isCerrada ? "bg-zinc-100 text-zinc-400" : isActiva ? "bg-amber-100 text-amber-700" : "bg-zinc-100 text-zinc-500"}`}
+            ${
+              isTerminada
+                ? "bg-green-100 text-green-700"
+                : isCerrada
+                  ? "bg-zinc-100 text-zinc-400"
+                  : isEnCurso
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-zinc-100 text-zinc-500"
+            }`}
         >
-          {mision.status ?? "Próxima"}
+          {isTerminada ? "Terminada" : mision.status ?? "Próxima"}
         </span>
         {mode === "admin" && (
           <InlineSelect
@@ -718,9 +740,37 @@ function MisionRow({
             onSave={(v) => patch("status", v)}
           />
         )}
+        {/* CTA de "ir a completar" en view mode, para misiones en curso NO terminadas */}
+        {mode === "view" && isEnCurso && !isTerminada && (
+          <ExternalLink className="h-3.5 w-3.5 text-amber-600" />
+        )}
       </div>
-    </div>
+    </>
   );
+
+  const commonClasses = `border-t px-5 py-3 flex items-start gap-3 ${
+    isTerminada
+      ? "bg-green-50/60 border-green-100"
+      : isEnCurso
+        ? "bg-amber-50/60 border-amber-100"
+        : "bg-zinc-50/50 border-zinc-100"
+  }`;
+
+  // En view mode, misiones en curso o cerradas linkean a /portal/misiones para
+  // que el founder pueda completarlas. En admin, no hay link (el admin edita
+  // inline).
+  if (mode === "view" && (isEnCurso || isCerrada)) {
+    return (
+      <Link
+        href="/portal/misiones"
+        className={`${commonClasses} hover:bg-amber-50 transition-colors group`}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className={commonClasses}>{content}</div>;
 }
 
 // ─── Recurso row (view + admin) ───────────────────────────────────────────────
@@ -839,10 +889,14 @@ export function ClaseCard({
   clase: claseProp,
   mode,
   onChange,
+  misionesCompletadas,
 }: {
   clase: ClaseFull;
   mode: Mode;
   onChange?: (clase: ClaseFull) => void;
+  // Set de misionIds completadas por la startup logueada (para pintar
+  // "Terminada" en verde en view mode). Solo aplica en view.
+  misionesCompletadas?: Set<string>;
 }) {
   // Estado local para reflejar ediciones inmediatamente en admin
   const [clase, setClase] = useState<ClaseFull>(claseProp);
@@ -1112,15 +1166,20 @@ export function ClaseCard({
         </div>
       )}
 
-      {/* Misiones inline. En view solo mostramos las Activas (las Próxima/Cerrada
-          se ocultan al founder para no llenar la card de items inactivos). */}
+      {/* Misiones inline. En view mostramos las que están En curso (Activa o
+          Actual — la diferencia es solo si la notificacion ya se disparo).
+          Próxima/Cerrada se ocultan al founder para no llenar la card. */}
       {clase.misionesData
-        .filter((m) => mode === "admin" || m.status === "Activa")
+        .filter(
+          (m) =>
+            mode === "admin" || m.status === "Activa" || m.status === "Actual",
+        )
         .map((mision) => (
           <MisionRow
             key={mision.id}
             mision={mision}
             mode={mode}
+            completada={mision.id ? misionesCompletadas?.has(mision.id) : false}
             onUpdate={(m) =>
               update({
                 ...clase,

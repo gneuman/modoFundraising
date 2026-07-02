@@ -1,6 +1,12 @@
 import { notFound } from "next/navigation";
 import { obtenerSesion } from "@/lib/auth";
-import { getClaseById, type MisionRecord, type RecursoRecord } from "@/lib/airtable";
+import {
+  getClaseById,
+  getAllApplications,
+  getMisionesCompletadasByStartup,
+  type MisionRecord,
+  type RecursoRecord,
+} from "@/lib/airtable";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -62,27 +68,43 @@ function TipoIcon({ tipo }: { tipo?: string }) {
   return <Link2 className="h-4 w-4 text-zinc-400" />;
 }
 
-function MisionBlock({ mision }: { mision: MisionRecord }) {
+function MisionBlock({
+  mision,
+  completada,
+}: {
+  mision: MisionRecord;
+  completada?: boolean;
+}) {
   const days = daysLeft(mision.fecha_limite);
   const isEnCurso = mision.status === "Activa" || mision.status === "Actual";
   const isCerrada = mision.status === "Cerrada";
+  const isTerminada = !!completada;
+
+  const borderColor = isTerminada
+    ? "border-green-300 bg-green-50/40 hover:border-green-400 hover:shadow-md"
+    : isCerrada
+      ? "border-zinc-200 bg-white hover:border-zinc-300"
+      : isEnCurso
+        ? "border-amber-300 bg-amber-50/40 hover:border-amber-400 hover:shadow-md"
+        : "border-zinc-200 bg-white hover:border-zinc-300";
 
   const content = (
-    <div className={`rounded-2xl border-2 overflow-hidden transition-all ${
-      isCerrada ? "border-zinc-200 bg-white hover:border-zinc-300" :
-      isEnCurso ? "border-amber-300 bg-amber-50/40 hover:border-amber-400 hover:shadow-md" :
-      "border-zinc-200 bg-white hover:border-zinc-300"
-    }`}>
+    <div className={`rounded-2xl border-2 overflow-hidden transition-all ${borderColor}`}>
       <div className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 shrink-0">
-              {isCerrada ? <CheckCircle2 className="h-5 w-5 text-green-500" />
+              {isTerminada ? <CheckCircle2 className="h-5 w-5 text-green-500" />
+                : isCerrada ? <CheckCircle2 className="h-5 w-5 text-zinc-400" />
                 : isEnCurso ? <AlertCircle className="h-5 w-5 text-amber-500" />
                 : <Circle className="h-5 w-5 text-zinc-300" />}
             </div>
             <div>
-              <h3 className={`font-bold text-lg leading-tight ${isCerrada ? "text-zinc-400 line-through" : "text-zinc-800"}`}>
+              <h3 className={`font-bold text-lg leading-tight ${
+                isTerminada ? "text-green-800" :
+                isCerrada ? "text-zinc-400 line-through" :
+                "text-zinc-800"
+              }`}>
                 {mision.titulo}
               </h3>
               {mision.descripcion && (
@@ -93,11 +115,12 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
             </div>
           </div>
           <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
+            isTerminada ? "bg-green-100 text-green-700" :
             isCerrada ? "bg-zinc-100 text-zinc-400" :
             isEnCurso ? "bg-amber-100 text-amber-700" :
             "bg-zinc-100 text-zinc-500"
           }`}>
-            {mision.status ?? "Próxima"}
+            {isTerminada ? "Terminada" : mision.status ?? "Próxima"}
           </span>
         </div>
 
@@ -108,7 +131,7 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
           </div>
         )}
 
-        {mision.fecha_limite && (
+        {mision.fecha_limite && !isTerminada && (
           <div className={`flex items-center gap-1.5 text-sm font-medium ${
             days !== null && days <= 2 ? "text-red-600" :
             days !== null && days <= 5 ? "text-amber-600" :
@@ -124,8 +147,14 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
           </div>
         )}
 
-        {/* CTA para ir a completar la misión */}
-        {isEnCurso && (
+        {/* CTA */}
+        {isTerminada && (
+          <div className="flex items-center gap-1.5 text-sm font-semibold text-green-700 pt-1">
+            Ver mi respuesta
+            <ExternalLink className="h-3.5 w-3.5" />
+          </div>
+        )}
+        {isEnCurso && !isTerminada && (
           <div className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 pt-1">
             Ir a completar la misión
             <ExternalLink className="h-3.5 w-3.5" />
@@ -135,9 +164,9 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
     </div>
   );
 
-  // La misión solo es clickeable si está En curso o Cerrada (no si es "Próxima" sin
-  // detalle todavía). El link va a /portal/misiones (vista principal, muestra Activa).
-  if (isEnCurso || isCerrada) {
+  // La misión es clickeable si está En curso, Terminada o Cerrada
+  // (para ver el historial de la respuesta).
+  if (isEnCurso || isCerrada || isTerminada) {
     return (
       <Link href="/portal/misiones" className="block">
         {content}
@@ -147,9 +176,15 @@ function MisionBlock({ mision }: { mision: MisionRecord }) {
   return content;
 }
 
-export default async function ClaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClaseDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ as?: string }>;
+}) {
   const { id } = await params;
-  const session = await obtenerSesion();
+  const [session, sp] = await Promise.all([obtenerSesion(), searchParams]);
 
   const clase = await getClaseById(id);
   if (!clase) notFound();
@@ -158,6 +193,33 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
   const tieneGrabacion = Boolean(clase.url_grabacion);
   const isGrabada = clase.status === "Grabada" || tieneGrabacion;
   const isLive = clase.status === "En vivo";
+
+  // Prefetch misiones completadas por la startup del founder (o el admin
+  // impersonating). Se usa para marcar la mision como "Terminada" en verde.
+  let startupId: string | undefined;
+  if (session?.role === "admin" && sp.as) {
+    startupId = sp.as;
+  } else if (session?.email) {
+    const apps = await getAllApplications();
+    const emailLower = session.email.toLowerCase();
+    const app = apps.find((a) => {
+      const isEnrolled = a.status === "Inscrita" || a.status === "Invitada institucional";
+      if (!isEnrolled) return false;
+      const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
+        .filter(Boolean)
+        .map((e) => e!.toLowerCase());
+      return allEmails.includes(emailLower);
+    });
+    startupId = app?.startup_record?.[0] as string | undefined;
+  }
+  const misionesCompletadas = startupId
+    ? await getMisionesCompletadasByStartup(startupId)
+    : [];
+  const misionesCompletadasSet = new Set(
+    misionesCompletadas
+      .filter((m) => m.completada)
+      .flatMap((m) => m.mision_record ?? []),
+  );
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -253,12 +315,15 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Misiones: en el portal del founder mostramos las que estan En curso
-          (Activa o Actual). "Actual" = misión ya notificada, sigue en curso. */}
+      {/* Misiones: mostramos las que estan En curso (Activa/Actual) + las
+          Terminadas por esta startup (para que puedan ver su respuesta).
+          "Actual" = misión ya notificada, sigue en curso. */}
       {(() => {
-        const visibles = clase.misionesData.filter(
-          (m) => m.status === "Activa" || m.status === "Actual",
-        );
+        const visibles = clase.misionesData.filter((m) => {
+          const isEnCurso = m.status === "Activa" || m.status === "Actual";
+          const isTerminada = !!(m.id && misionesCompletadasSet.has(m.id));
+          return isEnCurso || isTerminada;
+        });
         if (!visibles.length) return null;
         return (
           <div className="space-y-3">
@@ -266,7 +331,11 @@ export default async function ClaseDetailPage({ params }: { params: Promise<{ id
               <Target className="h-5 w-5 text-amber-500" /> Misión de esta clase
             </h2>
             {visibles.map((m) => (
-              <MisionBlock key={m.id} mision={m} />
+              <MisionBlock
+                key={m.id}
+                mision={m}
+                completada={m.id ? misionesCompletadasSet.has(m.id) : false}
+              />
             ))}
           </div>
         );
