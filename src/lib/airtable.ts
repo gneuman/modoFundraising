@@ -26,6 +26,7 @@ export const Tables = {
   RECURSOS: "tblySmsPq0avXa4KS", // Recursos MF26
   ASISTENCIAS: "tblfauyUdGIT1xVBn", // Asistencias MF26
   MISIONES_COMPLETADAS: "tblkyLEqxHO4n18CK", // Misiones Completadas MF26
+  CONSIGNAS: "tbliTlMl0dfbh3HWc", // Consignas MF26 (respuestas de startups a tareas Entrega)
   FEEDBACK: "tblQCMVaKvzyfERct", // Feedback MF26
   EMAIL_TEMPLATES: "tblZ3Tm34wzThvXl2", // Email Templates MF26
   AUTOMATION_RULES: "tblpcQ6EdiczQRbTI", // Automation Rules MF26
@@ -1470,6 +1471,144 @@ export async function getAllMisionesCompletadas(): Promise<MisionCompletadaRecor
   return records.map((r) => ({ id: r.id, ...r.fields }) as MisionCompletadaRecord);
 }
 
+// ─── Consignas ────────────────────────────────────────────────────────────────
+//
+// Respuestas de una startup a una tarea tipo Entrega. 1 record por
+// (startup, tarea). Mismo patrón de Asistencias/Feedback: upsert por combo.
+//
+// Cuando una startup completa TODAS las tareas Entrega + NPS de una misión,
+// `recomputeMisionCompletada` marca `Misiones Completadas MF26` como
+// completada = true para esa (startup, misión).
+
+export interface ConsignaRecord {
+  id?: string;
+  id_consigna?: string;
+  startup_record?: string[];
+  tarea?: string[];
+  contenido_texto?: string;
+  adjuntos?: Array<{ id?: string; url: string; filename: string; type?: string; size?: number }>;
+  url_extra?: string;
+  enviada_at?: string;
+  actualizada_at?: string;
+  founder_que_envio?: string;
+}
+
+export async function getConsignaByStartupTarea(
+  startupId: string,
+  tareaId: string,
+): Promise<ConsignaRecord | null> {
+  const records = await base(Tables.CONSIGNAS)
+    .select({
+      filterByFormula: `AND(SEARCH("${startupId}", ARRAYJOIN({startup_record})), SEARCH("${tareaId}", ARRAYJOIN({tarea})))`,
+      maxRecords: 1,
+    })
+    .firstPage();
+  if (!records.length) return null;
+  return { id: records[0].id, ...(records[0].fields as ConsignaRecord) };
+}
+
+export async function getConsignasByStartup(
+  startupId: string,
+): Promise<ConsignaRecord[]> {
+  const records = await base(Tables.CONSIGNAS)
+    .select({ filterByFormula: `SEARCH("${startupId}", ARRAYJOIN({startup_record}))` })
+    .all();
+  return records.map((r) => ({ id: r.id, ...(r.fields as ConsignaRecord) }));
+}
+
+export async function upsertConsigna(data: {
+  startupId: string;
+  tareaId: string;
+  contenido_texto?: string;
+  adjuntos?: Array<{ url: string; filename: string }>;
+  url_extra?: string;
+  founderEmail: string;
+}): Promise<{ id: string; created: boolean }> {
+  const now = new Date().toISOString();
+  const idConsigna = `${data.startupId}-${data.tareaId}`;
+
+  const fields: Record<string, unknown> = {
+    id_consigna: idConsigna,
+    startup_record: [data.startupId],
+    tarea: [data.tareaId],
+    contenido_texto: data.contenido_texto ?? "",
+    url_extra: data.url_extra ?? "",
+    founder_que_envio: data.founderEmail,
+    actualizada_at: now,
+  };
+  if (data.adjuntos && data.adjuntos.length) fields.adjuntos = data.adjuntos;
+
+  const existing = await getConsignaByStartupTarea(data.startupId, data.tareaId);
+  if (existing?.id) {
+    await base(Tables.CONSIGNAS).update(existing.id, fields as never);
+    return { id: existing.id, created: false };
+  }
+
+  // Solo escribimos enviada_at en la creación (mantiene semantica de "primera envío").
+  fields.enviada_at = now;
+  const record = await base(Tables.CONSIGNAS).create(fields as never);
+  return { id: record.id, created: true };
+}
+
+// Recomputa el estado de Misiones Completadas para una (startup, misión):
+//   - Cuenta tareas obligatorias de la misión (Entrega + NPS, NO Checklist)
+//   - Para Entrega: cuenta consignas de esa startup para esas tareas
+//   - Para NPS: cuenta feedback de esa startup para las clases_nps de esas tareas
+//   - Si todas están hechas → upsert `Misiones Completadas` con completada = true
+//   - Si faltan → si había un record con completada = true, lo baja a false
+//
+// Se llama desde POST /api/portal/consignas después de guardar la consigna.
+export async function recomputeMisionCompletada(
+  startupId: string,
+  misionId: string,
+): Promise<{ completada: boolean; total: number; hechas: number }> {
+  const tareas = await getTareasByMision(misionId);
+  const obligatorias = tareas.filter((t) => t.tipo === "Entrega" || t.tipo === "NPS");
+  const total = obligatorias.length;
+
+  if (total === 0) {
+    // Misión sin tareas obligatorias → no se puede "completar" en este sentido.
+    return { completada: false, total: 0, hechas: 0 };
+  }
+
+  const [consignas, feedbacks] = await Promise.all([
+    getConsignasByStartup(startupId),
+    getAllFeedback(),
+  ]);
+  const consignaTareaIds = new Set(
+    consignas.flatMap((c) => c.tarea ?? []),
+  );
+  const feedbackClaseIds = new Set(
+    feedbacks
+      .filter((f) => f.startup_record?.includes(startupId))
+      .flatMap((f) => f.clase_record ?? []),
+  );
+
+  let hechas = 0;
+  for (const t of obligatorias) {
+    if (t.tipo === "Entrega") {
+      if (t.id && consignaTareaIds.has(t.id)) hechas++;
+    } else if (t.tipo === "NPS") {
+      // NPS "hecha" = existe feedback de esta startup para TODAS las clases_nps
+      // asociadas a esta tarea. Si la tarea no tiene clases_nps, la tratamos
+      // como hecha con solo enviar consigna (fallback), o skip.
+      const clasesRequeridas = t.clases_nps ?? [];
+      if (clasesRequeridas.length === 0) continue;
+      const todasHechas = clasesRequeridas.every((cid) => feedbackClaseIds.has(cid));
+      if (todasHechas) hechas++;
+    }
+  }
+
+  const completada = hechas === total;
+  await upsertMisionCompletada({
+    startupId,
+    misionId,
+    completada,
+  });
+
+  return { completada, total, hechas };
+}
+
 // ─── Feedback ─────────────────────────────────────────────────────────────────
 
 export interface FeedbackRecord {
@@ -1534,6 +1673,17 @@ export async function getTareasByMision(misionId: string): Promise<TareaRecord[]
     })
     .all();
   return records.map((r) => ({ id: r.id, ...r.fields }) as TareaRecord);
+}
+
+// Lee una tarea directo de Airtable sin cache. Uso: endpoint /api/portal/consignas
+// para validar que la tarea existe y es de tipo Entrega.
+export async function getTareaByIdFresh(tareaId: string): Promise<TareaRecord | null> {
+  try {
+    const r = await base(Tables.TAREAS).find(tareaId);
+    return { id: r.id, ...(r.fields as TareaRecord) };
+  } catch {
+    return null;
+  }
 }
 
 export async function logVideoPlay(startupId: string, claseId: string): Promise<void> {
