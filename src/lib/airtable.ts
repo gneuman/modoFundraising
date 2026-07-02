@@ -1184,8 +1184,6 @@ export interface RecursoInput {
   url?: string;
   tipo?: string;
   descripcion?: string;
-  dias_offset?: number;
-  fecha_disponible?: string;
   claseId?: string;
 }
 
@@ -1207,8 +1205,6 @@ export interface RecursoRecord {
   url?: string;
   tipo?: string;
   descripcion?: string;
-  dias_offset?: number;
-  fecha_disponible?: string;
   clase?: string[];
 }
 
@@ -1253,9 +1249,11 @@ export async function updateMision(id: string, data: Partial<MisionInput>) {
   await base(Tables.MISIONES).update(id, fields as never);
 }
 
-export async function updateRecurso(id: string, data: Partial<RecursoInput>) {
+export async function updateRecurso(id: string, data: Partial<RecursoInput> & Record<string, unknown>) {
   const fields: Record<string, unknown> = { ...data };
   delete fields.claseId;
+  delete fields.fecha_disponible;
+  delete fields.dias_offset;
   if (data.claseId) fields.clase = [data.claseId];
   await base(Tables.RECURSOS).update(id, fields as never);
 }
@@ -1304,8 +1302,6 @@ export async function createRecurso(data: RecursoInput): Promise<string> {
   if (data.url) fields.url = data.url;
   if (data.tipo) fields.tipo = data.tipo;
   if (data.descripcion) fields.descripcion = data.descripcion;
-  if (data.dias_offset !== undefined) fields.dias_offset = data.dias_offset;
-  if (data.fecha_disponible) fields.fecha_disponible = data.fecha_disponible;
   if (data.claseId) fields.clase = [data.claseId];
   const record = await base(Tables.RECURSOS).create(fields as never);
   return record.id;

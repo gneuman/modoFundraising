@@ -501,24 +501,19 @@ function NuevaMisionInline({
 
 function NuevoRecursoInline({
   claseId,
-  claseFecha,
   onCreated,
 }: {
   claseId: string;
-  claseFecha?: string;
   onCreated: (r: RecursoRecord) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const defaultFechaDisponible = claseFecha ? new Date(claseFecha).toISOString().slice(0, 16) : "";
 
   const [form, setForm] = useState({
     titulo: "",
     url: "",
     tipo: "PDF",
     descripcion: "",
-    fecha_disponible: defaultFechaDisponible,
   });
 
   async function submit() {
@@ -528,15 +523,11 @@ function NuevoRecursoInline({
       const res = await fetch("/api/admin/recursos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          fecha_disponible: form.fecha_disponible ? santiagoInputToISO(form.fecha_disponible) : undefined,
-          claseId,
-        }),
+        body: JSON.stringify({ ...form, claseId }),
       });
       const { id } = await res.json();
       onCreated({ id, ...form, clase: [claseId] } as RecursoRecord);
-      setForm({ titulo: "", url: "", tipo: "PDF", descripcion: "", fecha_disponible: defaultFechaDisponible });
+      setForm({ titulo: "", url: "", tipo: "PDF", descripcion: "" });
       setOpen(false);
       toast.success("Recurso agregado");
     } catch {
@@ -590,15 +581,6 @@ function NuevoRecursoInline({
         onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
         className="w-full text-sm border border-zinc-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
-      <div className="space-y-1">
-        <p className="text-xs text-zinc-500 font-medium">Disponible desde</p>
-        <input
-          type="datetime-local"
-          value={form.fecha_disponible}
-          onChange={(e) => setForm({ ...form, fecha_disponible: e.target.value })}
-          className="w-full text-sm border border-zinc-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
       <div className="flex gap-2">
         <button
           type="button"
@@ -999,18 +981,14 @@ export function ClaseCard({
     }
   }
 
-  // Calcular "ahora" una sola vez al montar (estable a lo largo de re-renders).
-  // El initializer de useState no se considera "during render" para fines de pureza
-  // y evita inestabilidad entre renders. La lista de recursos se deriva de eso.
+  // Los recursos son accesibles en cuanto la clase ya arrancó o está grabada.
+  // Admin ve siempre; founder ve solo si la clase ya pasó su fecha.
   const [ahoraTs] = useState<number>(() => Date.now());
   const recursosVisibles = (() => {
     if (mode === "admin") return clase.recursosData;
     const clasePaso =
       isGrabada || (clase.fecha ? new Date(clase.fecha).getTime() <= ahoraTs : false);
-    if (!clasePaso) return [] as RecursoRecord[];
-    return clase.recursosData.filter(
-      (r) => !r.fecha_disponible || new Date(r.fecha_disponible).getTime() <= ahoraTs,
-    );
+    return clasePaso ? clase.recursosData : ([] as RecursoRecord[]);
   })();
 
   // El wrapper del header: en view es un Link al detalle; en admin es un div sin Link
@@ -1307,7 +1285,6 @@ export function ClaseCard({
         <div className="border-t border-zinc-100 bg-zinc-50/40 px-5 py-3">
           <NuevoRecursoInline
             claseId={clase.id}
-            claseFecha={clase.fecha}
             onCreated={(r) =>
               update({ ...clase, recursosData: [...clase.recursosData, r] })
             }

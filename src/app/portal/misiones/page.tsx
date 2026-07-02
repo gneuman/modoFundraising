@@ -39,18 +39,10 @@ function isMisionVisible(
   return activeAt <= now;
 }
 
-// Recursos también respetan visibilidad por fecha
-function isRecursoVisible(
-  recurso: { fecha_disponible?: string; dias_offset?: number },
-  claseFecha: string | undefined,
-  now: number,
-): boolean {
-  if (recurso.fecha_disponible) {
-    return new Date(recurso.fecha_disponible).getTime() <= now;
-  }
-  if (!claseFecha || recurso.dias_offset === undefined) return true;
-  const activeAt = new Date(claseFecha).getTime() + recurso.dias_offset * 86_400_000;
-  return activeAt <= now;
+// Recurso visible cuando la clase ya arrancó (o si no tiene fecha).
+function isRecursoVisible(claseFecha: string | undefined, now: number): boolean {
+  if (!claseFecha) return true;
+  return new Date(claseFecha).getTime() <= now;
 }
 
 function RecursoIcon({ tipo }: { tipo?: string }) {
@@ -176,9 +168,9 @@ function MisionActivaCard({
     (a, b) => (a.orden ?? 999) - (b.orden ?? 999),
   );
 
-  const recursosVisibles = clase.recursosData.filter((r) =>
-    isRecursoVisible(r, clase.fecha, now),
-  );
+  const recursosVisibles = isRecursoVisible(clase.fecha, now)
+    ? clase.recursosData
+    : [];
 
   return (
     <div className={`bg-white rounded-2xl border-2 ${border} overflow-hidden transition-all`}>
