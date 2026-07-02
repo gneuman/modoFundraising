@@ -24,7 +24,9 @@ export default async function ClasesPage({
   const session = await obtenerSesion();
   const [clases, apps, params] = await Promise.all([
     getClasesWithContentCached(),
-    getAllApplications(),
+    // includeTest: true para que "Modo Foco - Test" (sandbox) resuelva
+    // startupId y su mini-progress por tarea muestre las respondidas.
+    getAllApplications({ includeTest: true }),
     searchParams,
   ]);
 
@@ -35,8 +37,10 @@ export default async function ClasesPage({
   } else if (session?.email) {
     const emailLower = session.email.toLowerCase();
     const app = apps.find((a) => {
+      // Whitelist sandbox: "Modo Foco - Test" acepta cualquier status.
+      const isTestStartup = a.startup_name === "Modo Foco - Test";
       const isEnrolled = a.status === "Inscrita" || a.status === "Invitada institucional";
-      if (!isEnrolled) return false;
+      if (!isEnrolled && !isTestStartup) return false;
       const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
         .filter(Boolean)
         .map((e) => e!.toLowerCase());

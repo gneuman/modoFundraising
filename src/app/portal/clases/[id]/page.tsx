@@ -200,11 +200,14 @@ export default async function ClaseDetailPage({
   if (session?.role === "admin" && sp.as) {
     startupId = sp.as;
   } else if (session?.email) {
-    const apps = await getAllApplications();
+    // includeTest: true para que "Modo Foco - Test" (sandbox) resuelva startupId.
+    const apps = await getAllApplications({ includeTest: true });
     const emailLower = session.email.toLowerCase();
     const app = apps.find((a) => {
+      // Whitelist sandbox: "Modo Foco - Test" acepta cualquier status.
+      const isTestStartup = a.startup_name === "Modo Foco - Test";
       const isEnrolled = a.status === "Inscrita" || a.status === "Invitada institucional";
-      if (!isEnrolled) return false;
+      if (!isEnrolled && !isTestStartup) return false;
       const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
         .filter(Boolean)
         .map((e) => e!.toLowerCase());

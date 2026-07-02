@@ -293,7 +293,9 @@ export default async function MisionesPage({
   const [clases, allFeedback, apps, params] = await Promise.all([
     getClasesWithContentCached(),
     getAllFeedback(),
-    getAllApplications(),
+    // includeTest: true para que "Modo Foco - Test" (sandbox de Gabriel) tambien
+    // resuelva startupId y sus consignas se muestren en la UI.
+    getAllApplications({ includeTest: true }),
     searchParams,
   ]);
 
@@ -309,8 +311,10 @@ export default async function MisionesPage({
   } else if (session?.email) {
     const emailLower = session.email.toLowerCase();
     const app = apps.find((a) => {
+      // Whitelist sandbox: "Modo Foco - Test" acepta cualquier status.
+      const isTestStartup = a.startup_name === "Modo Foco - Test";
       const isEnrolled = a.status === "Inscrita" || a.status === "Invitada institucional";
-      if (!isEnrolled) return false;
+      if (!isEnrolled && !isTestStartup) return false;
       const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
         .filter(Boolean)
         .map((e) => e!.toLowerCase());
