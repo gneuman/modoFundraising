@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Paperclip, X, FileCheck, AlertCircle } from "lucide-react";
 import type { TareaRecord, ConsignaRecord } from "@/lib/airtable";
+import { Markdown } from "@/components/portal/markdown";
 
 interface EntregaFormProps {
   tarea: TareaRecord;
@@ -227,13 +228,13 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
         </p>
       </div>
       {tarea.descripcion && (
-        <p
-          className={`text-xs ${
-            alreadySubmitted ? "text-green-700/80" : "text-amber-700"
+        <Markdown
+          className={`!text-xs !space-y-1 ${
+            alreadySubmitted ? "!text-green-700/80" : "!text-amber-700"
           }`}
         >
           {tarea.descripcion}
-        </p>
+        </Markdown>
       )}
 
       <textarea

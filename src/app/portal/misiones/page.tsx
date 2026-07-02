@@ -15,6 +15,7 @@ import { Target, Clock, BookOpen, CheckCircle2, AlertCircle, Star, ListChecks, L
 import { NpsForm } from "@/components/portal/nps-form";
 import { EntregaForm } from "@/components/portal/entrega-form";
 import { HistorialMisiones } from "@/components/portal/historial-misiones";
+import { Markdown } from "@/components/portal/markdown";
 import { formatFechaSinHora as formatFecha } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
@@ -104,9 +105,9 @@ function TareaChecklistItem({ tarea }: { tarea: TareaRecord }) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-700">{tarea.titulo}</p>
         {tarea.descripcion && (
-          <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed whitespace-pre-wrap">
+          <Markdown className="!text-xs !text-zinc-500 mt-0.5 !space-y-1">
             {tarea.descripcion}
-          </p>
+          </Markdown>
         )}
       </div>
     </div>
@@ -129,7 +130,13 @@ function TareaNpsWrapper({
         <p className={`text-sm font-semibold ${submitted ? "text-green-800" : "text-blue-800"}`}>{tarea.titulo}</p>
       </div>
       {tarea.descripcion && (
-        <p className={`text-xs ${submitted ? "text-green-700/80" : "text-blue-600"}`}>{tarea.descripcion}</p>
+        <Markdown
+          className={`!text-xs !space-y-1 ${
+            submitted ? "!text-green-700/80" : "!text-blue-600"
+          }`}
+        >
+          {tarea.descripcion}
+        </Markdown>
       )}
       <NpsForm tarea={tarea} clases={clases} initialSubmitted={submitted} />
     </div>
@@ -206,7 +213,7 @@ function MisionActivaCard({
         </div>
 
         {mision.descripcion && (
-          <p className="text-sm text-zinc-500 leading-relaxed whitespace-pre-wrap">{mision.descripcion}</p>
+          <Markdown className="!text-zinc-500">{mision.descripcion}</Markdown>
         )}
 
         {/* Recursos add-on */}
