@@ -1379,6 +1379,25 @@ export async function createAsistencia(data: {
   return record.id;
 }
 
+// Helper: filtra records de una tabla por un link field que contenga el ID.
+// No podemos usar SEARCH(id, ARRAYJOIN({link})) porque Airtable ARRAYJOIN
+// devuelve el primary field del record vinculado, NO el ID. Descubrimos esto
+// el 2026-07-02: getTareasByMision, upsertAsistencia, upsertMisionCompletada
+// y varios otros venian devolviendo 0 (o creando duplicados) desde siempre.
+async function filterByLinkContains<T>(
+  tableId: string,
+  linkField: string,
+  targetId: string,
+): Promise<Array<{ id: string; fields: T }>> {
+  const all = await base(tableId).select().all();
+  return all
+    .filter((r) => {
+      const v = (r.fields as Record<string, unknown>)[linkField] as string[] | undefined;
+      return v?.includes(targetId);
+    })
+    .map((r) => ({ id: r.id, fields: r.fields as T }));
+}
+
 export async function upsertAsistencia(data: {
   startupId: string;
   claseId: string;
@@ -1386,15 +1405,18 @@ export async function upsertAsistencia(data: {
   fecha?: string;
   notas?: string;
 }): Promise<void> {
-  const existing = await base(Tables.ASISTENCIAS)
-    .select({
-      filterByFormula: `AND(SEARCH("${data.startupId}", ARRAYJOIN({startup_record})), SEARCH("${data.claseId}", ARRAYJOIN({clase_record})))`,
-      maxRecords: 1,
-    })
-    .firstPage();
+  const byStartup = await filterByLinkContains<Record<string, unknown>>(
+    Tables.ASISTENCIAS,
+    "startup_record",
+    data.startupId,
+  );
+  const existing = byStartup.find((r) => {
+    const claseRec = r.fields.clase_record as string[] | undefined;
+    return claseRec?.includes(data.claseId);
+  });
 
-  if (existing.length) {
-    await base(Tables.ASISTENCIAS).update(existing[0].id, {
+  if (existing) {
+    await base(Tables.ASISTENCIAS).update(existing.id, {
       asistio: data.asistio,
       fecha: data.fecha ?? new Date().toISOString().split("T")[0],
     } as never);
@@ -1404,10 +1426,12 @@ export async function upsertAsistencia(data: {
 }
 
 export async function getAsistenciasByStartup(startupId: string): Promise<AsistenciaRecord[]> {
-  const records = await base(Tables.ASISTENCIAS)
-    .select({ filterByFormula: `SEARCH("${startupId}", ARRAYJOIN({startup_record}))` })
-    .all();
-  return records.map((r) => ({ id: r.id, ...r.fields }) as AsistenciaRecord);
+  const records = await filterByLinkContains<AsistenciaRecord>(
+    Tables.ASISTENCIAS,
+    "startup_record",
+    startupId,
+  );
+  return records.map((r) => ({ id: r.id, ...r.fields }));
 }
 
 export async function getAllAsistencias(): Promise<AsistenciaRecord[]> {
@@ -1439,7 +1463,9 @@ export async function createMisionCompletada(data: {
   const record = await base(Tables.MISIONES_COMPLETADAS).create({
     id_respuesta: `${data.startupId}-${data.misionId}`,
     startup_record: [data.startupId],
-    mision_record: [data.misionId],
+    // mision_record es singleLineText en Airtable (NO link) — se guarda como
+    // string plano. La normalizamos a string[] al leer, en getMisionesCompletadasByStartup.
+    mision_record: data.misionId,
     completada: data.completada,
     fecha_completada: data.fecha_completada ?? new Date().toISOString().split("T")[0],
     link_entrega: data.link_entrega ?? "",
@@ -1456,15 +1482,19 @@ export async function upsertMisionCompletada(data: {
   link_entrega?: string;
   notas?: string;
 }): Promise<void> {
-  const existing = await base(Tables.MISIONES_COMPLETADAS)
-    .select({
-      filterByFormula: `AND(SEARCH("${data.startupId}", ARRAYJOIN({startup_record})), SEARCH("${data.misionId}", ARRAYJOIN({mision_record})))`,
-      maxRecords: 1,
-    })
-    .firstPage();
+  const byStartup = await filterByLinkContains<Record<string, unknown>>(
+    Tables.MISIONES_COMPLETADAS,
+    "startup_record",
+    data.startupId,
+  );
+  const existing = byStartup.find((r) => {
+    // mision_record es string (singleLineText), no array.
+    const mr = r.fields.mision_record as string | undefined;
+    return mr === data.misionId;
+  });
 
-  if (existing.length) {
-    await base(Tables.MISIONES_COMPLETADAS).update(existing[0].id, {
+  if (existing) {
+    await base(Tables.MISIONES_COMPLETADAS).update(existing.id, {
       completada: data.completada,
       fecha_completada: data.fecha_completada ?? new Date().toISOString().split("T")[0],
       link_entrega: data.link_entrega ?? "",
@@ -1475,16 +1505,32 @@ export async function upsertMisionCompletada(data: {
   }
 }
 
+// mision_record es singleLineText → normalizamos a string[] para no romper
+// consumers heredados que esperan array.
+function normalizeMisionCompletada(
+  r: { id: string; fields: MisionCompletadaRecord & { mision_record?: string | string[] } },
+): MisionCompletadaRecord {
+  const mr = r.fields.mision_record;
+  const misionRecord: string[] | undefined =
+    typeof mr === "string" ? [mr] : Array.isArray(mr) ? mr : undefined;
+  return { ...r.fields, id: r.id, mision_record: misionRecord };
+}
+
 export async function getMisionesCompletadasByStartup(startupId: string): Promise<MisionCompletadaRecord[]> {
-  const records = await base(Tables.MISIONES_COMPLETADAS)
-    .select({ filterByFormula: `SEARCH("${startupId}", ARRAYJOIN({startup_record}))` })
-    .all();
-  return records.map((r) => ({ id: r.id, ...r.fields }) as MisionCompletadaRecord);
+  const records = await filterByLinkContains<MisionCompletadaRecord & { mision_record?: string | string[] }>(
+    Tables.MISIONES_COMPLETADAS,
+    "startup_record",
+    startupId,
+  );
+  return records.map(normalizeMisionCompletada);
 }
 
 export async function getAllMisionesCompletadas(): Promise<MisionCompletadaRecord[]> {
   const records = await base(Tables.MISIONES_COMPLETADAS).select().all();
-  return records.map((r) => ({ id: r.id, ...r.fields }) as MisionCompletadaRecord);
+  return records.map((r) => normalizeMisionCompletada({
+    id: r.id,
+    fields: r.fields as MisionCompletadaRecord & { mision_record?: string | string[] },
+  }));
 }
 
 // ─── Consignas ────────────────────────────────────────────────────────────────
@@ -1670,10 +1716,12 @@ export async function createFeedback(data: {
 }
 
 export async function getFeedbackByClase(claseId: string): Promise<FeedbackRecord[]> {
-  const records = await base(Tables.FEEDBACK)
-    .select({ filterByFormula: `SEARCH("${claseId}", ARRAYJOIN({clase_record}))` })
-    .all();
-  return records.map((r) => ({ id: r.id, ...r.fields }) as FeedbackRecord);
+  const records = await filterByLinkContains<FeedbackRecord>(
+    Tables.FEEDBACK,
+    "clase_record",
+    claseId,
+  );
+  return records.map((r) => ({ id: r.id, ...r.fields }));
 }
 
 export async function getAllFeedback(): Promise<FeedbackRecord[]> {
@@ -1697,13 +1745,16 @@ export interface TareaRecord {
 }
 
 export async function getTareasByMision(misionId: string): Promise<TareaRecord[]> {
-  const records = await base(Tables.TAREAS)
-    .select({
-      filterByFormula: `SEARCH("${misionId}", ARRAYJOIN({mision}))`,
-      sort: [{ field: "orden", direction: "asc" }],
-    })
-    .all();
-  return records.map((r) => ({ id: r.id, ...r.fields }) as TareaRecord);
+  // Filtramos en memoria (bug ARRAYJOIN, ver helper). El sort por orden
+  // se hace aca porque `filterByLinkContains` no acepta sort options.
+  const records = await filterByLinkContains<TareaRecord>(
+    Tables.TAREAS,
+    "mision",
+    misionId,
+  );
+  return records
+    .map((r) => ({ id: r.id, ...r.fields }))
+    .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
 }
 
 // Lee una tarea directo de Airtable sin cache. Uso: endpoint /api/portal/consignas
