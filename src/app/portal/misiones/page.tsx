@@ -11,7 +11,7 @@ import {
   type TareaRecord,
   type ConsignaRecord,
 } from "@/lib/airtable";
-import { Target, Clock, BookOpen, CheckCircle2, AlertCircle, Star, ListChecks, Link as LinkIcon, FileText, Video, Paperclip } from "lucide-react";
+import { Target, Clock, BookOpen, CheckCircle2, AlertCircle, Star, Link as LinkIcon, FileText, Video, Paperclip } from "lucide-react";
 import { NpsForm } from "@/components/portal/nps-form";
 import { EntregaForm } from "@/components/portal/entrega-form";
 import { HistorialMisiones } from "@/components/portal/historial-misiones";
@@ -85,23 +85,6 @@ function Recursos({ recursos }: { recursos: RecursoRecord[] }) {
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function TareaChecklistItem({ tarea }: { tarea: TareaRecord }) {
-  // Checklist es informativo — no interactivo, no cuenta para completitud.
-  return (
-    <div className="bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 flex items-start gap-3">
-      <ListChecks className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-zinc-700">{tarea.titulo}</p>
-        {tarea.descripcion && (
-          <Markdown className="!text-xs !text-zinc-500 mt-0.5 !space-y-1">
-            {tarea.descripcion}
-          </Markdown>
-        )}
-      </div>
     </div>
   );
 }
@@ -227,17 +210,16 @@ function MisionActivaCard({
                   />
                 );
               }
-              if (t.tipo === "Entrega") {
-                return (
-                  <EntregaForm
-                    key={t.id}
-                    tarea={t}
-                    initialConsigna={t.id ? consignaPorTarea.get(t.id) : undefined}
-                  />
-                );
-              }
-              // Checklist es informativo
-              return <TareaChecklistItem key={t.id} tarea={t} />;
+              // WI-1661: Entrega y Checklist usan el mismo formulario (guardan
+              // Consigna). El cliente pidió que TODAS las tareas se puedan
+              // contestar sin importar el tipo.
+              return (
+                <EntregaForm
+                  key={t.id}
+                  tarea={t}
+                  initialConsigna={t.id ? consignaPorTarea.get(t.id) : undefined}
+                />
+              );
             })}
           </div>
         )}

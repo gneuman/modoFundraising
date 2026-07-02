@@ -1624,11 +1624,14 @@ export async function upsertConsigna(data: {
 }
 
 // Recomputa el estado de Misiones Completadas para una (startup, misión):
-//   - Cuenta tareas obligatorias de la misión (Entrega + NPS, NO Checklist)
-//   - Para Entrega: cuenta consignas de esa startup para esas tareas
+//   - Cuenta TODAS las tareas de la misión (Entrega + NPS + Checklist)
+//   - Para Entrega y Checklist: cuenta consignas de esa startup para esas tareas
 //   - Para NPS: cuenta feedback de esa startup para las clases_nps de esas tareas
 //   - Si todas están hechas → upsert `Misiones Completadas` con completada = true
 //   - Si faltan → si había un record con completada = true, lo baja a false
+//
+// WI-1661: Checklist pasó de "informativa" a "obligatoria". El cliente pidió que
+// todas las tareas se puedan contestar sin importar el tipo, y todas cuentan igual.
 //
 // Se llama desde POST /api/portal/consignas después de guardar la consigna.
 export async function recomputeMisionCompletada(
@@ -1636,7 +1639,9 @@ export async function recomputeMisionCompletada(
   misionId: string,
 ): Promise<{ completada: boolean; total: number; hechas: number }> {
   const tareas = await getTareasByMision(misionId);
-  const obligatorias = tareas.filter((t) => t.tipo === "Entrega" || t.tipo === "NPS");
+  const obligatorias = tareas.filter(
+    (t) => t.tipo === "Entrega" || t.tipo === "NPS" || t.tipo === "Checklist",
+  );
   const total = obligatorias.length;
 
   if (total === 0) {
@@ -1659,7 +1664,7 @@ export async function recomputeMisionCompletada(
 
   let hechas = 0;
   for (const t of obligatorias) {
-    if (t.tipo === "Entrega") {
+    if (t.tipo === "Entrega" || t.tipo === "Checklist") {
       if (t.id && consignaTareaIds.has(t.id)) hechas++;
     } else if (t.tipo === "NPS") {
       // NPS "hecha" = existe feedback de esta startup para TODAS las clases_nps

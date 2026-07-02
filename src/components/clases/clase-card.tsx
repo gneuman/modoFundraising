@@ -647,18 +647,22 @@ function MisionRow({
     }
   }
 
-  // Tareas obligatorias (Entrega + NPS) para el mini-progress. Checklist es
-  // informativo y no cuenta. Solo se muestra en view mode.
+  // Tareas obligatorias (Entrega + NPS + Checklist) para el mini-progress.
+  // WI-1661: Checklist pasó de "informativa" a "obligatoria" — el cliente pidió
+  // que todas las tareas cuenten sin importar el tipo. Solo se muestra en view mode.
   const tareasObligatorias =
     mode === "view" && mision.tareasData
       ? mision.tareasData.filter(
-          (t) => t.tipo === "Entrega" || t.tipo === "NPS",
+          (t) =>
+            t.tipo === "Entrega" ||
+            t.tipo === "NPS" ||
+            t.tipo === "Checklist",
         )
       : [];
   const showProgress = mode === "view" && tareasObligatorias.length > 0 && !isCerrada;
 
   function isTareaHecha(t: TareaRecord): boolean {
-    if (t.tipo === "Entrega") {
+    if (t.tipo === "Entrega" || t.tipo === "Checklist") {
       return !!(t.id && tareasRespondidas?.has(t.id));
     }
     if (t.tipo === "NPS") {
