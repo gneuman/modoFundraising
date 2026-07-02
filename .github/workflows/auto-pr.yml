@@ -1,0 +1,117 @@
+name: Auto PR
+
+on:
+  push:
+    branches-ignore:
+      - master
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create PR if none exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            echo "PR already exists for $BRANCH"
+            exit 0
+          fi
+
+          # Titulo = primer commit del branch, o ultimo si es merge
+          FIRST_COMMIT=$(git log origin/master..HEAD --pretty=%s --no-merges | tail -1)
+          if [ -z "$FIRST_COMMIT" ]; then
+            FIRST_COMMIT=$(git log -1 --pretty=%s)
+          fi
+
+          # Detectar tipo desde el commit conventional (feat:, fix:, docs: ...)
+          # Fallback: prefijo del branch. Ultimo fallback: 'change'.
+          COMMIT_TYPE=$(echo "$FIRST_COMMIT" | grep -oE '^(feat|fix|chore|docs|refactor|test|perf|style|build|ci|revert)' | head -1)
+          if [ -n "$COMMIT_TYPE" ]; then
+            case "$COMMIT_TYPE" in
+              feat) EMOJI="feat"; KIND="Nueva funcionalidad";;
+              fix) EMOJI="fix"; KIND="Bug fix";;
+              chore) EMOJI="chore"; KIND="Mantenimiento";;
+              docs) EMOJI="docs"; KIND="Documentacion";;
+              refactor) EMOJI="refactor"; KIND="Refactor";;
+              test) EMOJI="test"; KIND="Tests";;
+              perf) EMOJI="perf"; KIND="Performance";;
+              style) EMOJI="style"; KIND="Estilo";;
+              build) EMOJI="build"; KIND="Build";;
+              ci) EMOJI="ci"; KIND="CI/CD";;
+              revert) EMOJI="revert"; KIND="Revert";;
+            esac
+          else
+            # Fallback al prefijo del branch (para branches sin conventional commits)
+            PREFIX="${BRANCH%%/*}"
+            case "$PREFIX" in
+              feature|feat) EMOJI="feat"; KIND="Nueva funcionalidad";;
+              fix|bug|hotfix) EMOJI="fix"; KIND="Bug fix";;
+              chore) EMOJI="chore"; KIND="Mantenimiento";;
+              docs) EMOJI="docs"; KIND="Documentacion";;
+              refactor) EMOJI="refactor"; KIND="Refactor";;
+              test) EMOJI="test"; KIND="Tests";;
+              *) EMOJI="change"; KIND="Cambio";;
+            esac
+          fi
+
+          TITLE="[$EMOJI] $FIRST_COMMIT"
+
+          # Contexto para el body
+          COMMITS=$(git log origin/master..HEAD --pretty=format:'- %s' --no-merges | head -20)
+          FILES=$(git diff --stat origin/master...HEAD | tail -1)
+          FILE_LIST=$(git diff --name-only origin/master...HEAD | head -15)
+
+          BODY=$(cat <<EOF
+          ## Que es esto
+
+          **Tipo:** $KIND
+          **Branch:** \`$BRANCH\`
+          **Resumen:** $FIRST_COMMIT
+
+          ## Cambios en este PR
+
+          $COMMITS
+
+          ## Archivos modificados
+
+          \`\`\`
+          $FILES
+          \`\`\`
+
+          <details>
+          <summary>Ver lista de archivos</summary>
+
+          \`\`\`
+          $FILE_LIST
+          \`\`\`
+
+          </details>
+
+          ## Que tienes que hacer
+
+          1. **Revisar el diff** en la pestana "Files changed" arriba.
+          2. **Correr en local si toca UI/logica:** \`npm run build\` y \`npm run dev\` para verificar.
+          3. **Si todo bien:** click "Merge pull request" (o "Squash and merge" si prefieres commits limpios en master).
+          4. **Si algo esta mal:** agrega commits al branch \`$BRANCH\` — este PR se actualiza solo.
+
+          ---
+          _PR abierto automaticamente por [.github/workflows/auto-pr.yml](.github/workflows/auto-pr.yml)_
+          EOF
+          )
+
+          gh pr create \
+            --base master \
+            --head "$BRANCH" \
+            --title "$TITLE" \
+            --body "$BODY"
