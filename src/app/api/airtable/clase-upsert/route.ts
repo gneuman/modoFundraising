@@ -50,6 +50,7 @@ const TEAM_INVITEES = [
   "da@impacta.vc",
   "maca@impacta.vc",
   "lola@impacta.vc",
+  "nmacchiavello@impacta.vc",
 ];
 
 // El evento [VIP] arranca N minutos antes que el evento Founders para que el
@@ -182,7 +183,7 @@ async function handleUpsert(
 
   // ─── Team event (sin attendees Founder, jamás) ───────────────────────────
   // url_live_team = link interno del equipo (Streamyard studio u otro).
-  // Attendees: los 3 correos fijos del team (TEAM_INVITEES). Solo en CREATE —
+  // Attendees: los correos fijos del team (TEAM_INVITEES). Solo en CREATE —
   // en UPDATE el upsert respeta la lista existente.
   // Timing: arranca TEAM_LEAD_MINUTES antes que el evento Founders y termina
   // a la misma hora → la duración crece en TEAM_LEAD_MINUTES.
