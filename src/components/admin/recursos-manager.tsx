@@ -88,7 +88,7 @@ function NuevoRecursoForm({ clases, onCreated }: {
   return (
     <div className="bg-white rounded-2xl border border-blue-200 p-5 space-y-4">
       <h3 className="font-semibold text-zinc-800">Nuevo recurso</h3>
-      <ClaseSelector clases={clases} value={claseId} onChange={onClaseChange} />
+      <ClaseSelector clases={clases} value={claseId} onChange={setClaseId} />
       <div className="grid grid-cols-2 gap-3">
         <Input placeholder="Título *" value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} />
         <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
