@@ -341,24 +341,14 @@ export default async function ClaseDetailPage({
         );
       })()}
 
-      {/* Recursos — solo cuando la clase ya pasó o fue grabada */}
-      {(() => {
-        const ahora = Date.now();
-        const clasePaso = isGrabada || (clase.fecha ? new Date(clase.fecha).getTime() <= ahora : false);
-        if (!clasePaso) return (
-          <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-sm text-zinc-400 text-center">
-            Los recursos estarán disponibles el día de la clase.
-          </div>
-        );
-        return null;
-      })()}
-      {clase.recursosData.filter((r) => !r.fecha_disponible || new Date(r.fecha_disponible).getTime() <= Date.now()).length > 0 && (
+      {/* Recursos — se muestran siempre que existan, sin filtrar por fecha */}
+      {clase.recursosData.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-bold text-zinc-800 flex items-center gap-2">
             <FileText className="h-5 w-5 text-zinc-400" /> Recursos
           </h2>
           <div className="bg-white rounded-2xl border border-zinc-200 divide-y divide-zinc-100 overflow-hidden">
-            {clase.recursosData.filter((r) => !r.fecha_disponible || new Date(r.fecha_disponible).getTime() <= Date.now()).map((r) => (
+            {clase.recursosData.map((r) => (
               <a key={r.id} href={r.url ?? "#"} target="_blank" rel="noreferrer"
                 className="flex items-center gap-3 px-5 py-4 hover:bg-zinc-50 transition-colors group">
                 <TipoIcon tipo={r.tipo} />
