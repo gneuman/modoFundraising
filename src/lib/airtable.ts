@@ -2342,6 +2342,39 @@ export async function createRechazoRecord(data: RechazoInput): Promise<string> {
   return record.id;
 }
 
+export interface RechazoRecord {
+  id: string;
+  reason_code?: ChurnReasonCode;
+  reason_label?: string;
+  detail?: string;
+  email?: string;
+  created_at?: string;
+  postulacion_id?: string;
+  startup_id?: string;
+  founder_id?: string;
+}
+
+export async function listRechazos(): Promise<RechazoRecord[]> {
+  const records = await base(Tables.RECHAZOS).select().all();
+  return records.map((r) => {
+    const f = r.fields as Record<string, unknown>;
+    const postulacion = (f.Postulacion as string[] | undefined)?.[0];
+    const startup = (f.Startup as string[] | undefined)?.[0];
+    const founder = (f.Founder as string[] | undefined)?.[0];
+    return {
+      id: r.id,
+      reason_code: f.reason_code as ChurnReasonCode | undefined,
+      reason_label: f.reason_label as string | undefined,
+      detail: f.detail as string | undefined,
+      email: f.email as string | undefined,
+      created_at: f.created_at as string | undefined,
+      postulacion_id: postulacion,
+      startup_id: startup,
+      founder_id: founder,
+    };
+  });
+}
+
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 
 export interface DesignTokens {
