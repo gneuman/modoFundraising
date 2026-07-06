@@ -172,6 +172,8 @@ export async function POST(req: NextRequest) {
           // Pago completo → correo de primer pago (pago_cuota_1) y nada más.
           // Pago en cuotas → correo de cuota 1 igual (es la primera).
           cuotaParaCorreo: 1,
+          // Pago único → 1 cuota total. En cuotas usa total_cuotas (o 3 default).
+          totalCuotas: isOneTime ? 1 : (app.total_cuotas ?? 3),
         });
         console.log("[webhook] activatePortalForStartup OK");
       } catch (err) {
@@ -224,7 +226,7 @@ export async function POST(req: NextRequest) {
         });
       }
       if (app.email && app.first_name) {
-        await sendPaymentConfirmation(app.email, app.first_name, currentInstallment);
+        await sendPaymentConfirmation(app.email, app.first_name, currentInstallment, totalCuotas);
       }
 
       // Al llegar a la última cuota, cancelar la suscripción automáticamente
