@@ -1,8 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getAllClasesFresh, markClaseNotif, getAllFoundersWithAccess, type ClaseRecord } from "@/lib/airtable";
-import { sendSesionRecordatorioEmail } from "@/lib/email-engine";
-import { formatFecha } from "@/lib/timezone";
+import { getAllClasesFresh, markClaseNotif, type ClaseRecord } from "@/lib/airtable";
 
 // POST /api/cron/session-start
 //
@@ -10,16 +8,19 @@ import { formatFecha } from "@/lib/timezone";
 // momento del arranque. Dispara desde n8n (Schedule cada ~15 min); el código
 // revisa el estado de las clases y n8n postea a Slack.
 //
+// SOLO SLACK (decisión Gabriel 2026-07-06): los avisos de sesión son puro Slack
+// para actualizar al canal. El correo queda solo para el aviso de misión
+// (mision-activada). Este endpoint NO manda correo.
+//
 // Reparto (ver WI-1637 / WI-1635):
 //   - Slack:  lo POSTEA n8n con el `slack[]` que devuelve este endpoint.
-//   - Correo: lo manda este endpoint (Gmail vía email-engine).
 //   - Idempotencia: campo `notif_start_enviada_at` en `Clases MF26`.
 //
 // Disparo: una clase entra si (a) su `fecha` cae en [now-5min, now+10min], o
 // (b) su `status` = "En vivo" — lo que ocurra primero — y no tiene
 // `notif_start_enviada_at`.
 //
-// Modo prueba: body { testEmail } → correo solo a ese email, no marca el flag.
+// Modo prueba: body { test: true } → NO marca el flag (repetible).
 //
 // Auth: Authorization: Bearer <CRON_SECRET>.
 
@@ -75,48 +76,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { testEmail?: string } = {};
+  let body: { test?: boolean } = {};
   try {
     body = await req.json();
   } catch {
     // body vacío es válido
   }
-  const testEmail = body.testEmail?.trim();
+  const isTest = body.test === true;
 
   const clases = await getClasesPendientes();
 
   const slack: { canal: string; texto: string }[] = [];
-  const acciones: { claseId: string; titulo: string; correos: number; marcada: boolean }[] = [];
-
-  const founders = testEmail
-    ? [{ email: testEmail, first_name: "test" }]
-    : (await getAllFoundersWithAccess()).map((f) => ({ email: f.email, first_name: f.first_name }));
+  const acciones: { claseId: string; titulo: string; marcada: boolean }[] = [];
 
   for (const clase of clases) {
     slack.push({ canal: SLACK_CHANNEL, texto: buildSlackText(clase) });
 
-    const link = founderLink(clase);
-    const hora = formatFecha(clase.fecha) ?? "";
-    let correos = 0;
-    await Promise.allSettled(
-      founders.map((f) =>
-        sendSesionRecordatorioEmail(f.email, f.first_name || "founder", {
-          titulo: clase.titulo ?? "Sesión Modo Fundraising",
-          cuando: hora,
-          link,
-          modo: "start",
-        }).then(() => { correos += 1; }),
-      ),
-    );
+    if (!isTest) await markNotified(clase.id!);
 
-    if (!testEmail) await markNotified(clase.id!);
-
-    acciones.push({ claseId: clase.id!, titulo: clase.titulo ?? "", correos, marcada: !testEmail });
+    acciones.push({ claseId: clase.id!, titulo: clase.titulo ?? "", marcada: !isTest });
   }
 
   return NextResponse.json({
     ok: true,
-    testMode: testEmail ? `enabled (correo solo a ${testEmail}, sin marcar flag)` : undefined,
+    testMode: isTest ? "enabled (no marca flag, repetible)" : undefined,
     procesadas: clases.length,
     slack,
     acciones,
