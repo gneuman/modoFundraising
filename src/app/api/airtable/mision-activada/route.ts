@@ -29,13 +29,26 @@ import { sendMisionActivadaEmail } from "@/lib/email-engine";
 //     el correo a ese email. Sirve para validar template sin spamear al
 //     cohort. Tras validar, quitar `testEmail` del payload de la Automation.
 //
-// Seguridad: shared secret en env var AIRTABLE_WEBHOOK_SECRET
-//   (misma que usa clase-upsert — un solo secreto para ambos webhooks).
+// Seguridad: Authorization: Bearer <CRON_SECRET> (mismo patrón que los demás
+//   crons: session-notify, cobranza, form-reminder). n8n lo dispara como cron.
 
 const APP_URL = (
   process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com"
 ).replace(/\/$/, "");
 const PORTAL_URL = `${APP_URL}/portal/misiones`;
+const SLACK_CHANNEL = process.env.SLACK_CANAL_COHORT ?? "#modo-fundraising";
+
+// Arma el texto de Slack para el aviso de misión. NO se postea aquí — se
+// devuelve en el JSON para que n8n lo rutee a su nodo Slack (no hay bot en
+// el repo). Ver WI-1822 / WI-1635.
+function buildSlackText(mision: { titulo?: string; descripcion?: string }): string {
+  const desc = (mision.descripcion ?? "").trim();
+  return [
+    `🎯 *Nueva misión activada:* ${mision.titulo ?? ""}`,
+    desc ? `${desc.slice(0, 240)}${desc.length > 240 ? "…" : ""}` : "",
+    `🔗 <${PORTAL_URL}|Ver misión en el portal>`,
+  ].filter(Boolean).join("\n");
+}
 
 const inflightLocks = new Map<string, number>();
 const LOCK_TTL_MS = 30_000;
@@ -53,22 +66,27 @@ function releaseLock(recordId: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const expectedSecret = process.env.AIRTABLE_WEBHOOK_SECRET;
-  if (!expectedSecret) {
-    console.error("[mision-activada] AIRTABLE_WEBHOOK_SECRET no configurado");
+  // Auth unificada con los demás crons: Authorization: Bearer <CRON_SECRET>.
+  // (Antes usaba `secret` en el body con AIRTABLE_WEBHOOK_SECRET, del tiempo en
+  // que lo disparaba una Airtable Automation. Ahora lo dispara n8n como cron,
+  // así que usa el mismo patrón que session-notify / cobranza / form-reminder.)
+  const CRON_SECRET = process.env.CRON_SECRET ?? "";
+  if (!CRON_SECRET) {
+    console.error("[mision-activada] CRON_SECRET no configurado");
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
-  let body: { secret?: string; recordId?: string; testEmail?: string };
+  const auth = req.headers.get("authorization") ?? "";
+  if (auth !== `Bearer ${CRON_SECRET}`) {
+    console.warn("[mision-activada] Bearer incorrecto");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { recordId?: string; testEmail?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
-  if (body.secret !== expectedSecret) {
-    console.warn("[mision-activada] secret incorrecto");
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const recordId = body.recordId?.trim();
@@ -189,5 +207,8 @@ async function handleActivada(
     fallidos: failed,
     failures: failures.length ? failures : undefined,
     statusPatched: statusPatched ? "Activa → Actual" : undefined,
+    // n8n rutea esto a su nodo Slack (el código NO postea a Slack — no hay bot).
+    // Se devuelve también en modo test para poder revisar el copy.
+    slack: { canal: SLACK_CHANNEL, texto: buildSlackText(mision) },
   });
 }
