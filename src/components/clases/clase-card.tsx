@@ -508,6 +508,8 @@ function NuevoRecursoInline({
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     titulo: "",
@@ -518,19 +520,39 @@ function NuevoRecursoInline({
 
   async function submit() {
     if (!form.titulo) return toast.error("El título es obligatorio");
+    if (!form.url && !file) return toast.error("Agrega una URL o sube un archivo");
     setSaving(true);
     try {
+      // 1. Crear el record primero (Airtable exige el record antes del attachment).
       const res = await fetch("/api/admin/recursos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, claseId }),
       });
+      if (!res.ok) throw new Error(`create ${res.status}`);
       const { id } = await res.json();
-      onCreated({ id, ...form, clase: [claseId] } as RecursoRecord);
+      if (!id) throw new Error("sin id");
+
+      // 2. Si hay archivo, subir el attachment sobre el record recién creado.
+      let attachments: RecursoRecord["Attachments"];
+      if (file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("recursoId", id);
+        const up = await fetch("/api/admin/recursos/attachment", { method: "POST", body: fd });
+        if (!up.ok) throw new Error(`upload ${up.status}`);
+        const { url, filename } = await up.json();
+        if (url) attachments = [{ url, filename }];
+      }
+
+      onCreated({ id, ...form, clase: [claseId], Attachments: attachments } as RecursoRecord);
       setForm({ titulo: "", url: "", tipo: "PDF", descripcion: "" });
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setOpen(false);
       toast.success("Recurso agregado");
-    } catch {
+    } catch (e) {
+      console.error("[NuevoRecurso]", e);
       toast.error("Error al crear recurso");
     } finally {
       setSaving(false);
@@ -570,11 +592,31 @@ function NuevoRecursoInline({
         </select>
       </div>
       <input
-        placeholder="URL"
+        placeholder="URL (o sube un archivo abajo)"
         value={form.url}
         onChange={(e) => setForm({ ...form, url: e.target.value })}
         className="w-full text-sm border border-zinc-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="hidden"
+          id={`recurso-file-${claseId}`}
+        />
+        <label
+          htmlFor={`recurso-file-${claseId}`}
+          className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-zinc-800 font-medium px-2 py-1 rounded border border-dashed border-zinc-300 cursor-pointer hover:bg-zinc-100 transition-colors"
+        >
+          <Upload className="h-3.5 w-3.5" /> Subir archivo
+        </label>
+        {file && (
+          <span className="text-xs text-zinc-500 truncate max-w-[180px]" title={file.name}>
+            {file.name}
+          </span>
+        )}
+      </div>
       <input
         placeholder="Descripción breve"
         value={form.descripcion}
@@ -830,6 +872,12 @@ function MisionRow({
 
 // ─── Recurso row (view + admin) ───────────────────────────────────────────────
 
+// Un recurso puede tener URL externa o un archivo subido (Attachments).
+// Se prioriza la URL manual; si no hay, se usa el primer attachment.
+function recursoHref(recurso: RecursoRecord): string | null {
+  return recurso.url || recurso.Attachments?.[0]?.url || null;
+}
+
 function RecursoLink({
   recurso,
   mode,
@@ -852,10 +900,12 @@ function RecursoLink({
     }
   }
 
+  const href = recursoHref(recurso);
+
   if (mode === "view") {
     return (
       <a
-        href={recurso.url ?? "#"}
+        href={href ?? "#"}
         target="_blank"
         rel="noreferrer"
         className="flex items-center gap-1 text-xs text-zinc-500 hover:text-blue-600 transition-colors"
@@ -876,9 +926,9 @@ function RecursoLink({
         placeholder="Título"
         className="max-w-[140px]"
       />
-      {recurso.url && (
+      {href && (
         <a
-          href={recurso.url}
+          href={href}
           target="_blank"
           rel="noreferrer"
           className="text-blue-400 hover:text-blue-600"
