@@ -42,6 +42,12 @@ const STATUS_CLASE = ["Próxima", "En vivo", "Grabada"] as const;
 const STATUS_MISION = ["Próxima", "Activa", "Cerrada"] as const;
 const TIPOS_RECURSO = ["PDF", "Video", "Artículo", "Template", "Herramienta", "Otro"] as const;
 
+// Vercel Serverless Functions limitan el body de la request a 4.5 MB. El
+// archivo pasa por nuestro Route Handler, así que topamos en 4 MB para dejar
+// margen al overhead del multipart. Archivos mayores: usar una URL externa.
+const MAX_RECURSO_FILE_MB = 4;
+const MAX_RECURSO_FILE_BYTES = MAX_RECURSO_FILE_MB * 1024 * 1024;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // Quita "Sx — " del título para mostrar al founder en modo view.
@@ -531,6 +537,11 @@ function NuevoRecursoInline({
   async function submit() {
     if (!form.titulo) return toast.error("El título es obligatorio");
     if (!form.url && !file) return toast.error("Agrega una URL o sube un archivo");
+    if (file && file.size > MAX_RECURSO_FILE_BYTES) {
+      return toast.error(
+        `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB y el máximo es ${MAX_RECURSO_FILE_MB} MB. Sube un archivo más liviano o pega una URL.`,
+      );
+    }
     setSaving(true);
     try {
       // 1. Crear el record primero (Airtable exige el record antes del attachment).
@@ -611,7 +622,18 @@ function NuevoRecursoInline({
         <input
           ref={fileInputRef}
           type="file"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null;
+            if (f && f.size > MAX_RECURSO_FILE_BYTES) {
+              toast.error(
+                `El archivo pesa ${(f.size / 1024 / 1024).toFixed(1)} MB y el máximo es ${MAX_RECURSO_FILE_MB} MB. Sube uno más liviano o pega una URL.`,
+              );
+              e.target.value = "";
+              setFile(null);
+              return;
+            }
+            setFile(f);
+          }}
           className="hidden"
           id={`recurso-file-${claseId}`}
         />
@@ -621,6 +643,9 @@ function NuevoRecursoInline({
         >
           <Upload className="h-3.5 w-3.5" /> Subir archivo
         </label>
+        {!file && (
+          <span className="text-[10px] text-zinc-400">máx {MAX_RECURSO_FILE_MB} MB</span>
+        )}
         {file && (
           <span className="text-xs text-zinc-500 truncate max-w-[180px]" title={file.name}>
             {file.name}
