@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getAllClasesFresh, markClaseNotif, getAllFoundersWithAccess, type ClaseRecord } from "@/lib/airtable";
-import { sendSesionRecordatorioEmail } from "@/lib/email-engine";
+import { getAllClasesFresh, markClaseNotif, type ClaseRecord } from "@/lib/airtable";
 import { formatFecha } from "@/lib/timezone";
 
 // POST /api/cron/session-1h
@@ -10,20 +9,21 @@ import { formatFecha } from "@/lib/timezone";
 // (Schedule trigger cada ~15 min) — el CÓDIGO revisa el estado de las clases
 // y decide qué notificar; n8n solo dispara y postea a Slack.
 //
-// Reparto (decisión Gabriel 2026-07-06, ver WI-1636 / WI-1635):
+// SOLO SLACK (decisión Gabriel 2026-07-06): los avisos de sesión son puro Slack
+// para actualizar al canal. El correo queda solo para el aviso de misión
+// (mision-activada). Este endpoint NO manda correo.
+//
+// Reparto (ver WI-1636 / WI-1635):
 //   - Slack:  lo POSTEA n8n. Este endpoint NO integra Slack; devuelve en el
 //             JSON el/los mensajes ya armados en `slack[]` para que n8n los
 //             rutee a su nodo Slack (con su propia auth).
-//   - Correo: lo manda ESTE endpoint (Gmail vía email-engine).
 //   - Idempotencia: campo `notif_1h_enviada_at` en `Clases MF26`.
 //
 // Ventana: una clase entra si su `fecha` cae en [now+45min, now+75min] y no
 // tiene `notif_1h_enviada_at`. La ventana ±15min absorbe el jitter del cron.
 //
-// Modo prueba:
-//   - body { testEmail: "x@y.com" } → el correo se manda SOLO a ese email,
-//     NO se marca `notif_1h_enviada_at` (repetible) y el Slack se devuelve
-//     igual para que puedas ver el texto. No spamea al cohort.
+// Modo prueba: body { test: true } → NO marca el flag (repetible), devuelve el
+// slack igual para revisar el copy sin "gastar" la notificación.
 //
 // Auth: Authorization: Bearer <CRON_SECRET>.
 
@@ -81,57 +81,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { testEmail?: string } = {};
+  let body: { test?: boolean } = {};
   try {
     body = await req.json();
   } catch {
     // body vacío es válido (n8n puede no mandar body)
   }
-  const testEmail = body.testEmail?.trim();
+  const isTest = body.test === true;
 
   const clases = await getClasesPendientes();
 
   const slack: { canal: string; texto: string }[] = [];
-  const acciones: { claseId: string; titulo: string; correos: number; marcada: boolean }[] = [];
-
-  // Destinatarios del correo: en test, solo el testEmail. Si no, founders activos.
-  const founders = testEmail
-    ? [{ email: testEmail, first_name: "test" }]
-    : (await getAllFoundersWithAccess()).map((f) => ({ email: f.email, first_name: f.first_name }));
+  const acciones: { claseId: string; titulo: string; marcada: boolean }[] = [];
 
   for (const clase of clases) {
-    // 1) Slack para n8n (siempre se arma, también en test)
+    // Slack para n8n (siempre se arma, también en test)
     slack.push({ canal: SLACK_CHANNEL, texto: buildSlackText(clase) });
 
-    // 2) Correo a founders
-    const link = founderLink(clase);
-    const hora = formatFecha(clase.fecha) ?? "";
-    let correos = 0;
-    await Promise.allSettled(
-      founders.map((f) =>
-        sendSesionRecordatorioEmail(f.email, f.first_name || "founder", {
-          titulo: clase.titulo ?? "Sesión Modo Fundraising",
-          cuando: hora,
-          link,
-          modo: "1h",
-        }).then(() => { correos += 1; }),
-      ),
-    );
+    // Idempotencia — NO marcar en modo test (repetible)
+    if (!isTest) await markNotified(clase.id!);
 
-    // 3) Idempotencia — NO marcar en modo test (repetible)
-    if (!testEmail) await markNotified(clase.id!);
-
-    acciones.push({
-      claseId: clase.id!,
-      titulo: clase.titulo ?? "",
-      correos,
-      marcada: !testEmail,
-    });
+    acciones.push({ claseId: clase.id!, titulo: clase.titulo ?? "", marcada: !isTest });
   }
 
   return NextResponse.json({
     ok: true,
-    testMode: testEmail ? `enabled (correo solo a ${testEmail}, sin marcar flag)` : undefined,
+    testMode: isTest ? "enabled (no marca flag, repetible)" : undefined,
     procesadas: clases.length,
     slack,      // ← n8n rutea esto a su nodo Slack
     acciones,
