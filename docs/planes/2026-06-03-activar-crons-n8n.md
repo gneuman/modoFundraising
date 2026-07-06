@@ -27,7 +27,7 @@ motor es **n8n**. Falta: (1) `CRON_SECRET` en Vercel, (2) los 3 workflows en n8n
 En Vercel → Project (modoFundraising) → Settings → Environment Variables, agregar:
 
 ```
-CRON_SECRET = 9dfb63fa22424e9c8d5c1cc28aca03328d3c078855b4ea826fdc430cf815968d
+CRON_SECRET = <CRON_SECRET>
 ```
 
 (Producción + Preview. Tras agregarla, **redeploy** para que tome efecto.)
@@ -46,7 +46,7 @@ Cada workflow = un nodo **Schedule Trigger** + un nodo **HTTP Request**.
 - **URL:** `https://<dominio>/api/cron/<endpoint>`
 - **Authentication:** Generic → Header Auth
   - Header Name: `Authorization`
-  - Header Value: `Bearer 9dfb63fa22424e9c8d5c1cc28aca03328d3c078855b4ea826fdc430cf815968d`
+  - Header Value: `Bearer <CRON_SECRET>`
 - **Body:** ninguno (los endpoints no leen body)
 - **Response:** dejar que devuelva JSON `{ processed, actions, errors }`
 
