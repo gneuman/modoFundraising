@@ -163,6 +163,24 @@ export async function getSubscription(subscriptionId: string) {
   return stripe.subscriptions.retrieve(subscriptionId);
 }
 
+// Resuelve la suscripción cancelable de un customer cuando el subscription_id
+// no está guardado en Airtable (migración / webhook viejo — ver WI-1818).
+// Devuelve la suscripción activa/al-día más reciente, o null si no hay ninguna
+// (ej. pago único: no tiene suscripción, no se puede cancelar).
+export async function findCancelableSubscriptionByCustomer(
+  customerId: string,
+): Promise<string | null> {
+  const subs = await stripe.subscriptions.list({
+    customer: customerId,
+    status: "all",
+    limit: 20,
+  });
+  const cancelable = subs.data
+    .filter((s) => ["active", "past_due", "trialing", "unpaid"].includes(s.status))
+    .sort((a, b) => b.created - a.created)[0];
+  return cancelable?.id ?? null;
+}
+
 export async function constructWebhookEvent(payload: string, sig: string) {
   return stripe.webhooks.constructEvent(
     payload,

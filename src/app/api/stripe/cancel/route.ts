@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { obtenerSesion, normalizarEmail } from "@/lib/auth";
-import { cancelSubscription } from "@/lib/stripe";
+import { cancelSubscription, findCancelableSubscriptionByCustomer } from "@/lib/stripe";
 import {
   getAllApplications,
   updateApplicationStatus,
@@ -42,11 +42,28 @@ export async function POST(req: NextRequest) {
   const apps = await getAllApplications();
   const sessionEmail = normalizarEmail(session.email);
   const app = apps.find((a) => a.email && normalizarEmail(a.email) === sessionEmail);
-  if (!app?.stripe_subscription_id) {
-    return NextResponse.json({ error: "No subscription found" }, { status: 404 });
+  if (!app) {
+    return NextResponse.json({ error: "No application found" }, { status: 404 });
   }
 
-  await cancelSubscription(app.stripe_subscription_id);
+  // Resolver la suscripción: primero el ID guardado en Airtable; si falta
+  // (migración / webhook viejo — WI-1818), buscarla en Stripe por customer.
+  let subscriptionId = app.stripe_subscription_id;
+  if (!subscriptionId && app.stripe_customer_id) {
+    subscriptionId = await findCancelableSubscriptionByCustomer(
+      app.stripe_customer_id,
+    ).catch(() => undefined) ?? undefined;
+  }
+  if (!subscriptionId) {
+    // Sin suscripción cancelable = pago único o ya cancelada. No es error del
+    // founder; se le informa que no hay nada que cancelar.
+    return NextResponse.json(
+      { error: "No hay una suscripción activa para cancelar." },
+      { status: 404 },
+    );
+  }
+
+  await cancelSubscription(subscriptionId);
 
   const startupIds = (app.startup_record as string[] | undefined) ?? [];
   const founderIds = (app.founder_record as string[] | undefined) ?? [];
