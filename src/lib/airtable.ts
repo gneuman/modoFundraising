@@ -1264,6 +1264,39 @@ export async function getAllMisiones(): Promise<MisionRecord[]> {
   return records.map((r) => ({ id: r.id, ...r.fields }) as MisionRecord);
 }
 
+// Lee todas las clases directo de Airtable sin cache. Uso: crons de
+// notificación de sesión (session-1h / session-start / session-24h) que
+// necesitan el estado fresco (fecha + flags notif_*_enviada_at) en cada corrida.
+export async function getAllClasesFresh(): Promise<
+  (ClaseRecord & {
+    notif_1h_enviada_at?: string;
+    notif_start_enviada_at?: string;
+    notif_24h_enviada_at?: string;
+  })[]
+> {
+  const records = await base(Tables.CLASES)
+    .select({ sort: [{ field: "fecha", direction: "asc" }] })
+    .all();
+  return records.map((r) => ({
+    id: r.id,
+    ...(r.fields as ClaseRecord & {
+      notif_1h_enviada_at?: string;
+      notif_start_enviada_at?: string;
+      notif_24h_enviada_at?: string;
+    }),
+  }));
+}
+
+// Marca un flag de idempotencia de notificación en una clase con now() ISO.
+// `field` es el nombre de la columna en Airtable (notif_1h_enviada_at, etc.).
+// Los crons de sesión lo usan para no re-notificar la misma clase.
+export async function markClaseNotif(
+  id: string,
+  field: "notif_1h_enviada_at" | "notif_start_enviada_at" | "notif_24h_enviada_at",
+): Promise<void> {
+  await base(Tables.CLASES).update(id, { [field]: new Date().toISOString() } as never);
+}
+
 // Lee una misión directo de Airtable sin cache. Uso: webhook mision-activada
 // que necesita el estado fresco al momento del trigger (status + notif_enviada_at).
 export async function getMisionByIdFresh(

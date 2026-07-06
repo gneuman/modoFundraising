@@ -280,6 +280,60 @@ export async function sendMisionActivadaEmail(
   });
 }
 
+// Recordatorio de sesión a un founder. Transaccional directo (NO depende de
+// AutomationRules de Airtable) para que funcione aunque no haya template
+// configurado. Cubre los tres avisos de sesión: 1h antes, al comenzar, y 24h
+// antes (jueves). El copy cambia según `modo`.
+//
+// Lo mandan los crons de sesión (WI-1636 / WI-1637 / WI-1638). El post a Slack
+// NO se hace aquí — lo hace n8n con el JSON que devuelve cada cron.
+export async function sendSesionRecordatorioEmail(
+  emailAddr: string,
+  firstName: string,
+  data: {
+    titulo: string;
+    cuando: string; // fecha/hora ya formateada (America/Santiago)
+    link: string;
+    modo: "1h" | "start" | "24h";
+  },
+): Promise<void> {
+  const copy = {
+    "1h": {
+      subject: `En 1 hora: ${data.titulo}`,
+      h: `En 1 hora empieza: ${data.titulo}`,
+      intro: "La sesión de hoy comienza en aproximadamente una hora. Deja todo listo para conectarte.",
+      cta: "Entrar a la sesión →",
+      color: "#2563eb",
+    },
+    start: {
+      subject: `¡Empezamos! ${data.titulo}`,
+      h: `¡Empezamos ahora! ${data.titulo}`,
+      intro: "La sesión está comenzando. Entra al vivo cuando quieras.",
+      cta: "Entrar ahora →",
+      color: "#16a34a",
+    },
+    "24h": {
+      subject: `Mañana: ${data.titulo} — prepara tus preguntas`,
+      h: `Mañana es la sesión: ${data.titulo}`,
+      intro:
+        "La sesión es mañana. Aprovecha para preparar tus preguntas — mientras más específicas, más valor sacas del vivo.",
+      cta: "Ver detalles en el portal →",
+      color: "#7c3aed",
+    },
+  }[data.modo];
+
+  const html = wrapInBaseLayout(`
+    ${h1(copy.h)}
+    ${p(`Hola ${firstName},`)}
+    ${p(copy.intro)}
+    ${data.cuando ? p(`🗓️ <strong>${data.cuando}</strong>`) : ""}
+    ${btn(data.link, copy.cta, copy.color)}
+    ${divider()}
+    ${small("¿Dudas? Escríbenos a <a href='mailto:admin@impacta.vc' style='color:#a1a1aa;'>admin@impacta.vc</a>")}
+  `);
+  await sendViaGmail(emailAddr, copy.subject, html);
+}
+
 export async function sendPaymentConfirmation(
   emailAddr: string,
   firstName: string,
