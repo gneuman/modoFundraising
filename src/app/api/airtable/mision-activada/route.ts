@@ -36,6 +36,19 @@ const APP_URL = (
   process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com"
 ).replace(/\/$/, "");
 const PORTAL_URL = `${APP_URL}/portal/misiones`;
+const SLACK_CHANNEL = process.env.SLACK_CANAL_COHORT ?? "#modo-fundraising";
+
+// Arma el texto de Slack para el aviso de misión. NO se postea aquí — se
+// devuelve en el JSON para que n8n lo rutee a su nodo Slack (no hay bot en
+// el repo). Ver WI-1822 / WI-1635.
+function buildSlackText(mision: { titulo?: string; descripcion?: string }): string {
+  const desc = (mision.descripcion ?? "").trim();
+  return [
+    `🎯 *Nueva misión activada:* ${mision.titulo ?? ""}`,
+    desc ? `${desc.slice(0, 240)}${desc.length > 240 ? "…" : ""}` : "",
+    `🔗 <${PORTAL_URL}|Ver misión en el portal>`,
+  ].filter(Boolean).join("\n");
+}
 
 const inflightLocks = new Map<string, number>();
 const LOCK_TTL_MS = 30_000;
@@ -189,5 +202,8 @@ async function handleActivada(
     fallidos: failed,
     failures: failures.length ? failures : undefined,
     statusPatched: statusPatched ? "Activa → Actual" : undefined,
+    // n8n rutea esto a su nodo Slack (el código NO postea a Slack — no hay bot).
+    // Se devuelve también en modo test para poder revisar el copy.
+    slack: { canal: SLACK_CHANNEL, texto: buildSlackText(mision) },
   });
 }
