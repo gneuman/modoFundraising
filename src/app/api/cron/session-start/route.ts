@@ -1,0 +1,142 @@
+export const dynamic = "force-dynamic";
+import { NextRequest, NextResponse } from "next/server";
+import { getAllClasesFresh, markClaseNotif, getAllFoundersWithAccess, type ClaseRecord } from "@/lib/airtable";
+import { sendSesionRecordatorioEmail } from "@/lib/email-engine";
+import { formatFecha } from "@/lib/timezone";
+
+// POST /api/cron/session-start
+//
+// Aviso "la sesión está empezando ahora". Gemelo de session-1h pero para el
+// momento del arranque. Dispara desde n8n (Schedule cada ~15 min); el código
+// revisa el estado de las clases y n8n postea a Slack.
+//
+// Reparto (ver WI-1637 / WI-1635):
+//   - Slack:  lo POSTEA n8n con el `slack[]` que devuelve este endpoint.
+//   - Correo: lo manda este endpoint (Gmail vía email-engine).
+//   - Idempotencia: campo `notif_start_enviada_at` en `Clases MF26`.
+//
+// Disparo: una clase entra si (a) su `fecha` cae en [now-5min, now+10min], o
+// (b) su `status` = "En vivo" — lo que ocurra primero — y no tiene
+// `notif_start_enviada_at`.
+//
+// Modo prueba: body { testEmail } → correo solo a ese email, no marca el flag.
+//
+// Auth: Authorization: Bearer <CRON_SECRET>.
+
+const CRON_SECRET = process.env.CRON_SECRET ?? "";
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com").replace(/\/$/, "");
+const SLACK_CHANNEL = process.env.SLACK_CANAL_COHORT ?? "#modo-fundraising";
+
+const WINDOW_MIN_MINUTES = -5;  // hasta 5 min después de la hora de inicio
+const WINDOW_MAX_MINUTES = 10;  // hasta 10 min antes
+
+function isAuthorized(req: NextRequest): boolean {
+  const auth = req.headers.get("authorization") ?? "";
+  return !!CRON_SECRET && auth === `Bearer ${CRON_SECRET}`;
+}
+
+function minutesUntil(iso: string): number {
+  return (new Date(iso).getTime() - Date.now()) / (1000 * 60);
+}
+
+type ClaseConNotif = ClaseRecord & { notif_start_enviada_at?: string };
+
+async function getClasesPendientes(): Promise<ClaseConNotif[]> {
+  const clases = await getAllClasesFresh();
+  return clases.filter((c) => {
+    if (c.notif_start_enviada_at) return false;
+    if (c.status === "En vivo") return true;
+    if (!c.fecha) return false;
+    const mins = minutesUntil(c.fecha);
+    return mins >= WINDOW_MIN_MINUTES && mins <= WINDOW_MAX_MINUTES;
+  });
+}
+
+function founderLink(clase: ClaseRecord): string {
+  return clase.meet_link || clase.url_live || `${APP_URL}/portal/clases`;
+}
+
+function buildSlackText(clase: ClaseRecord): string {
+  const link = founderLink(clase);
+  return [
+    `🔴 *¡Empezamos ahora!* ${clase.titulo ?? "La sesión"}`,
+    `🔗 <${link}|Entrar al vivo>`,
+  ].join("\n");
+}
+
+async function markNotified(claseId: string): Promise<void> {
+  await markClaseNotif(claseId, "notif_start_enviada_at").catch((e: unknown) => {
+    console.error("[session-start] no se pudo marcar notif_start_enviada_at:", e instanceof Error ? e.message : e);
+  });
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { testEmail?: string } = {};
+  try {
+    body = await req.json();
+  } catch {
+    // body vacío es válido
+  }
+  const testEmail = body.testEmail?.trim();
+
+  const clases = await getClasesPendientes();
+
+  const slack: { canal: string; texto: string }[] = [];
+  const acciones: { claseId: string; titulo: string; correos: number; marcada: boolean }[] = [];
+
+  const founders = testEmail
+    ? [{ email: testEmail, first_name: "test" }]
+    : (await getAllFoundersWithAccess()).map((f) => ({ email: f.email, first_name: f.first_name }));
+
+  for (const clase of clases) {
+    slack.push({ canal: SLACK_CHANNEL, texto: buildSlackText(clase) });
+
+    const link = founderLink(clase);
+    const hora = formatFecha(clase.fecha) ?? "";
+    let correos = 0;
+    await Promise.allSettled(
+      founders.map((f) =>
+        sendSesionRecordatorioEmail(f.email, f.first_name || "founder", {
+          titulo: clase.titulo ?? "Sesión Modo Fundraising",
+          cuando: hora,
+          link,
+          modo: "start",
+        }).then(() => { correos += 1; }),
+      ),
+    );
+
+    if (!testEmail) await markNotified(clase.id!);
+
+    acciones.push({ claseId: clase.id!, titulo: clase.titulo ?? "", correos, marcada: !testEmail });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    testMode: testEmail ? `enabled (correo solo a ${testEmail}, sin marcar flag)` : undefined,
+    procesadas: clases.length,
+    slack,
+    acciones,
+  });
+}
+
+// GET /api/cron/session-start — preview sin enviar.
+export async function GET(req: NextRequest) {
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const clases = await getClasesPendientes();
+  return NextResponse.json({
+    count: clases.length,
+    preview: clases.map((c) => ({
+      claseId: c.id,
+      titulo: c.titulo,
+      fecha: c.fecha,
+      status: c.status,
+      slack_text: buildSlackText(c),
+    })),
+  });
+}
