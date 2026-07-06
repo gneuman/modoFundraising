@@ -7,10 +7,16 @@ import { createRecurso, updateRecurso } from "@/lib/airtable";
 export async function POST(req: NextRequest) {
   const denied = await verificarAdmin(req);
   if (denied) return denied;
-  const body = await req.json();
-  const id = await createRecurso(body);
-  revalidateTag("clases-content", { expire: 0 });
-  return NextResponse.json({ id });
+  try {
+    const body = await req.json();
+    const id = await createRecurso(body);
+    revalidateTag("clases-content", { expire: 0 });
+    return NextResponse.json({ id });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("Crear recurso error:", detail);
+    return NextResponse.json({ error: "No se pudo crear el recurso", detail }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: NextRequest) {
