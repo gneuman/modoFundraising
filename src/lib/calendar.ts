@@ -319,12 +319,11 @@ export async function upsertCalendarEvent(
     changedFields.push("fecha");
   }
 
-  // ¿Es material? Cambios que afectan al asistente (hora/título/link para conectarse).
-  // Descripción sola no es material — typos no deben spamear.
-  const isMaterial =
-    changedFields.includes("fecha") ||
-    changedFields.includes("titulo") ||
-    changedFields.includes("url_live");
+  // ¿Es material? SOLO el cambio de fecha/hora notifica a los founders (WI-1819).
+  // Título, url_live y descripción siguen patcheando el evento para que el Calendar
+  // quede actualizado, pero con sendUpdates:"none" — editar el título o el link de
+  // Streamyard NO debe mandarle un email de "evento actualizado" a los ~26 founders.
+  const isMaterial = changedFields.includes("fecha");
 
   const meetLink =
     ev.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === "video")?.uri ?? "";
