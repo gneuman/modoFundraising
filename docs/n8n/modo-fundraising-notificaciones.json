@@ -1,0 +1,394 @@
+{
+  "name": "Modo Fundraising — Notificaciones (Slack + Misión)",
+  "meta": {
+    "instructions": "Workflow con 4 crons. Al importar en n8n configura: (1) credencial Airtable Token API, (2) credencial Slack, (3) el baseId de Airtable en cada nodo Airtable, (4) el canal Slack en cada nodo Slack, (5) la variable CRON_SECRET en los headers de los nodos HTTP Request, (6) la URL base del portal si difiere. Los table IDs ya vienen puestos: Clases=tblHRJ35xMM3rQa85, Misiones=tbl0ySIkDEmBJWRsx. Ajusta las horas de los Schedule Trigger a tu conveniencia (están comentadas). El endpoint arma el texto de Slack y lo devuelve en {{ $json.slack.texto }} — el nodo Slack solo lo postea."
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 9 * * 2,4" }
+          ]
+        }
+      },
+      "id": "trigger-1h",
+      "name": "Cron 1h antes (Mar/Jue 9AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 0],
+      "notes": "AJUSTA la hora: hoy 9:00 AM martes y jueves (0 9 * * 2,4). Si quieres que 'en 1 hora' sea real, ponlo ~1h antes de la clase."
+    },
+    {
+      "parameters": {
+        "authentication": "airtableTokenApi",
+        "resource": "record",
+        "operation": "search",
+        "base": { "__rl": true, "mode": "id", "value": "={{ $env.AIRTABLE_BASE_ID }}" },
+        "table": { "__rl": true, "mode": "id", "value": "tblHRJ35xMM3rQa85" },
+        "filterByFormula": "=IS_SAME({fecha}, TODAY(), 'day')",
+        "options": {}
+      },
+      "id": "airtable-clase-hoy-1h",
+      "name": "Airtable: clase de HOY",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [460, 0],
+      "notes": "Busca la clase cuya fecha es hoy. Devuelve 0 o más records. Ajusta 'fecha' si el campo se llama distinto."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PORTAL_URL || 'https://portal.modofundraising.com' }}/api/cron/session-notify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.CRON_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recordId\": \"{{ $json.id }}\",\n  \"tipo\": \"1h\"\n}",
+        "options": {}
+      },
+      "id": "http-1h",
+      "name": "POST session-notify (1h)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 0],
+      "notes": "Manda recordId + tipo=1h. El endpoint responde con slack.texto (o skipped si ya se notificó)."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.slack }}",
+              "rightValue": "",
+              "operator": { "type": "object", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-1h",
+      "name": "¿Hay slack? (1h)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [940, 0],
+      "notes": "Si el endpoint devolvió skipped, no hay slack → no postea."
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": { "__rl": true, "mode": "name", "value": "={{ $env.SLACK_CANAL_COHORT || '#modo-fundraising' }}" },
+        "text": "={{ $json.slack.texto }}",
+        "otherOptions": {}
+      },
+      "id": "slack-1h",
+      "name": "Slack post (1h)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [1180, 0],
+      "notes": "Postea el texto ya armado por el endpoint. Conecta tu credencial Slack y el canal."
+    },
+
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 18 * * 2,4" }
+          ]
+        }
+      },
+      "id": "trigger-start",
+      "name": "Cron empezamos ahora (a la hora de la clase)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 220],
+      "notes": "AJUSTA a la HORA DE INICIO de la clase (ej. 18:00 mar/jue = 0 18 * * 2,4)."
+    },
+    {
+      "parameters": {
+        "authentication": "airtableTokenApi",
+        "resource": "record",
+        "operation": "search",
+        "base": { "__rl": true, "mode": "id", "value": "={{ $env.AIRTABLE_BASE_ID }}" },
+        "table": { "__rl": true, "mode": "id", "value": "tblHRJ35xMM3rQa85" },
+        "filterByFormula": "=IS_SAME({fecha}, TODAY(), 'day')",
+        "options": {}
+      },
+      "id": "airtable-clase-hoy-start",
+      "name": "Airtable: clase de HOY (start)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [460, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PORTAL_URL || 'https://portal.modofundraising.com' }}/api/cron/session-notify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.CRON_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recordId\": \"{{ $json.id }}\",\n  \"tipo\": \"start\"\n}",
+        "options": {}
+      },
+      "id": "http-start",
+      "name": "POST session-notify (start)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.slack }}",
+              "rightValue": "",
+              "operator": { "type": "object", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-start",
+      "name": "¿Hay slack? (start)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [940, 220]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": { "__rl": true, "mode": "name", "value": "={{ $env.SLACK_CANAL_COHORT || '#modo-fundraising' }}" },
+        "text": "={{ $json.slack.texto }}",
+        "otherOptions": {}
+      },
+      "id": "slack-start",
+      "name": "Slack post (start)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [1180, 220]
+    },
+
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 9 * * 1,3" }
+          ]
+        }
+      },
+      "id": "trigger-24h",
+      "name": "Cron 24h antes (Lun/Mie 9AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 440],
+      "notes": "Lunes y miércoles 9:00 AM (0 9 * * 1,3) → avisa la sesión de mañana (mar/jue)."
+    },
+    {
+      "parameters": {
+        "authentication": "airtableTokenApi",
+        "resource": "record",
+        "operation": "search",
+        "base": { "__rl": true, "mode": "id", "value": "={{ $env.AIRTABLE_BASE_ID }}" },
+        "table": { "__rl": true, "mode": "id", "value": "tblHRJ35xMM3rQa85" },
+        "filterByFormula": "=IS_SAME({fecha}, DATEADD(TODAY(), 1, 'day'), 'day')",
+        "options": {}
+      },
+      "id": "airtable-clase-manana",
+      "name": "Airtable: clase de MAÑANA",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [460, 440],
+      "notes": "Clase cuya fecha es mañana."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PORTAL_URL || 'https://portal.modofundraising.com' }}/api/cron/session-notify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.CRON_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recordId\": \"{{ $json.id }}\",\n  \"tipo\": \"24h\"\n}",
+        "options": {}
+      },
+      "id": "http-24h",
+      "name": "POST session-notify (24h)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 440]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.slack }}",
+              "rightValue": "",
+              "operator": { "type": "object", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-24h",
+      "name": "¿Hay slack? (24h)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [940, 440]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": { "__rl": true, "mode": "name", "value": "={{ $env.SLACK_CANAL_COHORT || '#modo-fundraising' }}" },
+        "text": "={{ $json.slack.texto }}",
+        "otherOptions": {}
+      },
+      "id": "slack-24h",
+      "name": "Slack post (24h)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [1180, 440]
+    },
+
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "*/30 * * * *" }
+          ]
+        }
+      },
+      "id": "trigger-mision",
+      "name": "Cron misión activada (cada 30 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 680],
+      "notes": "Revisa cada 30 min si hay misión Activa sin notificar. El endpoint es idempotente (notif_enviada_at), así que no repite. Ajusta la frecuencia a gusto."
+    },
+    {
+      "parameters": {
+        "authentication": "airtableTokenApi",
+        "resource": "record",
+        "operation": "search",
+        "base": { "__rl": true, "mode": "id", "value": "={{ $env.AIRTABLE_BASE_ID }}" },
+        "table": { "__rl": true, "mode": "id", "value": "tbl0ySIkDEmBJWRsx" },
+        "filterByFormula": "=AND({status}='Activa', {notif_enviada_at}='')",
+        "options": {}
+      },
+      "id": "airtable-mision-activa",
+      "name": "Airtable: misión Activa sin notificar",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [460, 680],
+      "notes": "Misiones con status=Activa y notif_enviada_at vacío."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PORTAL_URL || 'https://portal.modofundraising.com' }}/api/airtable/mision-activada",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.CRON_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recordId\": \"{{ $json.id }}\"\n}",
+        "options": {}
+      },
+      "id": "http-mision",
+      "name": "POST mision-activada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 680],
+      "notes": "Este endpoint manda el CORREO a founders y devuelve slack.texto. Auth: Bearer CRON_SECRET (unificado con los demás). Para probar el correo sin spamear, agrega \"testEmail\":\"neumang+mf@gmail.com\" al body."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.slack }}",
+              "rightValue": "",
+              "operator": { "type": "object", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-mision",
+      "name": "¿Hay slack? (misión)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [940, 680]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": { "__rl": true, "mode": "name", "value": "={{ $env.SLACK_CANAL_COHORT || '#modo-fundraising' }}" },
+        "text": "={{ $json.slack.texto }}",
+        "otherOptions": {}
+      },
+      "id": "slack-mision",
+      "name": "Slack post (misión)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [1180, 680],
+      "notes": "El correo ya lo mandó el endpoint; aquí solo se postea el aviso al canal."
+    }
+  ],
+  "connections": {
+    "Cron 1h antes (Mar/Jue 9AM)": { "main": [[{ "node": "Airtable: clase de HOY", "type": "main", "index": 0 }]] },
+    "Airtable: clase de HOY": { "main": [[{ "node": "POST session-notify (1h)", "type": "main", "index": 0 }]] },
+    "POST session-notify (1h)": { "main": [[{ "node": "¿Hay slack? (1h)", "type": "main", "index": 0 }]] },
+    "¿Hay slack? (1h)": { "main": [[{ "node": "Slack post (1h)", "type": "main", "index": 0 }]] },
+
+    "Cron empezamos ahora (a la hora de la clase)": { "main": [[{ "node": "Airtable: clase de HOY (start)", "type": "main", "index": 0 }]] },
+    "Airtable: clase de HOY (start)": { "main": [[{ "node": "POST session-notify (start)", "type": "main", "index": 0 }]] },
+    "POST session-notify (start)": { "main": [[{ "node": "¿Hay slack? (start)", "type": "main", "index": 0 }]] },
+    "¿Hay slack? (start)": { "main": [[{ "node": "Slack post (start)", "type": "main", "index": 0 }]] },
+
+    "Cron 24h antes (Lun/Mie 9AM)": { "main": [[{ "node": "Airtable: clase de MAÑANA", "type": "main", "index": 0 }]] },
+    "Airtable: clase de MAÑANA": { "main": [[{ "node": "POST session-notify (24h)", "type": "main", "index": 0 }]] },
+    "POST session-notify (24h)": { "main": [[{ "node": "¿Hay slack? (24h)", "type": "main", "index": 0 }]] },
+    "¿Hay slack? (24h)": { "main": [[{ "node": "Slack post (24h)", "type": "main", "index": 0 }]] },
+
+    "Cron misión activada (cada 30 min)": { "main": [[{ "node": "Airtable: misión Activa sin notificar", "type": "main", "index": 0 }]] },
+    "Airtable: misión Activa sin notificar": { "main": [[{ "node": "POST mision-activada", "type": "main", "index": 0 }]] },
+    "POST mision-activada": { "main": [[{ "node": "¿Hay slack? (misión)", "type": "main", "index": 0 }]] },
+    "¿Hay slack? (misión)": { "main": [[{ "node": "Slack post (misión)", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}
