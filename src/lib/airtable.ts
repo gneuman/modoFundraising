@@ -1264,6 +1264,39 @@ export async function getAllMisiones(): Promise<MisionRecord[]> {
   return records.map((r) => ({ id: r.id, ...r.fields }) as MisionRecord);
 }
 
+// Lee todas las clases directo de Airtable sin cache. Uso: crons de
+// notificación de sesión (session-1h / session-start / session-24h) que
+// necesitan el estado fresco (fecha + flags notif_*_enviada_at) en cada corrida.
+export async function getAllClasesFresh(): Promise<
+  (ClaseRecord & {
+    notif_1h_enviada_at?: string;
+    notif_start_enviada_at?: string;
+    notif_24h_enviada_at?: string;
+  })[]
+> {
+  const records = await base(Tables.CLASES)
+    .select({ sort: [{ field: "fecha", direction: "asc" }] })
+    .all();
+  return records.map((r) => ({
+    id: r.id,
+    ...(r.fields as ClaseRecord & {
+      notif_1h_enviada_at?: string;
+      notif_start_enviada_at?: string;
+      notif_24h_enviada_at?: string;
+    }),
+  }));
+}
+
+// Marca un flag de idempotencia de notificación en una clase con now() ISO.
+// `field` es el nombre de la columna en Airtable (notif_1h_enviada_at, etc.).
+// Los crons de sesión lo usan para no re-notificar la misma clase.
+export async function markClaseNotif(
+  id: string,
+  field: "notif_1h_enviada_at" | "notif_start_enviada_at" | "notif_24h_enviada_at",
+): Promise<void> {
+  await base(Tables.CLASES).update(id, { [field]: new Date().toISOString() } as never);
+}
+
 // Lee una misión directo de Airtable sin cache. Uso: webhook mision-activada
 // que necesita el estado fresco al momento del trigger (status + notif_enviada_at).
 export async function getMisionByIdFresh(
@@ -1395,6 +1428,14 @@ async function filterByLinkContains<T>(
     .map((r) => ({ id: r.id, fields: r.fields as T }));
 }
 
+// Lock in-memory por (startup, clase) para serializar el read-then-write del
+// upsert. Sin esto, dos requests casi simultáneos para la misma combinación
+// (doble clic en "entrar a la sesión", flujo de sesión + Calendar Link en
+// paralelo, o retries de red) ambos leen "no existe" y ambos crean → duplicado
+// (WI-1820). Mismo patrón que el lock de clase-upsert/route.ts. Cubre el caso
+// del MISMO proceso serverless, que es >90% en Vercel para requests seguidos.
+const asistenciaLocks = new Map<string, Promise<void>>();
+
 export async function upsertAsistencia(data: {
   startupId: string;
   claseId: string;
@@ -1402,14 +1443,48 @@ export async function upsertAsistencia(data: {
   fecha?: string;
   notas?: string;
 }): Promise<void> {
-  const byStartup = await filterByLinkContains<Record<string, unknown>>(
-    Tables.ASISTENCIAS,
-    "startup_record",
-    data.startupId,
-  );
-  const existing = byStartup.find((r) => {
-    const claseRec = r.fields.clase_record as string[] | undefined;
-    return claseRec?.includes(data.claseId);
+  const key = `${data.startupId}-${data.claseId}`;
+
+  // Encadenar detrás de cualquier upsert en vuelo para la misma (startup, clase).
+  // Así el segundo request espera al primero, ve el record que creó, y hace update
+  // en vez de create. El .catch previo evita que un fallo anterior bloquee este intento.
+  const prev = asistenciaLocks.get(key) ?? Promise.resolve();
+  const gate = prev.catch(() => {});
+  const run = gate.then(() => doUpsertAsistencia(data));
+
+  // El valor del Map es la cadena "silenciada" (nunca rechaza) para no dejar
+  // promesas sin manejar; el caller recibe `run`, que sí propaga el error real.
+  const chain = run.catch(() => {});
+  asistenciaLocks.set(key, chain);
+
+  try {
+    await run;
+  } finally {
+    // Liberar el lock solo si nadie se encadenó después de nosotros.
+    if (asistenciaLocks.get(key) === chain) {
+      asistenciaLocks.delete(key);
+    }
+  }
+}
+
+async function doUpsertAsistencia(data: {
+  startupId: string;
+  claseId: string;
+  asistio: boolean;
+  fecha?: string;
+  notas?: string;
+}): Promise<void> {
+  const naturalKey = `${data.startupId}-${data.claseId}`;
+
+  // Buscar el existente por la clave natural id_asistencia (más confiable que los
+  // link fields, que pueden tardar en indexar). Fallback al match por link fields.
+  const all = await base(Tables.ASISTENCIAS).select().all();
+  const existing = all.find((r) => {
+    const fields = r.fields as Record<string, unknown>;
+    if (fields.id_asistencia === naturalKey) return true;
+    const startupRec = fields.startup_record as string[] | undefined;
+    const claseRec = fields.clase_record as string[] | undefined;
+    return startupRec?.includes(data.startupId) && claseRec?.includes(data.claseId);
   });
 
   if (existing) {
