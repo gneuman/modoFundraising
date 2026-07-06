@@ -1206,6 +1206,7 @@ export interface RecursoRecord {
   tipo?: string;
   descripcion?: string;
   clase?: string[];
+  Attachments?: { url: string; filename?: string; type?: string; thumbnails?: { large?: { url: string } } }[];
 }
 
 export async function createClase(data: ClaseInput): Promise<string> {
