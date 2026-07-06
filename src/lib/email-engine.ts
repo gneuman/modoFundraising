@@ -284,6 +284,7 @@ export async function sendPaymentConfirmation(
   emailAddr: string,
   firstName: string,
   installment: number,
+  totalCuotas = 3,
 ) {
   const trigger =
     installment === 2
@@ -291,11 +292,23 @@ export async function sendPaymentConfirmation(
       : installment === 3
         ? "invoice_paid_cuota3"
         : "checkout_completed";
-  await sendAutomationEmail(trigger, emailAddr, {
-    nombre: firstName,
-    email: emailAddr,
-    cuota_num: String(installment),
-  });
+  // Progreso de cuotas para el template ({{cuota_num}}, {{total_cuotas}},
+  // {{cuotas_restantes}}). La clienta puede usarlas o no en el body editable.
+  const restantes = Math.max(0, totalCuotas - installment);
+  await sendAutomationEmail(
+    trigger,
+    emailAddr,
+    {
+      nombre: firstName,
+      email: emailAddr,
+      cuota_num: String(installment),
+      total_cuotas: String(totalCuotas),
+      cuotas_restantes: String(restantes),
+    },
+    undefined,
+    // Banner fijo anti-doble-pago (WI-1823). Va siempre, no depende del template.
+    pagoAvisoBanner(),
+  );
 }
 
 export async function sendPaymentFailedEmail(
@@ -360,6 +373,8 @@ export async function sendTestTemplateEmail(
     checkout_url: `${APP_URL}/checkout/dummy-token`,
     portal_url: `${APP_URL}/portal`,
     cuota_num: "1",
+    total_cuotas: "3",
+    cuotas_restantes: "2",
     apply_url: `${POSTULA_URL}/apply`,
   };
   const finalCtx = { ...defaultCtx, ...(ctx ?? {}) };
@@ -370,11 +385,32 @@ export async function sendTestTemplateEmail(
   await sendViaGmail(toEmail, subject, html);
 }
 
+// Banner destacado que se antepone SOLO a los correos de confirmación de pago.
+// Va hardcodeado (no como variable de template editable) para garantizar que el
+// aviso anti-doble-pago nunca desaparezca por una edición accidental del
+// template en Airtable. Nace de WI-1823: el caso Ciudata pagó dos veces porque
+// inició el checkout dos veces → dos suscripciones activas cobrando en paralelo.
+export function pagoAvisoBanner(): string {
+  return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;">
+    <tr><td style="padding:16px 20px;">
+      <p style="margin:0 0 4px;font-size:15px;font-weight:700;color:#065f46;">✅ Tu suscripción ya está activa</p>
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#047857;">
+        No necesitas volver a pagar ni iniciar otro checkout — los siguientes cobros son automáticos.
+        Si ves un cargo doble, escríbenos de inmediato a
+        <a href="mailto:admin@impacta.vc" style="color:#047857;font-weight:600;">admin@impacta.vc</a>.
+      </p>
+    </td></tr>
+  </table>`;
+}
+
 export async function sendAutomationEmail(
   trigger: TriggerEvent,
   toEmail: string,
   ctx: TemplateContext,
   triggerCondition?: Record<string, string | number>,
+  // HTML fijo que se antepone al cuerpo renderizado, antes del layout base.
+  // Se usa para banners que no deben depender del template editable.
+  prependHtml?: string,
 ): Promise<void> {
   console.log(`[automation] trigger=${trigger} to=${toEmail}`);
   const rules = await getAutomationRules(trigger);
@@ -414,7 +450,7 @@ export async function sendAutomationEmail(
 
     const subject = renderTemplate(rule.template.subject, ctx);
     const bodyHtml = renderTemplate(rule.template.body_html, ctx);
-    const html = wrapInBaseLayout(bodyHtml);
+    const html = wrapInBaseLayout((prependHtml ?? "") + bodyHtml);
 
     const sendFn = async () => {
       const start = Date.now();

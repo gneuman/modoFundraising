@@ -212,6 +212,8 @@ const TEMPLATE_VARS: { key: string; label: string }[] = [
   { key: "{{portal_url}}", label: "Link al portal" },
   { key: "{{apply_url}}", label: "Link continuar postulación" },
   { key: "{{cuota_num}}", label: "Nro. de cuota" },
+  { key: "{{total_cuotas}}", label: "Total de cuotas" },
+  { key: "{{cuotas_restantes}}", label: "Cuotas restantes" },
 ];
 
 const APP_URL =

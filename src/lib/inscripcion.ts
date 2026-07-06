@@ -34,11 +34,14 @@ export async function activatePortalForStartup(opts: {
   // Cuota a usar SOLO para el correo. Para pago completo (cuota=3) sigue mandando
   // el correo de "primer pago" (pago_cuota_1) y nada más.
   cuotaParaCorreo?: number;
+  // Total de cuotas del plan (para el bloque de progreso en el correo de pago).
+  // Vacío → el correo asume 3 (default del programa).
+  totalCuotas?: number;
 }) {
   const {
     airtableId, email, firstName, stripeCustomerId, startupRecordId,
     amount, cuota, stripeInvoiceId, stripeSubscriptionId, startup_name,
-    cuotaParaCorreo,
+    cuotaParaCorreo, totalCuotas,
   } = opts;
 
   await activateAllFoundersForApplication(airtableId, stripeCustomerId);
@@ -46,7 +49,7 @@ export async function activatePortalForStartup(opts: {
   if (startupRecordId) await updateStartupStatus(startupRecordId, "Inscrita");
 
   if (email && firstName) {
-    await sendPaymentConfirmation(email, firstName, cuotaParaCorreo ?? cuota);
+    await sendPaymentConfirmation(email, firstName, cuotaParaCorreo ?? cuota, totalCuotas ?? 3);
   }
 
   if (startupRecordId) {
