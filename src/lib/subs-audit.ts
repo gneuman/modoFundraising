@@ -1,3 +1,4 @@
+import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import {
   getAllApplications,
@@ -88,9 +89,16 @@ function motivoLegible(declineCode?: string | null, message?: string | null): st
   return "Cobro no ejecutado (sin detalle de Stripe)";
 }
 
-// Consulta el estado real de un founder en Stripe por email. Degrada a un
-// estado vacío si Stripe falla, para no romper el panel completo por un founder.
-async function fetchStripeState(email: string): Promise<StripeState> {
+// Consulta el estado real de un founder en Stripe. Resuelve el customer por el
+// stripe_customer_id guardado en Airtable (fuente confiable) y sólo cae a buscar
+// por email si no hay ID. Antes buscaba SOLO por email → falso positivo cuando
+// el founder se registró con un email y pagó con otro (ej. AEON: Airtable tiene
+// el corporativo, Stripe el Gmail personal). Degrada a estado vacío si Stripe
+// falla, para no romper el panel completo por un founder.
+async function fetchStripeState(
+  email: string,
+  customerId?: string,
+): Promise<StripeState> {
   const out: StripeState = {
     subsActivas: 0,
     subsStripe: [],
@@ -102,8 +110,21 @@ async function fetchStripeState(email: string): Promise<StripeState> {
     ultimoIntento: "",
   };
   try {
-    const custs = await stripe.customers.list({ email, limit: 3 });
-    for (const c of custs.data) {
+    // 1) Customer por ID guardado (autoritativo). 2) fallback: por email.
+    let customers: Stripe.Customer[] = [];
+    if (customerId) {
+      const c = await stripe.customers
+        .retrieve(customerId)
+        .catch(() => null);
+      if (c && !("deleted" in c && c.deleted)) {
+        customers = [c as Stripe.Customer];
+      }
+    }
+    if (customers.length === 0) {
+      const byEmail = await stripe.customers.list({ email, limit: 3 });
+      customers = byEmail.data;
+    }
+    for (const c of customers) {
       out.customerExiste = true;
       const subs = await stripe.subscriptions.list({
         customer: c.id,
@@ -214,7 +235,7 @@ export async function runSubsAudit(): Promise<SubAuditRow[]> {
         typeof app.total_cuotas === "number" ? app.total_cuotas : null;
       const hasSubField = !!app.stripe_subscription_id;
 
-      const st = await fetchStripeState(email);
+      const st = await fetchStripeState(email, app.stripe_customer_id);
       const flags = classifyFlags(
         paymentStatus,
         totalCuotas,
