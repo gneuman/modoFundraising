@@ -14,6 +14,7 @@ import {
   FileWarning,
 } from "lucide-react";
 import { SubsFilter } from "./subs-filter";
+import { CuotasEditor } from "./cuotas-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +161,22 @@ export default async function SuscripcionesPage({
                       <p className="text-sm text-zinc-600 mt-2">
                         {FLAG_ACCION[topFlag]}
                       </p>
+                      {r.motivoFallo && (
+                        <p className="text-sm text-red-700 mt-2 font-medium">
+                          ⚠️ Motivo del fallo:{" "}
+                          <span className="font-semibold">{r.motivoFallo}</span>
+                          {r.ultimoIntento && (
+                            <span className="text-red-500 font-normal">
+                              {" "}
+                              · último intento{" "}
+                              {new Date(r.ultimoIntento).toLocaleDateString(
+                                "es-MX",
+                                { day: "2-digit", month: "short" },
+                              )}
+                            </span>
+                          )}
+                        </p>
+                      )}
                       {r.subsStripe.length > 0 && (
                         <p className="text-xs text-zinc-400 mt-1 font-mono break-all">
                           {r.subsStripe.join("  ·  ")}
@@ -253,11 +270,15 @@ export default async function SuscripcionesPage({
                     )}
                   </td>
                   <td className="px-4 py-3 text-center text-zinc-600">
-                    {r.cuotasPagadas}
-                    <span className="text-zinc-400">
-                      {" / "}
-                      {r.totalCuotas ?? "?"}
-                    </span>
+                    {r.esBeca ? (
+                      <span className="text-zinc-400">—</span>
+                    ) : (
+                      <CuotasEditor
+                        postulacionId={r.postulacionId}
+                        cuotasPagadas={r.cuotasPagadas}
+                        totalCuotas={r.totalCuotas}
+                      />
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span

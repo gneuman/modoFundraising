@@ -38,6 +38,8 @@ export interface SubAuditRow {
   subsStripe: string[]; // resumen "sub_xxx[status]"
   subStatusMoroso: string; // "past_due" | "unpaid" | ""
   tieneTarjeta: boolean; // hay payment method card guardado
+  motivoFallo: string; // razón del último cobro fallido (Stripe), "" si no aplica
+  ultimoIntento: string; // fecha ISO del último intento de cobro fallido, "" si no aplica
   esBeca: boolean;
   flags: SubFlag[];
 }
@@ -59,6 +61,31 @@ interface StripeState {
   facturaOpen: boolean;
   tieneTarjeta: boolean;
   customerExiste: boolean;
+  motivoFallo: string;
+  ultimoIntento: string;
+}
+
+// Traduce los decline_code / motivos de Stripe a algo legible para el admin.
+// https://stripe.com/docs/declines/codes
+const DECLINE_ES: Record<string, string> = {
+  insufficient_funds: "Fondos insuficientes",
+  card_declined: "Tarjeta rechazada por el banco",
+  expired_card: "Tarjeta vencida",
+  incorrect_cvc: "CVC incorrecto",
+  processing_error: "Error de procesamiento del banco",
+  authentication_required: "Requiere autenticación (3D Secure) sin completar",
+  do_not_honor: "Banco rechazó el cobro (do not honor)",
+  generic_decline: "Rechazo genérico del banco",
+  lost_card: "Tarjeta reportada como perdida",
+  stolen_card: "Tarjeta reportada como robada",
+  card_velocity_exceeded: "Límite de intentos de la tarjeta excedido",
+};
+
+function motivoLegible(declineCode?: string | null, message?: string | null): string {
+  if (declineCode && DECLINE_ES[declineCode]) return DECLINE_ES[declineCode];
+  if (declineCode) return declineCode.replace(/_/g, " ");
+  if (message) return message;
+  return "Cobro no ejecutado (sin detalle de Stripe)";
 }
 
 // Consulta el estado real de un founder en Stripe por email. Degrada a un
@@ -71,6 +98,8 @@ async function fetchStripeState(email: string): Promise<StripeState> {
     facturaOpen: false,
     tieneTarjeta: false,
     customerExiste: false,
+    motivoFallo: "",
+    ultimoIntento: "",
   };
   try {
     const custs = await stripe.customers.list({ email, limit: 3 });
@@ -90,6 +119,29 @@ async function fetchStripeState(email: string): Promise<StripeState> {
       }
       const invs = await stripe.invoices.list({ customer: c.id, limit: 12 });
       if (invs.data.some((i) => i.status === "open")) out.facturaOpen = true;
+
+      // Si hay morosidad, leer el motivo del último cobro fallido. En Stripe 22
+      // el Invoice ya no expone payment_intent; el detalle del rechazo vive en
+      // el charge fallido (failure_code / outcome.seller_message), estable
+      // entre versiones. Tomamos el charge failed más reciente del customer.
+      if (out.subStatusMoroso && !out.motivoFallo) {
+        const charges = await stripe.charges
+          .list({ customer: c.id, limit: 10 })
+          .catch(() => null);
+        const failed = charges?.data
+          .filter((ch) => ch.status === "failed")
+          .sort((a, b) => (b.created ?? 0) - (a.created ?? 0))[0];
+        if (failed) {
+          out.ultimoIntento = new Date(
+            (failed.created ?? 0) * 1000,
+          ).toISOString();
+          out.motivoFallo = motivoLegible(
+            failed.failure_code,
+            failed.outcome?.seller_message ?? failed.failure_message,
+          );
+        }
+      }
+
       const pms = await stripe.paymentMethods.list({
         customer: c.id,
         type: "card",
@@ -183,6 +235,8 @@ export async function runSubsAudit(): Promise<SubAuditRow[]> {
         subsStripe: st.subsStripe,
         subStatusMoroso: st.subStatusMoroso,
         tieneTarjeta: st.tieneTarjeta,
+        motivoFallo: st.motivoFallo,
+        ultimoIntento: st.ultimoIntento,
         esBeca,
         flags,
       };
