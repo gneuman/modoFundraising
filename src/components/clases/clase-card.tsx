@@ -1101,13 +1101,12 @@ export function ClaseCard({
       <HeaderWrap {...headerWrapProps}>
         {/* Portada o número */}
         {clase.Portada?.[0] ? (
-          <div className="w-16 h-9 rounded-xl overflow-hidden shrink-0 bg-zinc-100 relative">
+          <div className="w-32 sm:w-40 h-24 sm:h-28 rounded-xl overflow-hidden shrink-0 bg-zinc-100 relative">
             <Image
               src={clase.Portada[0].thumbnails?.large?.url ?? clase.Portada[0].url}
               alt={clase.titulo ?? ""}
-              width={64}
-              height={36}
-              className="w-full h-full object-contain"
+              fill
+              className="object-contain"
               unoptimized
             />
             {mode === "admin" && clase.id && (
@@ -1130,10 +1129,11 @@ export function ClaseCard({
         ) : (
           <div className="relative shrink-0">
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm
-                ${isGrabada ? "bg-green-50 text-green-700" : isLive ? "bg-red-50 text-red-600" : "bg-blue-50 text-blue-600"}`}
+              className="w-32 sm:w-40 h-24 sm:h-28 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
             >
-              {clase.titulo?.match(/^S(\d+)/)?.[1] ?? clase.semana ?? "–"}
+              <span className="text-3xl font-bold text-white/90">
+                {clase.titulo?.match(/^S(\d+)/)?.[1] ?? clase.semana ?? "–"}
+              </span>
             </div>
             {mode === "admin" && clase.id && (
               <div
