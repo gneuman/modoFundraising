@@ -518,6 +518,16 @@ function NuevoRecursoInline({
     descripcion: "",
   });
 
+  // Extrae el mensaje de error de una respuesta fallida ({ error, detail }).
+  async function razonError(res: Response): Promise<string> {
+    try {
+      const j = await res.json();
+      return j?.detail || j?.error || `HTTP ${res.status}`;
+    } catch {
+      return `HTTP ${res.status}`;
+    }
+  }
+
   async function submit() {
     if (!form.titulo) return toast.error("El título es obligatorio");
     if (!form.url && !file) return toast.error("Agrega una URL o sube un archivo");
@@ -529,9 +539,9 @@ function NuevoRecursoInline({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, claseId }),
       });
-      if (!res.ok) throw new Error(`create ${res.status}`);
+      if (!res.ok) throw new Error(`No se pudo crear el recurso: ${await razonError(res)}`);
       const { id } = await res.json();
-      if (!id) throw new Error("sin id");
+      if (!id) throw new Error("Airtable no devolvió un ID de recurso");
 
       // 2. Si hay archivo, subir el attachment sobre el record recién creado.
       let attachments: RecursoRecord["Attachments"];
@@ -540,7 +550,7 @@ function NuevoRecursoInline({
         fd.append("file", file);
         fd.append("recursoId", id);
         const up = await fetch("/api/admin/recursos/attachment", { method: "POST", body: fd });
-        if (!up.ok) throw new Error(`upload ${up.status}`);
+        if (!up.ok) throw new Error(`Recurso creado, pero falló subir el archivo: ${await razonError(up)}`);
         const { url, filename } = await up.json();
         if (url) attachments = [{ url, filename }];
       }
@@ -553,7 +563,7 @@ function NuevoRecursoInline({
       toast.success("Recurso agregado");
     } catch (e) {
       console.error("[NuevoRecurso]", e);
-      toast.error("Error al crear recurso");
+      toast.error(e instanceof Error ? e.message : "Error al crear recurso");
     } finally {
       setSaving(false);
     }
