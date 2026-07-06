@@ -78,9 +78,16 @@ export function SuscripcionClient({
 
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
   const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
-  // Solo puede cancelar si tiene suscripción mensual activa y no completó las 3 cuotas
-  const puedeCancel =
-    haPagado && !!stripeSubscriptionId && paymentStatus !== "Cuota 3 pagada";
+  // Cuotas completadas → nada que cancelar. El pago único llega directo a
+  // "Cuota 3 pagada" desde el webhook (mode=payment), así que ese status cubre
+  // tanto pago único como suscripción ya abonada: en ambos NO se muestra cancelar.
+  const cuotasCompletas =
+    paymentStatus === "Cuota 3 pagada" || paymentStatus === "Cuota 4 pagada";
+  // Muestra el botón a toda suscripción activa (pagó y no completó cuotas).
+  // NO depende de stripe_subscription_id: si el ID no se guardó en Airtable
+  // (migración / webhook viejo), la cancelación se resuelve por email en el
+  // endpoint. Antes ese dato faltante ocultaba el botón (WI-1818).
+  const puedeCancel = haPagado && !cuotasCompletas;
 
   async function handleCancel() {
     if (!reasonCode) {
