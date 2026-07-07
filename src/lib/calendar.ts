@@ -71,6 +71,86 @@ export function extractLiveUrl(description: string): string | null {
   return m ? m[1] : null;
 }
 
+// Agrega en UN SOLO patch los attendees que falten en un evento ya cargado.
+// Recibe la lista de attendees actual (del GET que hizo el caller) para no
+// re-fetchear, calcula el delta y patchea una sola vez.
+//
+// Por qué un solo patch y no N: Google Calendar no tiene "add attendee" — cada
+// patch reemplaza el array completo. Si se hacen N patches concurrentes, cada
+// uno leyó el mismo estado inicial y escribe "previos + yo", pisándose entre sí
+// (el último gana y borra a los demás). Además N patches disparan rateLimit.
+// Un solo patch con [...existentes, ...faltantes] es atómico y no rate-limitea.
+//
+// sendUpdates:"all" → Google solo notifica a los attendees agregados en el diff,
+// no re-molesta a los que ya estaban. Devuelve cuántos se agregaron.
+async function ensureAttendees(
+  eventId: string,
+  currentAttendees: { email?: string | null }[],
+  emailsToEnsure: string[],
+): Promise<number> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+  const existingEmails = new Set(
+    currentAttendees.map((a) => (a.email ?? "").toLowerCase()).filter(Boolean),
+  );
+  const nuevos = emailsToEnsure.filter(
+    (e) => e && !existingEmails.has(e.toLowerCase()),
+  );
+  if (!nuevos.length) return 0;
+
+  await calendar.events.patch({
+    calendarId: CALENDAR_ID,
+    eventId,
+    sendUpdates: "all", // notifica solo a los recién agregados
+    requestBody: {
+      attendees: [...currentAttendees, ...nuevos.map((email) => ({ email }))],
+      guestsCanSeeOtherGuests: false,
+      guestsCanInviteOthers: false,
+    },
+  });
+  return nuevos.length;
+}
+
+// Sincroniza una lista de founders contra varios eventos: para cada evento hace
+// GET + un solo PATCH con los faltantes (ensureAttendees). Procesa los eventos
+// en SERIE con un pequeño delay para no rate-limitear Calendar API. Idempotente:
+// re-correrlo no re-invita a quien ya está. Devuelve el desglose por evento.
+//
+// Lo usa el cron diario de sincronización de attendees. No quita a nadie.
+export async function syncFoundersToEvents(
+  eventIds: string[],
+  emails: string[],
+  opts: { delayMs?: number } = {},
+): Promise<{
+  totalAdded: number;
+  perEvent: { eventId: string; added: number; error?: string }[];
+}> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+  const delayMs = opts.delayMs ?? 1200;
+  const perEvent: { eventId: string; added: number; error?: string }[] = [];
+  let totalAdded = 0;
+
+  for (let i = 0; i < eventIds.length; i++) {
+    const eventId = eventIds[i];
+    try {
+      const res = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
+      const added = await ensureAttendees(eventId, res.data.attendees ?? [], emails);
+      totalAdded += added;
+      perEvent.push({ eventId, added });
+    } catch (err) {
+      perEvent.push({
+        eventId,
+        added: 0,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+    if (i < eventIds.length - 1 && delayMs > 0) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+
+  return { totalAdded, perEvent };
+}
+
 // Agrega un attendee a un evento existente (sin notificar al resto)
 export async function addAttendeeToEvent(eventId: string, email: string): Promise<void> {
   const calendar = google.calendar({ version: "v3", auth: getAuth() });
@@ -235,11 +315,13 @@ function sameInstant(a?: string | null, b?: string | null): boolean {
 // materiales no cambiaron, no llama a Calendar (noop). Si cambiaron, hace
 // update con sendUpdates dependiendo de la materialidad.
 //
-// Attendees:
-//   - Solo se invitan en CREATE (cuando se genera el evento por primera vez).
-//   - En UPDATE NO se agregan attendees nuevos — el mantenimiento de la
-//     lista de invitados vive en el flujo de inscripción/churn aparte
-//     (addAttendeesToAllEvents / removeAttendeeFromAllEvents).
+// Attendees (data.attendeeEmails):
+//   - Se sincronizan en CREATE y en UPDATE: cada upsert asegura que todos los
+//     emails pasados estén invitados, agregando solo los que falten en UN solo
+//     patch (ensureAttendees). Así los founders que se suman después de crear
+//     el evento entran en el siguiente upsert.
+//   - Nunca quita attendees — el churn vive en removeAttendeeFromAllEvents.
+//   - Si data.attendeeEmails viene vacío/undefined, no toca la lista.
 //
 // Materialidad de campos (afecta sendUpdates):
 //   - hora/fecha → cambio MATERIAL → sendUpdates: 'all' (notifica a Founders)
@@ -263,12 +345,12 @@ export async function upsertCalendarEvent(
       urlLive: data.urlLive,
     });
 
+    // Un solo patch con TODOS los founders (no N patches concurrentes que se
+    // pisan y rate-limitean). El evento recién creado no tiene attendees, así
+    // que el estado base es [].
     let attendeesAdded = 0;
     if (data.attendeeEmails?.length) {
-      const results = await Promise.allSettled(
-        data.attendeeEmails.map((email) => addAttendeeToEvent(created.eventId, email)),
-      );
-      attendeesAdded = results.filter((r) => r.status === "fulfilled").length;
+      attendeesAdded = await ensureAttendees(created.eventId, [], data.attendeeEmails);
     }
 
     return {
@@ -328,17 +410,24 @@ export async function upsertCalendarEvent(
   const meetLink =
     ev.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === "video")?.uri ?? "";
 
-  // NO se tocan attendees en UPDATE — la lista de invitados se mantiene en
-  // el flujo de inscripción/churn (no en cada save de la clase).
-  const attendeesAdded = 0;
+  // Sincroniza attendees faltantes en UPDATE (patch aparte de los campos).
+  // Antes NO se tocaban attendees en update, lo que dejaba fuera a los founders
+  // que se sumaban después de crear el evento. Ahora cada upsert asegura que
+  // TODOS los founders pasados estén invitados. Solo agrega los que faltan; no
+  // quita a nadie (churn vive en removeAttendeeFromAllEvents). Es un patch
+  // separado para no mezclar la notificación de attendees con la de campos.
+  const attendeesAdded = data.attendeeEmails?.length
+    ? await ensureAttendees(data.eventId, ev.attendees ?? [], data.attendeeEmails)
+    : 0;
 
-  // Si no cambió ningún campo material/no-material → noop
+  // Si no cambió ningún campo material/no-material → noop (aunque haya podido
+  // agregar attendees arriba; eso se refleja en attendeesAdded).
   if (Object.keys(patch).length === 0) {
     return {
       eventId: data.eventId,
       meetLink,
       htmlLink: ev.htmlLink ?? "",
-      action: "noop",
+      action: attendeesAdded > 0 ? "updated" : "noop",
       changedFields,
       attendeesAdded,
     };

@@ -15,11 +15,14 @@ import { upsertCalendarEvent } from "@/lib/calendar";
 //
 // Comportamiento:
 //   - Gate: si listo_publicar = false, responde {skipped} sin tocar Calendar.
-//   - Crea evento Founders + Equipo si no existen (e invita a todos los Founders
-//     activos SOLO en este momento de creación).
-//   - Si ya existen → diff: solo patchea si cambió título/fecha/descripción.
-//     NO toca attendees en updates (eso lo hace el flujo de inscripción/churn).
-//     sendUpdates: 'all' si cambia título o fecha. Descripción sola → 'none'.
+//   - Crea evento Founders + Equipo si no existen.
+//   - Invita a los Founders activos (portal_access=1) SIEMPRE: en create y en
+//     cada update. upsertCalendarEvent agrega solo los que falten, así que los
+//     founders que se suman después de crear el evento entran en el siguiente
+//     disparo del webhook (marcar listo_publicar de nuevo). No re-notifica a
+//     los ya invitados ni quita a nadie (churn vive aparte).
+//   - Si ya existe → diff de campos: solo patchea si cambió título/fecha/descripción.
+//     sendUpdates: 'all' si cambia fecha. Título/descripción → 'none'.
 //   - Auto-off TEMPRANO: apenas pasa el gate, escribe listo_publicar = false
 //     en Airtable ANTES de tocar Calendar. Sirve dos propósitos:
 //     1) El checkbox se comporta como "botón de publicar" (para republicar,
@@ -156,15 +159,15 @@ async function handleUpsert(
     console.error("[clase-upsert] early auto-off fail:", e instanceof Error ? e.message : e);
   });
 
-  // ─── Founders activos (solo se usan si el evento se crea por primera vez) ─
+  // ─── Founders activos (se sincronizan SIEMPRE, en create y en update) ─────
+  // upsertCalendarEvent solo agrega los que falten (ensureAttendees), así que
+  // pasar la lista completa en cada upsert reincorpora a los founders que se
+  // sumaron después de crear el evento, sin re-notificar a los ya invitados.
   // Modo prueba: si viene testEmail, usamos solo ese (no resolvemos Founders).
-  const isFoundersCreating = !clase.calendar_event_id;
   const testEmail = testEmailRaw?.trim();
-  const founderEmails = isFoundersCreating
-    ? testEmail
-      ? [testEmail]
-      : (await getAllFoundersWithAccess()).map((f) => f.email)
-    : undefined;
+  const founderEmails = testEmail
+    ? [testEmail]
+    : (await getAllFoundersWithAccess()).map((f) => f.email);
 
   // ─── Founders event ──────────────────────────────────────────────────────
   // url_live = link de Streamyard público (donde ven los Founders).
