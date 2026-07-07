@@ -89,6 +89,36 @@
         }
       },
       "notes": "Botón 'Ver en el portal' para los recordatorios 24h y 1h. Mismo patrón: URL sacada del slack.texto de session-notify (tipo=24h o tipo=1h), fallback al portal. Sirve para ambos tipos porque el endpoint ya arma el texto correcto según el tipo que le pases."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => {\n  const s = $json.slack || {};\n  const texto = s.texto || '';\n  const m = texto.match(/<(https?:\\/\\/[^>|]+)/);\n  const url = (m && m[1]) || $json.url_live || 'https://portal.modofundraising.com/portal/clases';\n  const titulo = $json.titulo || 'la sesión';\n  const fechaFmt = $json.fecha\n    ? DateTime.fromISO($json.fecha).setZone('America/Santiago').toFormat('dd/MM/yyyy · h:mm a')\n    : 'Por confirmar';\n  return JSON.stringify({\n    channel: s.canal || '#modo-fundraising',\n    text: `⏰ Tu sesión comienza en 1 hora: ${titulo}`,\n    blocks: [\n      { type: 'header', text: { type: 'plain_text', text: '⏰ Tu sesión comienza en 1 hora', emoji: true } },\n      { type: 'section', fields: [\n        { type: 'mrkdwn', text: `*📚 Sesión:*\\n${titulo}` },\n        { type: 'mrkdwn', text: `*🗓️ Fecha y hora (Santiago):*\\n${fechaFmt}` }\n      ] },\n      { type: 'actions', elements: [\n        { type: 'button', action_id: 'join_session', text: { type: 'plain_text', text: '🎥 Entrar a la sesión', emoji: true }, url, style: 'primary' }\n      ] }\n    ]\n  });\n})() }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Slack: sesión en 1 hora (header + fields)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3840,
+        1120
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "i31eGQmEziBamD7s",
+          "name": "APP Modo Fundraising"
+        }
+      },
+      "notes": "Tu diseño: header '⏰ Tu sesión comienza en 1 hora' + fields Sesión/Fecha + botón 'Entrar a la sesión'. Espera el output de POST session-notify (tipo=1h): titulo y fecha vienen en la raíz. La URL NO usa $json.url_live (el endpoint no lo expone suelto) — la saca del slack.texto (que sí trae url_live), con fallback a $json.url_live y luego al portal. Fecha formateada en America/Santiago (TZ oficial del proyecto)."
     }
   ],
   "connections": {},
