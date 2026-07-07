@@ -55,5 +55,63 @@ de solo-URL, basta el `200`.
   se ignora sin problema (por eso basta el 200).
 - Solo hay que procesar el payload el día que se metan botones que **hagan** algo dentro
   de Slack (aprobar, responder, abrir modal). Ese sería un issue nuevo.
-- Alcance de OP-1882: **solo el webhook**. Los mensajes de Slack del portal hoy mandan
-  links en texto plano, no botones Block Kit — no se tocaron en este issue.
+
+---
+
+# Mensajes de Slack con botón
+
+Archivo importable: [`slack-mensajes-con-boton.json`](./slack-mensajes-con-boton.json)
+
+Tres nodos `httpRequest` a `chat.postMessage` (mismo patrón que tu nodo `Slack Bot`),
+con la credencial **APP Modo Fundraising** (`httpHeaderAuth`):
+
+| Nodo | Botón | URL del botón |
+|---|---|---|
+| **Slack: sesión en vivo (StreamYard)** | 🔴 Entrar al vivo | sacada de `slack.texto` (`session-notify` tipo `start`, usa `url_live`) |
+| **Slack: Abrir portal** | Abrir portal | fija: `https://portal.modofundraising.com/` |
+| **Slack: recordatorio (24h/1h)** | Ver en el portal | sacada de `slack.texto` (`session-notify` tipo `24h` o `1h`) |
+
+## Lo que importa para que el botón funcione y NO dé error
+
+Un botón interactivo de Slack solo necesita **dos cosas** para funcionar sin warning:
+
+1. **`action_id`** — un identificador único (ya está en cada nodo).
+2. **`url`** — el link a abrir.
+
+El warning ⚠️ **no lo causa el botón** — lo causa no tener el Request URL configurado.
+Como el webhook de arriba ya está conectado en Slack, el warning **ya no aparece**, sin
+importar cuántos botones mandes. Los dos temas son independientes:
+
+- **Webhook** (parte de arriba) → limpia el warning. Se configura **una vez**.
+- **Botones** (esta parte) → cada mensaje. Solo necesitan `action_id` + `url`.
+
+## De dónde sale la URL "sin importar la liga"
+
+Los nodos de sesión/recordatorio **no hardcodean la URL**. La sacan del `slack.texto` que
+devuelve `session-notify`, que ya trae el link bueno embebido como `<https://...|texto>`:
+
+```
+url = texto.match(/<(https?:\/\/[^>|]+)/)[1]  ||  https://portal.modofundraising.com/portal/clases
+```
+
+Si por lo que sea no encuentra link en el texto, **cae al portal** — así el botón
+**nunca queda sin liga ni se rompe**. Respeta la regla `url_live` vs `meet_link`: el
+endpoint solo expone `url_live` (StreamYard), nunca el `meet_link` interno.
+
+## Cómo conectarlos
+
+Los nodos de sesión/recordatorio esperan recibir el `$json.slack` de un nodo
+`POST session-notify` **anterior** (el que ya tienes en el workflow de notificaciones).
+Es decir: reemplazan (o siguen a) el nodo `Slack post` de texto plano por uno de estos
+con botón. El nodo **Abrir portal** es independiente — no necesita nada antes.
+
+> Ajusta el `channel` del nodo *Abrir portal* si `C0BFL2J81QB` no es el canal correcto
+> (era el de tu mensaje de prueba).
+
+## Alcance
+
+- OP-1882 entrega el **webhook** (limpia el warning) + estos **nodos de mensaje** listos
+  para importar a n8n. Es infra de n8n — el merge del PR NO los activa; se importan y
+  conectan a mano en n8n.
+- Si en el futuro quieres que el portal devuelva `slack.url` / `slack.blocks` crudos (en
+  vez de que n8n extraiga la URL del texto), eso toca código del portal → issue aparte.
