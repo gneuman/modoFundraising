@@ -78,15 +78,24 @@ export function SuscripcionClient({
 
   // portal_access = true means payment confirmed (Stripe, manual, or beca)
   const haPagado = portalAccess || PAGADO_STATUSES.includes(paymentStatus);
-  // Cuotas completadas → nada que cancelar. El pago único llega directo a
-  // "Cuota 3 pagada" desde el webhook (mode=payment), así que ese status cubre
-  // tanto pago único como suscripción ya abonada: en ambos NO se muestra cancelar.
+  // Pago único (mode=payment) nunca crea una subscription en Stripe, así que el
+  // stripe_subscription_id queda vacío. Ese es el discriminador real entre
+  // "pago único" y "suscripción de cuotas mensuales". Antes se adivinaba con
+  // paymentStatus === "Cuota 3 pagada", que confundía pago único con cuotas ya
+  // terminadas y generaba textos contradictorios en el portal (WI-1846).
+  const esPagoUnico = haPagado && !stripeSubscriptionId;
+  // Cuotas completadas → suscripción de 3 cuotas que terminó de pagar. OJO: el
+  // pago único también se marca "Cuota 3 pagada" en el webhook, así que hay que
+  // excluirlo con !esPagoUnico — de lo contrario un pago único quedaría como
+  // "completado" y no podría darse de baja. La marca real de cuotas terminadas
+  // es: llegó a Cuota 3/4 Y tiene subscription de Stripe (no es pago único).
   const cuotasCompletas =
-    paymentStatus === "Cuota 3 pagada" || paymentStatus === "Cuota 4 pagada";
-  // Muestra el botón a toda suscripción activa (pagó y no completó cuotas).
-  // NO depende de stripe_subscription_id: si el ID no se guardó en Airtable
-  // (migración / webhook viejo), la cancelación se resuelve por email en el
-  // endpoint. Antes ese dato faltante ocultaba el botón (WI-1818).
+    !esPagoUnico &&
+    (paymentStatus === "Cuota 3 pagada" || paymentStatus === "Cuota 4 pagada");
+  // "Darme de baja del programa" aplica a TODO founder activo que aún no
+  // completó cuotas — incluye pago único. En cuotas detiene los cobros futuros;
+  // en pago único (sin subscription en Stripe) solo lo saca del programa (ya
+  // pagó completo, sin reembolso). El endpoint maneja ambos casos.
   const puedeCancel = haPagado && !cuotasCompletas;
 
   async function handleCancel() {
@@ -107,13 +116,15 @@ export function SuscripcionClient({
       });
       if (!res.ok) throw new Error();
       toast.success(
-        "Suscripción cancelada. Tu acceso permanecerá activo hasta el fin del período.",
+        esPagoUnico
+          ? "Te diste de baja del programa. Se cerró tu acceso al portal."
+          : "Suscripción cancelada. Se detuvieron los cobros futuros.",
       );
       setShowConfirm(false);
       window.location.href = "/portal";
     } catch {
       toast.error(
-        "Error al cancelar la suscripción. Contacta a admin@impacta.vc",
+        "Error al procesar la baja. Contacta a admin@impacta.vc",
       );
     } finally {
       setCancelling(false);
@@ -305,7 +316,9 @@ export function SuscripcionClient({
                 Modo Fundraising 2026
               </h3>
               <p className="text-sm text-zinc-500 mt-0.5">
-                US$349 / mes · 3 cuotas
+                {esPagoUnico
+                  ? `Pago único · US$${ONETIME_FULL_PRICE}`
+                  : "US$349 / mes · 3 cuotas"}
               </p>
             </div>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
@@ -317,8 +330,9 @@ export function SuscripcionClient({
             {puedeCancel && (
               <>
                 <p className="text-sm text-zinc-500 mb-4">
-                  Si cancelas tu suscripción, tu acceso al portal permanecerá
-                  activo hasta el final del período de facturación actual.
+                  {esPagoUnico
+                    ? "Si te das de baja del programa perderás el acceso al portal, clases y misiones. Tu pago único ya está abonado y no genera reembolso."
+                    : "Si te das de baja del programa se detendrán los cobros futuros y perderás el acceso al portal, clases y misiones."}
                 </p>
                 {!showConfirm ? (
                   <Button
@@ -326,7 +340,7 @@ export function SuscripcionClient({
                     onClick={() => setShowConfirm(true)}
                     className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                   >
-                    Cancelar suscripción
+                    Darme de baja del programa
                   </Button>
                 ) : (
                   <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-4">
@@ -338,8 +352,10 @@ export function SuscripcionClient({
                         </p>
                         <p className="text-xs text-red-600 mt-1">
                           Tu respuesta nos ayuda a mejorar el programa. Perderás
-                          acceso al portal y a todas las clases y misiones al
-                          final del período.
+                          el acceso al portal y a todas las clases y misiones.
+                          {esPagoUnico
+                            ? " Recuerda que tu pago único ya está abonado y no hay reembolso."
+                            : ""}
                         </p>
                       </div>
                     </div>
@@ -385,10 +401,10 @@ export function SuscripcionClient({
                         {cancelling ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Cancelando...
+                            Procesando...
                           </>
                         ) : (
-                          "Sí, cancelar"
+                          "Sí, darme de baja"
                         )}
                       </Button>
                       <Button
@@ -408,10 +424,10 @@ export function SuscripcionClient({
               </>
             )}
             {!puedeCancel && haPagado && (
+              /* Solo llega aquí cuando el programa está completamente abonado
+                 (cuotas terminadas o pago único ya registrado como Cuota 3). */
               <p className="text-sm text-zinc-400">
-                {paymentStatus === "Cuota 3 pagada"
-                  ? "Tu programa está completamente abonado."
-                  : "Pago único — sin renovaciones automáticas."}
+                Tu programa está completamente abonado.
               </p>
             )}
           </div>

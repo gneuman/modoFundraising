@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { obtenerSesion } from "@/lib/auth";
 import { getFounderProfile } from "@/lib/airtable";
-import { Globe, Link2, MapPin, Users, TrendingUp, DollarSign, ExternalLink } from "lucide-react";
+import { Globe, Link2, MapPin, Users, TrendingUp, DollarSign, ExternalLink, Rocket, Layers, Target, Clock, Factory, Briefcase } from "lucide-react";
 import { StartupEditForm } from "./startup-edit-form";
 
 export default async function StartupPage() {
@@ -36,15 +36,15 @@ export default async function StartupPage() {
 
   const fields: { label: string; value?: string | number | null; icon?: React.ReactNode; href?: string }[] = [
     { label: "País de operación", value: startup.startup_country_ops, icon: <MapPin className="h-4 w-4" /> },
-    { label: "Etapa", value: startup.startup_stage },
+    { label: "Etapa", value: startup.startup_stage, icon: <Layers className="h-4 w-4" /> },
     { label: "Equipo", value: startup.startup_team_size ? `${startup.startup_team_size} personas` : undefined, icon: <Users className="h-4 w-4" /> },
     { label: "MRR", value: startup.startup_mrr ? `US$${startup.startup_mrr.toLocaleString("en")}` : undefined, icon: <TrendingUp className="h-4 w-4" /> },
     { label: "Ventas 12m", value: startup.startup_sales_12m ? `US$${startup.startup_sales_12m.toLocaleString("en")}` : undefined, icon: <DollarSign className="h-4 w-4" /> },
-    { label: "Ronda", value: startup.round_series },
-    { label: "Tamaño de ronda", value: startup.round_size ? `US$${startup.round_size.toLocaleString("en")}` : undefined },
-    { label: "Runway", value: startup.runway ? `${startup.runway} meses` : undefined },
-    { label: "Industrias", value: startup.startup_industries },
-    { label: "Modelo de negocio", value: startup.business_model },
+    { label: "Ronda", value: startup.round_series, icon: <Rocket className="h-4 w-4" /> },
+    { label: "Tamaño de ronda", value: startup.round_size ? `US$${startup.round_size.toLocaleString("en")}` : undefined, icon: <Target className="h-4 w-4" /> },
+    { label: "Runway", value: startup.runway ? `${startup.runway} meses` : undefined, icon: <Clock className="h-4 w-4" /> },
+    { label: "Industrias", value: startup.startup_industries, icon: <Factory className="h-4 w-4" /> },
+    { label: "Modelo de negocio", value: startup.business_model, icon: <Briefcase className="h-4 w-4" /> },
   ].filter((f) => f.value);
 
   return (

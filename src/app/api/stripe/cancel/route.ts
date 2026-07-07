@@ -54,16 +54,17 @@ export async function POST(req: NextRequest) {
       app.stripe_customer_id,
     ).catch(() => undefined) ?? undefined;
   }
-  if (!subscriptionId) {
-    // Sin suscripción cancelable = pago único o ya cancelada. No es error del
-    // founder; se le informa que no hay nada que cancelar.
-    return NextResponse.json(
-      { error: "No hay una suscripción activa para cancelar." },
-      { status: 404 },
-    );
-  }
 
-  await cancelSubscription(subscriptionId);
+  // Darse de baja del programa = churn. Dos casos:
+  //  - Suscripción de cuotas: hay subscription en Stripe → cancelarla para
+  //    detener cobros futuros y luego hacer el churn.
+  //  - Pago único: NO hay subscription (mode=payment) → no hay nada que cancelar
+  //    en Stripe, pero el founder igual puede salir del programa. Ya pagó
+  //    completo y no hay reembolso automático; el UI se lo advierte antes.
+  // En ambos casos se ejecuta el churn (perder acceso, salir de eventos, etc.).
+  if (subscriptionId) {
+    await cancelSubscription(subscriptionId);
+  }
 
   const startupIds = (app.startup_record as string[] | undefined) ?? [];
   const founderIds = (app.founder_record as string[] | undefined) ?? [];

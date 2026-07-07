@@ -129,9 +129,6 @@ export function EquipoClient({ founderEmail, founderName, startupName, team }: P
 
       {/* Miembros */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
-        <div className="px-5 py-3 bg-zinc-50 border-b border-zinc-200">
-          <h3 className="text-sm font-semibold text-zinc-700">Miembros ({allMembers.length})</h3>
-        </div>
         <div className="divide-y divide-zinc-100">
           {team.map((m) => (
             <div key={m.id}>
