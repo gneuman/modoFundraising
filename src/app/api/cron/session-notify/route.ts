@@ -56,9 +56,10 @@ function isAuthorized(req: NextRequest): boolean {
   return !!CRON_SECRET && auth === `Bearer ${CRON_SECRET}`;
 }
 
-// Link founder: preferimos meet_link; fallback al url_live (Streamyard).
+// Link founder: SIEMPRE url_live (Streamyard). El meet_link es la reunión
+// interna y NO debe filtrarse al canal. Fallback al portal si no hay url_live.
 function founderLink(clase: ClaseRecord): string {
-  return clase.meet_link || clase.url_live || `${APP_URL}/portal/clases`;
+  return clase.url_live || `${APP_URL}/portal/clases`;
 }
 
 function buildSlackText(clase: ClaseRecord, tipo: Tipo): string {
