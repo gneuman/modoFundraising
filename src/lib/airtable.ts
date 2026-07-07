@@ -459,23 +459,22 @@ export async function getFutureCalendarEventIds(): Promise<string[]> {
     .map((e) => e.eventId);
 }
 
-// Devuelve los eventos Founder (calendar_event_id) de todas las clases con
-// fecha de HOY en adelante. A diferencia de getFutureCalendarEventIds (que solo
-// trae S1/S2 para el drip de inscripción), este trae TODAS las clases futuras.
-// Lo usa el cron de sincronización de attendees para reincorporar founders que
-// se sumaron después de crear los eventos.
+// Devuelve los eventos Founder (calendar_event_id) de las clases que TODAVÍA no
+// empezaron (fecha/hora estrictamente en el futuro). A diferencia de
+// getFutureCalendarEventIds (que solo trae S1/S2 para el drip de inscripción),
+// este trae TODAS las clases futuras. Lo usa el cron de sincronización de
+// attendees para reincorporar founders que se sumaron después de crear los
+// eventos — no tiene sentido invitar a una clase que ya pasó.
 export async function getUpcomingClaseEventIds(): Promise<
   { recordId: string; eventId: string; titulo: string; fecha: string }[]
 > {
-  // Fecha de hoy a medianoche (inicio del día) para no perder la clase de hoy.
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const hoyIso = hoy.toISOString();
-
+  // Corte con NOW() de Airtable (momento exacto, no medianoche): así una clase
+  // de HOY que ya ocurrió queda excluida. El reloj lo pone Airtable, sin
+  // depender de la zona horaria del server.
   const records = await base(Tables.CLASES)
     .select({
       fields: ["calendar_event_id", "titulo", "fecha"],
-      filterByFormula: `AND({calendar_event_id} != "", IS_AFTER({fecha}, "${hoyIso}"))`,
+      filterByFormula: `AND({calendar_event_id} != "", IS_AFTER({fecha}, NOW()))`,
       sort: [{ field: "fecha" }],
     })
     .all();
