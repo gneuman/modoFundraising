@@ -437,7 +437,12 @@ export function SuscripcionClient({
       <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-5">
         <p className="text-sm text-zinc-600">
           ¿Tienes preguntas sobre tu suscripción?{" "}
-          <a href="mailto:admin@impacta.vc" className="text-blue-600 underline">
+          <a
+            href="mailto:admin@impacta.vc"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline"
+          >
             admin@impacta.vc
           </a>
         </p>

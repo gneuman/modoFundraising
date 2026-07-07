@@ -1,10 +1,15 @@
 import { obtenerSesion } from "@/lib/auth";
-import { getFounderProfileCached, getClasesWithContentCached, type ClaseRecord } from "@/lib/airtable";
+import {
+  getFounderProfileCached,
+  getClasesWithContentCached,
+  type ClaseRecord,
+  type FounderProfile,
+} from "@/lib/airtable";
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
-import { Calendar } from "lucide-react";
-import { formatHora, TZ } from "@/lib/timezone";
+import { Calendar, BookOpen, Users, CreditCard, ChevronRight } from "lucide-react";
+import { formatHora, formatFechaSinHora, TZ } from "@/lib/timezone";
 import { ClaseCardCTA } from "@/components/portal/clase-card-cta";
 
 export const dynamic = "force-dynamic";
@@ -59,22 +64,52 @@ export default async function PortalPage() {
       </div>
 
       <Suspense fallback={<ClasesSkeleton />}>
-        <ClasesSection />
+        <ClasesSection profile={profile} />
       </Suspense>
     </div>
   );
 }
 
-async function ClasesSection() {
+// Ventana del home: la última clase ya pasada + las próximas dentro de 14 días.
+const VENTANA_DIAS = 14;
+
+async function ClasesSection({ profile }: { profile: FounderProfile | null }) {
   const clases = await getClasesWithContentCached();
   const hayClases = clases.length > 0;
   const hayMisionesActivas = clases.some((c) =>
     c.misionesData.some((m) => m.status === "Activa")
   );
 
-  const proximas = clases.filter((c) => c.status !== "Grabada");
-  const grabadas = clases.filter((c) => c.status === "Grabada");
-  const gruposProximas = groupByDay(proximas);
+  // Server Component (async): Date.now() es determinista por request, no re-render.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const ventanaFin = now + VENTANA_DIAS * 86_400_000;
+  const conFecha = clases.filter((c) => c.fecha);
+
+  // Última clase ya dada (la más reciente con fecha < ahora).
+  const ultimaPasada = conFecha
+    .filter((c) => new Date(c.fecha!).getTime() < now)
+    .sort((a, b) => new Date(b.fecha!).getTime() - new Date(a.fecha!).getTime())[0];
+
+  // Próximas dentro de la ventana de 14 días.
+  const proximas14 = conFecha
+    .filter((c) => {
+      const t = new Date(c.fecha!).getTime();
+      return t >= now && t <= ventanaFin;
+    })
+    .sort((a, b) => new Date(a.fecha!).getTime() - new Date(b.fecha!).getTime());
+
+  const relevantes = [...(ultimaPasada ? [ultimaPasada] : []), ...proximas14];
+  const gruposRelevantes = groupByDay(relevantes);
+
+  // "Ver todas →" solo si hay clases fuera de la ventana mostrada.
+  const idsMostradas = new Set(relevantes.map((c) => c.id));
+  const hayMasClases = clases.some((c) => !idsMostradas.has(c.id));
+
+  // Datos clave para las cards de sección.
+  const proximaClase = proximas14[0] ?? ultimaPasada;
+  const teamCount = profile?.team?.length ?? 0;
+  const paymentStatus = profile?.payment_status;
 
   return (
     <>
@@ -82,23 +117,24 @@ async function ClasesSection() {
         <section className="space-y-6">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="text-lg font-bold text-zinc-800">Próximas clases</h2>
+              <h2 className="text-lg font-bold text-zinc-800">Tus clases</h2>
               <p className="text-xs text-zinc-500 mt-0.5">
-                {proximas.length} {proximas.length === 1 ? "clase próxima" : "clases próximas"}
-                {grabadas.length > 0 && ` · ${grabadas.length} grabadas`}
+                Clase pasada y próximas {VENTANA_DIAS} días
               </p>
             </div>
-            <Link
-              href="/portal/clases"
-              className="text-xs font-medium text-blue-600 hover:text-blue-700"
-            >
-              Ver todas →
-            </Link>
+            {hayMasClases && (
+              <Link
+                href="/portal/clases"
+                className="text-xs font-medium text-blue-600 hover:text-blue-700"
+              >
+                Ver todas →
+              </Link>
+            )}
           </div>
 
-          {gruposProximas.length === 0 ? (
+          {gruposRelevantes.length === 0 ? (
             <div className="bg-white rounded-2xl border border-zinc-200 p-8 text-center text-sm text-zinc-400">
-              No hay clases próximas. Revisa las grabaciones en{" "}
+              No hay clases en los próximos {VENTANA_DIAS} días. Revisa todas en{" "}
               <Link href="/portal/clases" className="text-blue-600 hover:underline">
                 Clases
               </Link>
@@ -106,7 +142,7 @@ async function ClasesSection() {
             </div>
           ) : (
             <div className="space-y-8">
-              {gruposProximas.map((grupo) => (
+              {gruposRelevantes.map((grupo) => (
                 <div key={grupo.key} className="flex gap-6">
                   <div className="w-24 shrink-0 pt-1">
                     <p className="text-sm font-semibold text-zinc-800 capitalize leading-tight">
@@ -129,26 +165,90 @@ async function ClasesSection() {
         </section>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          hayClases && { href: "/portal/clases", label: "Clases", emoji: "📚" },
-          hayMisionesActivas && { href: "/portal/misiones", label: "Misiones", emoji: "🎯" },
-          { href: "/portal/equipo", label: "Equipo", emoji: "👥" },
-          { href: "/portal/suscripcion", label: "Suscripción", emoji: "💳" },
-        ].filter((item): item is { href: string; label: string; emoji: string } => Boolean(item)).map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="bg-white rounded-xl border border-zinc-200 p-4 hover:border-blue-200 hover:shadow-sm transition-all group flex items-center gap-3"
-          >
-            <div className="text-xl">{item.emoji}</div>
-            <p className="font-medium text-sm text-zinc-700 group-hover:text-blue-600 transition-colors">
-              {item.label}
-            </p>
-          </Link>
-        ))}
+      {/* Secciones con info clave (no botones planos): cada card lleva a su
+          sección y adelanta el dato más relevante. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {hayClases && (
+          <SeccionCard
+            href="/portal/clases"
+            icon={<BookOpen className="h-5 w-5 text-blue-500" />}
+            label="Clases"
+            valor={
+              proximaClase
+                ? stripSemanaPrefix(proximaClase.titulo) ?? "Ver calendario"
+                : "Ver calendario"
+            }
+            detalle={
+              proximaClase?.fecha
+                ? formatFechaSinHora(proximaClase.fecha) ?? undefined
+                : undefined
+            }
+          />
+        )}
+        {hayMisionesActivas && (
+          <SeccionCard
+            href="/portal/misiones"
+            icon={<span className="text-xl leading-none">🎯</span>}
+            label="Misiones"
+            valor="Tienes misiones activas"
+            detalle="Completa las tareas de la semana"
+          />
+        )}
+        <SeccionCard
+          href="/portal/equipo"
+          icon={<Users className="h-5 w-5 text-purple-500" />}
+          label="Equipo"
+          valor={
+            teamCount > 0
+              ? `${teamCount} ${teamCount === 1 ? "integrante" : "integrantes"}`
+              : "Gestiona tu equipo"
+          }
+          detalle={profile?.startup_name ?? undefined}
+        />
+        <SeccionCard
+          href="/portal/suscripcion"
+          icon={<CreditCard className="h-5 w-5 text-emerald-500" />}
+          label="Suscripción"
+          valor={paymentStatus ?? "Ver estado"}
+          detalle="Modo Fundraising 2026"
+        />
       </div>
     </>
+  );
+}
+
+function SeccionCard({
+  href,
+  icon,
+  label,
+  valor,
+  detalle,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  valor: string;
+  detalle?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="bg-white rounded-xl border border-zinc-200 p-4 hover:border-blue-200 hover:shadow-sm transition-all group flex items-center gap-3"
+    >
+      <div className="shrink-0 h-10 w-10 rounded-lg bg-zinc-50 flex items-center justify-center">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-zinc-400">{label}</p>
+        <p className="text-sm font-semibold text-zinc-800 truncate group-hover:text-blue-600 transition-colors">
+          {valor}
+        </p>
+        {detalle && (
+          <p className="text-xs text-zinc-400 truncate mt-0.5">{detalle}</p>
+        )}
+      </div>
+      <ChevronRight className="h-4 w-4 text-zinc-300 shrink-0 group-hover:text-blue-400 transition-colors" />
+    </Link>
   );
 }
 
