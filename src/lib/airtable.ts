@@ -1865,7 +1865,7 @@ export interface EmpresaStats {
 export async function getEmpresasStats(preloadedApps?: PostulacionRecord[]): Promise<EmpresaStats[]> {
   const [apps, allClases, allMisiones, asistencias, misionesCompletadas] = await Promise.all([
     preloadedApps ? Promise.resolve(preloadedApps) : getAllApplications(),
-    base(Tables.CLASES).select({ fields: ["titulo"] }).all(),
+    base(Tables.CLASES).select({ fields: ["titulo", "fecha"] }).all(),
     base(Tables.MISIONES).select({ fields: ["titulo"] }).all(),
     getAllAsistencias(),
     getAllMisionesCompletadas(),
@@ -1878,11 +1878,32 @@ export async function getEmpresasStats(preloadedApps?: PostulacionRecord[]): Pro
   const totalClases = allClases.length;
   const totalMisiones = allMisiones.length;
 
+  // Set de clases que YA ocurrieron (fecha <= ahora). El conteo de asistencia solo
+  // debe considerar clases pasadas: hubo datos importados con asistencia a clases
+  // futuras (WI-1845) que inflaban el conteo (ej. LEAF 3/28 con solo 2 sesiones).
+  const now = new Date();
+  const clasesPasadas = new Set(
+    allClases
+      .filter((c) => {
+        const fecha = (c.fields as Record<string, unknown>).fecha as string | undefined;
+        return !fecha || new Date(fecha) <= now; // sin fecha → se cuenta (no bloquear)
+      })
+      .map((c) => c.id),
+  );
+
   return inscritas.map((app) => {
     const startupId = (app.startup_record?.[0] as string | undefined) ?? "";
-    const clasesVistas = asistencias.filter(
-      (a) => a.startup_record?.includes(startupId) && a.asistio
-    ).length;
+    // Contar CLASES ÚNICAS pasadas con asistencia, no records crudos: así aunque
+    // queden duplicados de asistencia (o startups duplicadas), no se sobre-cuenta.
+    const clasesVistasSet = new Set<string>();
+    for (const a of asistencias) {
+      if (!a.asistio) continue;
+      if (!a.startup_record?.includes(startupId)) continue;
+      const claseId = a.clase_record?.[0];
+      if (!claseId || !clasesPasadas.has(claseId)) continue;
+      clasesVistasSet.add(claseId);
+    }
+    const clasesVistas = clasesVistasSet.size;
     const completadas = misionesCompletadas.filter(
       (m) => m.startup_record?.includes(startupId) && m.completada
     ).length;
