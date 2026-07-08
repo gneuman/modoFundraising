@@ -24,18 +24,36 @@ export const dynamic = "force-dynamic";
 // founder envía por aquí se marca como entrega tardía en el backend (el token
 // viaja en cada form). Sin token válido, redirige a la vista normal.
 
+// Resuelve las clases (id + título) de una tarea NPS/Feedback y si ya se envió.
+// Por tarea, no una vez por misión: una misión puede tener varias tareas Feedback
+// con distintas `clases_nps`. Ver el mismo helper en misiones/page.tsx.
+function resolverClasesTarea(
+  tarea: TareaRecord,
+  claseById: Map<string, ClaseRecord>,
+  feedbackClaseIds: Set<string>,
+): { clasesTitulos: { id: string; titulo: string }[]; submitted: boolean } {
+  const clasesTitulos = (tarea.clases_nps ?? [])
+    .map((id) => claseById.get(id))
+    .filter(Boolean)
+    .map((c) => ({ id: c!.id!, titulo: c!.titulo ?? "" }));
+  const submitted =
+    clasesTitulos.length > 0 &&
+    clasesTitulos.every((c) => feedbackClaseIds.has(c.id));
+  return { clasesTitulos, submitted };
+}
+
 function MisionCard({
   mision,
   clase,
-  clasesTitulos,
-  npsSubmitted,
+  claseById,
+  feedbackClaseIds,
   consignaPorTarea,
   completada,
 }: {
   mision: MisionRecord & { tareasData: TareaRecord[] };
   clase: ClaseRecord;
-  clasesTitulos: { id: string; titulo: string }[];
-  npsSubmitted: boolean;
+  claseById: Map<string, ClaseRecord>;
+  feedbackClaseIds: Set<string>;
   consignaPorTarea: Map<string, ConsignaRecord>;
   completada: boolean;
 }) {
@@ -83,28 +101,33 @@ function MisionCard({
           <div className="space-y-3">
             {tareasOrdenadas.map((t) => {
               if (t.tipo === "NPS" || t.tipo === "Feedback") {
+                const { clasesTitulos, submitted } = resolverClasesTarea(
+                  t,
+                  claseById,
+                  feedbackClaseIds,
+                );
                 if (clasesTitulos.length === 0) return null;
                 return (
                   <div
                     key={t.id}
-                    className={`border rounded-xl p-4 space-y-3 ${npsSubmitted ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}`}
+                    className={`border rounded-xl p-4 space-y-3 ${submitted ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"}`}
                   >
                     <div className="flex items-center gap-2">
-                      {npsSubmitted ? (
+                      {submitted ? (
                         <CheckCircle2 className="h-4 w-4 text-green-500" />
                       ) : (
                         <Star className="h-4 w-4 text-blue-500" />
                       )}
-                      <p className={`text-sm font-semibold ${npsSubmitted ? "text-green-800" : "text-blue-800"}`}>
+                      <p className={`text-sm font-semibold ${submitted ? "text-green-800" : "text-blue-800"}`}>
                         {t.titulo}
                       </p>
                     </div>
                     {t.descripcion && (
-                      <Markdown className={`!text-xs !space-y-1 ${npsSubmitted ? "!text-green-700/80" : "!text-blue-600"}`}>
+                      <Markdown className={`!text-xs !space-y-1 ${submitted ? "!text-green-700/80" : "!text-blue-600"}`}>
                         {t.descripcion}
                       </Markdown>
                     )}
-                    <NpsForm tarea={t} clases={clasesTitulos} initialSubmitted={npsSubmitted} />
+                    <NpsForm tarea={t} clases={clasesTitulos} initialSubmitted={submitted} />
                   </div>
                 );
               }
@@ -227,16 +250,6 @@ export default async function MisionesTodasPage({
 
       {startupId &&
         todas.map(({ mision, clase }) => {
-          const tareaNps = mision.tareasData.find(
-            (t) => t.tipo === "NPS" || t.tipo === "Feedback",
-          );
-          const clasesTitulos = (tareaNps?.clases_nps ?? [])
-            .map((id) => claseById.get(id))
-            .filter(Boolean)
-            .map((c) => ({ id: c!.id!, titulo: c!.titulo ?? "" }));
-          const npsSubmitted =
-            clasesTitulos.length > 0 &&
-            clasesTitulos.every((c) => feedbackClaseIds.has(c.id));
           const completada = mision.id
             ? misionCompletadaMap.get(mision.id) ?? false
             : false;
@@ -246,8 +259,8 @@ export default async function MisionesTodasPage({
               key={mision.id ?? clase.id}
               mision={mision}
               clase={clase}
-              clasesTitulos={clasesTitulos}
-              npsSubmitted={npsSubmitted}
+              claseById={claseById}
+              feedbackClaseIds={feedbackClaseIds}
               consignaPorTarea={consignaPorTarea}
               completada={completada}
             />
