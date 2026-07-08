@@ -68,18 +68,38 @@ function TareaNpsWrapper({
   );
 }
 
+// Resuelve las clases (id + título) de una tarea NPS/Feedback a partir de sus
+// `clases_nps`, y si la startup ya dejó feedback de TODAS ellas. Se calcula por
+// tarea (no una vez por misión): una misión puede tener varias tareas Feedback,
+// cada una apuntando a clases distintas. Antes se usaba el primer `.find()` para
+// todas las tareas, así que dos formularios de feedback se veían idénticos.
+function resolverClasesTarea(
+  tarea: TareaRecord,
+  claseById: Map<string, ClaseRecord & { recursosData: RecursoRecord[] }>,
+  feedbackClaseIds: Set<string>,
+): { clasesTitulos: { id: string; titulo: string }[]; submitted: boolean } {
+  const clasesTitulos = (tarea.clases_nps ?? [])
+    .map((id) => claseById.get(id))
+    .filter(Boolean)
+    .map((c) => ({ id: c!.id!, titulo: c!.titulo ?? "" }));
+  const submitted =
+    clasesTitulos.length > 0 &&
+    clasesTitulos.every((c) => feedbackClaseIds.has(c.id));
+  return { clasesTitulos, submitted };
+}
+
 function MisionActivaCard({
   mision,
   clase,
-  clasesTitulos,
-  npsSubmitted,
+  claseById,
+  feedbackClaseIds,
   consignaPorTarea,
   misionCompletada,
 }: {
   mision: MisionRecord & { tareasData: TareaRecord[] };
   clase: ClaseRecord & { recursosData: RecursoRecord[] };
-  clasesTitulos: { id: string; titulo: string }[];
-  npsSubmitted: boolean;
+  claseById: Map<string, ClaseRecord & { recursosData: RecursoRecord[] }>;
+  feedbackClaseIds: Set<string>;
   consignaPorTarea: Map<string, ConsignaRecord>;
   misionCompletada: boolean;
 }) {
@@ -141,13 +161,18 @@ function MisionActivaCard({
           <div className="space-y-3">
             {tareasOrdenadas.map((t) => {
               if (t.tipo === "NPS" || t.tipo === "Feedback") {
+                const { clasesTitulos, submitted } = resolverClasesTarea(
+                  t,
+                  claseById,
+                  feedbackClaseIds,
+                );
                 if (clasesTitulos.length === 0) return null;
                 return (
                   <TareaNpsWrapper
                     key={t.id}
                     tarea={t}
                     clases={clasesTitulos}
-                    submitted={npsSubmitted}
+                    submitted={submitted}
                   />
                 );
               }
@@ -298,22 +323,6 @@ export default async function MisionesPage({
   // Mapa clase por ID para NPS lookup
   const claseById = new Map(clases.map((c) => [c.id!, c]));
 
-  // Datos para el NPS de la misión activa
-  let npsSubmitted = false;
-  let clasesTitulos: { id: string; titulo: string }[] = [];
-  if (misionActiva) {
-    const tareaNps = misionActiva.mision.tareasData.find(
-      (t) => t.tipo === "NPS" || t.tipo === "Feedback",
-    );
-    clasesTitulos = (tareaNps?.clases_nps ?? [])
-      .map((id) => claseById.get(id))
-      .filter(Boolean)
-      .map((c) => ({ id: c!.id!, titulo: c!.titulo ?? "" }));
-    npsSubmitted =
-      clasesTitulos.length > 0 &&
-      clasesTitulos.every((c) => feedbackClaseIds.has(c.id));
-  }
-
   const misionActivaCompletada = misionActiva?.mision.id
     ? misionCompletadaMap.get(misionActiva.mision.id) ?? false
     : false;
@@ -351,8 +360,8 @@ export default async function MisionesPage({
         <MisionActivaCard
           mision={misionActiva.mision}
           clase={misionActiva.clase}
-          clasesTitulos={clasesTitulos}
-          npsSubmitted={npsSubmitted}
+          claseById={claseById}
+          feedbackClaseIds={feedbackClaseIds}
           consignaPorTarea={consignaPorTarea}
           misionCompletada={misionActivaCompletada}
         />
