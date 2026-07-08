@@ -12,15 +12,19 @@ import {
 export const dynamic = "force-dynamic";
 
 // POST /api/portal/feedback
-// Body: { tareaId?: string; ratings: { claseId: string; rating: number; comentario?: string }[] }
+// Body: { tareaId?: string; startupId?: string; ratings: { claseId, rating, comentario? }[] }
 export async function POST(req: NextRequest) {
   const session = await obtenerSesion();
-  if (!session || session.role !== "founder") {
+  // Admins también pueden llamar el endpoint (para testear como cualquier
+  // startup con ?as=). Founders solo pueden llamar como sí mismos. Mismo patrón
+  // que POST /api/portal/consignas — antes esta guarda rechazaba admins (401).
+  if (!session || (session.role !== "founder" && session.role !== "admin")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { tareaId, ratings } = await req.json() as {
+  const { tareaId, startupId: adminStartupId, ratings } = await req.json() as {
     tareaId?: string;
+    startupId?: string;
     ratings: { claseId: string; rating: number; comentario?: string }[];
   };
 
@@ -28,19 +32,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ratings requerido" }, { status: 400 });
   }
 
-  const apps = await getAllApplications({ includeTest: true });
-  const app = apps.find(
-    (a) =>
-      a.email === session.email &&
-      // "Modo Foco - Test" es la startup sandbox: cualquier status vale.
-      (a.status === "Inscrita" ||
-        a.status === "Invitada institucional" ||
-        a.startup_name === "Modo Foco - Test")
+  // El campo `rating` en Airtable es tipo rating (max 5) y NO acepta 0 ni
+  // valores fuera de 1-5 vía API. Validamos antes para dar un 400 claro en vez
+  // de un error crudo de Airtable.
+  const ratingInvalido = ratings.find(
+    (r) => !Number.isInteger(r.rating) || r.rating < 1 || r.rating > 5,
   );
-  const startupId = app?.startup_record?.[0] as string | undefined;
+  if (ratingInvalido) {
+    return NextResponse.json(
+      { error: "Cada calificación debe ser un entero entre 1 y 5" },
+      { status: 400 },
+    );
+  }
+
+  // Derivar startupId:
+  //   - Admin: acepta startupId del body para poder testear como cualquier startup
+  //   - Founder: siempre de la sesión (nunca del body), matcheando cofounders
+  let startupId: string | undefined;
+  if (session.role === "admin" && adminStartupId) {
+    startupId = adminStartupId;
+  } else {
+    const apps = await getAllApplications({ includeTest: true });
+    const emailLower = session.email.toLowerCase();
+    const app = apps.find((a) => {
+      // "Modo Foco - Test" es la startup sandbox: cualquier status vale.
+      const isTestStartup = a.startup_name === "Modo Foco - Test";
+      const isEnrolled =
+        a.status === "Inscrita" || a.status === "Invitada institucional";
+      if (!isEnrolled && !isTestStartup) return false;
+      // Matchea principal + todos los cofounders (case-insensitive).
+      const allEmails = [a.email, ...(a.all_founder_emails ?? [])]
+        .filter(Boolean)
+        .map((e) => e!.toLowerCase());
+      return allEmails.includes(emailLower);
+    });
+    startupId = app?.startup_record?.[0] as string | undefined;
+  }
 
   if (!startupId) {
-    return NextResponse.json({ error: "Startup no encontrada" }, { status: 404 });
+    return NextResponse.json(
+      {
+        error:
+          session.role === "admin"
+            ? "Como admin, debes pasar `startupId` en el body para testear (tu email no tiene startup asignada)."
+            : "Startup no encontrada",
+      },
+      { status: session.role === "admin" ? 403 : 404 },
+    );
   }
 
   await Promise.all(
@@ -74,7 +112,7 @@ export async function POST(req: NextRequest) {
 // Devuelve si la startup ya dejó feedback para esas clases
 export async function GET(req: NextRequest) {
   const session = await obtenerSesion();
-  if (!session || session.role !== "founder") {
+  if (!session || (session.role !== "founder" && session.role !== "admin")) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 

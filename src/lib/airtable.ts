@@ -1818,14 +1818,19 @@ export async function createFeedback(data: {
   rating: number;
   comentario?: string;
 }): Promise<string> {
-  const record = await base(Tables.FEEDBACK).create({
+  const fields: Record<string, unknown> = {
     id_feedback: `${data.startupId}-${data.claseId}-${Date.now()}`,
     startup_record: [data.startupId],
     clase_record: [data.claseId],
     rating: data.rating,
-    comentario: data.comentario ?? "",
     fecha: new Date().toISOString().split("T")[0],
-  } as never);
+  };
+  // Comentario opcional: solo lo escribimos si viene con contenido, así el
+  // campo queda vacío en Airtable en vez de guardar un string "".
+  const comentario = data.comentario?.trim();
+  if (comentario) fields.comentario = comentario;
+
+  const record = await base(Tables.FEEDBACK).create(fields as never);
   return record.id;
 }
 

@@ -10,9 +10,8 @@ interface NpsFormProps {
   initialSubmitted?: boolean;
 }
 
-// Sentinela: "sin calificar". No usamos undefined vs 0 porque 0 es una
-// calificación válida (peor nota), así que necesitamos distinguir el estado
-// "todavía no eligió" de "eligió 0 estrellas".
+// Sentinela: "sin calificar". La nota válida es 1-5 (el campo `rating` en
+// Airtable es tipo rating y no acepta 0), así que -1 marca "todavía no eligió".
 const SIN_CALIFICAR = -1;
 
 export function NpsForm({ tarea, clases, initialSubmitted }: NpsFormProps) {
@@ -32,7 +31,8 @@ export function NpsForm({ tarea, clases, initialSubmitted }: NpsFormProps) {
     );
   }
 
-  // Calificación obligatoria (0-5); el comentario es opcional.
+  // Calificación 1-5, obligatoria (no se puede enviar sin elegir estrella).
+  // El comentario sí puede quedar vacío (opcional).
   const allRated = clases.every(
     (c) => ratings[c.id] !== undefined && ratings[c.id] !== SIN_CALIFICAR,
   );
@@ -42,16 +42,26 @@ export function NpsForm({ tarea, clases, initialSubmitted }: NpsFormProps) {
     setLoading(true);
     setError(null);
     try {
+      // Si un admin está impersonando con ?as=recXXX, mandamos ese startupId
+      // para que el backend guarde el feedback de esa startup. Los founders lo
+      // ignoran: el backend deriva su startup de la sesión.
+      const adminStartupId =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("as") ?? undefined
+          : undefined;
       const res = await fetch("/api/portal/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tareaId: tarea.id,
-          ratings: clases.map((c) => ({
-            claseId: c.id,
-            rating: ratings[c.id],
-            comentario: comentarios[c.id] ?? "",
-          })),
+          startupId: adminStartupId,
+          ratings: clases.map((c) => {
+            const comentario = (comentarios[c.id] ?? "").trim();
+            // Comentario opcional: si está vacío no lo mandamos.
+            return comentario
+              ? { claseId: c.id, rating: ratings[c.id], comentario }
+              : { claseId: c.id, rating: ratings[c.id] };
+          }),
         }),
       });
       if (!res.ok) throw new Error("Error al enviar");
@@ -72,23 +82,10 @@ export function NpsForm({ tarea, clases, initialSubmitted }: NpsFormProps) {
           <div key={clase.id} className="space-y-2">
             <p className="text-sm font-semibold text-zinc-700">{clase.titulo}</p>
 
-            {/* Estrellas 0-5. La estrella "0" es un botón aparte para permitir
-                la peor nota sin ambigüedad con "sin calificar". */}
+            {/* Estrellas 1-5. El campo `rating` en Airtable es tipo rating
+                (icono estrella, max 5) y NO acepta 0 vía API, así que la nota
+                mínima es 1. Coincide con la copia: "nota de 1 a 5 estrellas". */}
             <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setRatings((prev) => ({ ...prev, [clase.id]: 0 }))}
-                onMouseEnter={() => setHover((prev) => ({ ...prev, [clase.id]: 0 }))}
-                onMouseLeave={() => setHover((prev) => { const n = { ...prev }; delete n[clase.id]; return n; })}
-                className={`text-xs font-semibold px-2 h-8 rounded-lg border-2 transition-all ${
-                  rated === 0
-                    ? "bg-zinc-700 border-zinc-700 text-white"
-                    : "border-zinc-200 text-zinc-400 hover:border-zinc-400"
-                }`}
-                aria-label="0 estrellas"
-              >
-                0
-              </button>
               {[1, 2, 3, 4, 5].map((n) => {
                 const active = preview >= n && preview !== SIN_CALIFICAR;
                 return (
