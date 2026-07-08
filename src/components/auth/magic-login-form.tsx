@@ -32,11 +32,16 @@ export function MagicLoginForm({
     setError(null);
     setIsPending(true);
     const email = (e.currentTarget.elements.namedItem("email") as HTMLInputElement).value;
+    // Preservar el destino post-login (ej. /portal/misiones) si venimos redirigidos.
+    const next =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("next")
+        : null;
     try {
       const res = await fetch("/api/auth/magic", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, ...(next ? { next } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) {
