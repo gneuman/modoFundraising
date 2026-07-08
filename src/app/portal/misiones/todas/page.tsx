@@ -213,13 +213,16 @@ export default async function MisionesTodasPage({
   );
   const claseById = new Map(clases.map((c) => [c.id!, c]));
 
-  // TODAS las misiones (sin filtro de fecha), ordenadas por semana.
+  // Misiones contestables (sin filtro de fecha), ordenadas por semana.
+  // Ocultamos las "Próxima": todavía no arrancan, no tiene sentido mostrarlas
+  // en la vista de ponerse al día. Solo Activa/Actual/Cerrada son contestables.
   const todas: {
     mision: MisionRecord & { tareasData: TareaRecord[] };
     clase: (typeof clases)[0];
   }[] = [];
   for (const clase of clases) {
     for (const mision of clase.misionesData) {
+      if (mision.status === "Próxima") continue;
       todas.push({ mision, clase });
     }
   }
