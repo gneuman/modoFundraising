@@ -160,6 +160,12 @@ export function EntregaForm({ tarea, initialConsigna }: EntregaFormProps) {
       if (tarea.id) fd.append("tareaId", tarea.id);
       if (contenido.trim()) fd.append("contenido_texto", contenido);
       if (urlExtra.trim()) fd.append("url_extra", urlExtra);
+      // ?t=<token>: link admin de misiones atrasadas → marcar entrega tardía.
+      const lateToken =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("t")
+          : null;
+      if (lateToken) fd.append("t", lateToken);
 
       const res = await fetch("/api/portal/consignas", { method: "POST", body: fd });
       const data = await res.json();

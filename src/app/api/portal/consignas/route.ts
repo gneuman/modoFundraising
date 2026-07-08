@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { obtenerSesion } from "@/lib/auth";
+import { verificarTokenDia } from "@/lib/late-token";
 import {
   getAllApplications,
   upsertConsigna,
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
   let url_extra = "";
   let files: File[] = [];
   let adminStartupId: string | undefined; // solo valido si session.role === "admin"
+  let lateToken: string | undefined; // token del día para entrega tardía (OP-1905)
 
   if (contentType.includes("multipart/form-data")) {
     const form = await req.formData();
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
     url_extra = String(form.get("url_extra") ?? "").trim();
     files = form.getAll("files").filter((v): v is File => v instanceof File);
     adminStartupId = String(form.get("startupId") ?? "").trim() || undefined;
+    lateToken = String(form.get("t") ?? "").trim() || undefined;
   } else {
     // Fallback JSON — sin archivos
     try {
@@ -108,11 +111,13 @@ export async function POST(req: NextRequest) {
         contenido_texto?: string;
         url_extra?: string;
         startupId?: string;
+        t?: string;
       };
       tareaId = (body.tareaId ?? "").trim();
       contenido = (body.contenido_texto ?? "").trim();
       url_extra = (body.url_extra ?? "").trim();
       adminStartupId = body.startupId?.trim() || undefined;
+      lateToken = body.t?.trim() || undefined;
     } catch {
       return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
     }
@@ -191,6 +196,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Entrega tardía (OP-1905): si viene un token del día válido, la consigna se
+  // marca como atrasada con la fecha que codifica el token. El token lo genera
+  // el server (panel admin), así que el founder no puede fingir "a tiempo".
+  const fechaTardia = (await verificarTokenDia(lateToken)) ?? undefined;
+
   // 1. Upsert la consigna con texto + URL. Los archivos NO se procesan aquí
   //    — el frontend los sube uno por uno via POST /api/portal/consignas/[id]/adjuntos
   //    para poder mostrar feedback por archivo.
@@ -200,6 +210,7 @@ export async function POST(req: NextRequest) {
     contenido_texto: contenido,
     url_extra,
     founderEmail,
+    fechaTardia,
   });
 
   // 2. Si el cliente mandó files por compatibilidad (flujo viejo), subirlos.
