@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { obtenerSesion } from "@/lib/auth";
-import { getAllApplications, createFeedback, getAllFeedback } from "@/lib/airtable";
+import {
+  getAllApplications,
+  createFeedback,
+  getAllFeedback,
+  getTareaByIdFresh,
+  recomputeMisionCompletada,
+} from "@/lib/airtable";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/portal/feedback
-// Body: { ratings: { claseId: string; rating: number; comentario?: string }[] }
+// Body: { tareaId?: string; ratings: { claseId: string; rating: number; comentario?: string }[] }
 export async function POST(req: NextRequest) {
   const session = await obtenerSesion();
   if (!session || session.role !== "founder") {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { ratings } = await req.json() as {
+  const { tareaId, ratings } = await req.json() as {
+    tareaId?: string;
     ratings: { claseId: string; rating: number; comentario?: string }[];
   };
 
@@ -45,6 +53,19 @@ export async function POST(req: NextRequest) {
       })
     )
   );
+
+  // Recalcular "Misiones Completadas" en Airtable. Sin esto, una misión cuya
+  // única tarea es la encuesta (tipo Feedback) nunca pasaba a Completada: el
+  // recompute solo corría desde POST /api/portal/consignas. Completada = lo que
+  // quedó escrito en Airtable, así que hay que dispararlo aquí también.
+  if (tareaId) {
+    const tarea = await getTareaByIdFresh(tareaId);
+    const misionId = tarea?.mision?.[0];
+    if (misionId) {
+      await recomputeMisionCompletada(startupId, misionId);
+      revalidateTag("clases-content", { expire: 0 });
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

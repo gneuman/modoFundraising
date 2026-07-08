@@ -1749,7 +1749,11 @@ export async function recomputeMisionCompletada(
 ): Promise<{ completada: boolean; total: number; hechas: number }> {
   const tareas = await getTareasByMision(misionId);
   const obligatorias = tareas.filter(
-    (t) => t.tipo === "Entrega" || t.tipo === "NPS" || t.tipo === "Checklist",
+    (t) =>
+      t.tipo === "Entrega" ||
+      t.tipo === "NPS" ||
+      t.tipo === "Feedback" ||
+      t.tipo === "Checklist",
   );
   const total = obligatorias.length;
 
@@ -1775,10 +1779,10 @@ export async function recomputeMisionCompletada(
   for (const t of obligatorias) {
     if (t.tipo === "Entrega" || t.tipo === "Checklist") {
       if (t.id && consignaTareaIds.has(t.id)) hechas++;
-    } else if (t.tipo === "NPS") {
-      // NPS "hecha" = existe feedback de esta startup para TODAS las clases_nps
-      // asociadas a esta tarea. Si la tarea no tiene clases_nps, la tratamos
-      // como hecha con solo enviar consigna (fallback), o skip.
+    } else if (t.tipo === "NPS" || t.tipo === "Feedback") {
+      // Feedback/NPS "hecha" = existe feedback de esta startup para TODAS las
+      // clases_nps asociadas a esta tarea. Si la tarea no tiene clases_nps, la
+      // tratamos como hecha con solo enviar consigna (fallback), o skip.
       const clasesRequeridas = t.clases_nps ?? [];
       if (clasesRequeridas.length === 0) continue;
       const todasHechas = clasesRequeridas.every((cid) => feedbackClaseIds.has(cid));
@@ -1848,7 +1852,10 @@ export interface TareaRecord {
   id?: string;
   titulo?: string;
   descripcion?: string;
-  tipo?: "NPS" | "Entrega" | "Checklist";
+  // "Feedback" es el tipo vigente para la encuesta por clase (estrellas 0-5).
+  // "NPS" quedó como legacy: el cliente renombró la opción en Airtable, pero
+  // hay tareas viejas con "NPS" — ambos se tratan igual en todo el código.
+  tipo?: "NPS" | "Feedback" | "Entrega" | "Checklist";
   orden?: number;
   mision?: string[];
   clases_nps?: string[];

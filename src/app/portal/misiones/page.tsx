@@ -11,7 +11,7 @@ import {
   type TareaRecord,
   type ConsignaRecord,
 } from "@/lib/airtable";
-import { Target, Clock, BookOpen, CheckCircle2, AlertCircle, Star, Link as LinkIcon, FileText, Video, Paperclip } from "lucide-react";
+import { Target, Clock, BookOpen, CheckCircle2, AlertCircle, Star } from "lucide-react";
 import { NpsForm } from "@/components/portal/nps-form";
 import { EntregaForm } from "@/components/portal/entrega-form";
 import { HistorialMisiones } from "@/components/portal/historial-misiones";
@@ -37,56 +37,6 @@ function isMisionVisible(
   if (!claseFecha || mision.dias_offset === undefined) return true;
   const activeAt = new Date(claseFecha).getTime() + mision.dias_offset * 86_400_000;
   return activeAt <= now;
-}
-
-// Recurso visible cuando la clase ya arrancó (o si no tiene fecha).
-function isRecursoVisible(claseFecha: string | undefined, now: number): boolean {
-  if (!claseFecha) return true;
-  return new Date(claseFecha).getTime() <= now;
-}
-
-function RecursoIcon({ tipo }: { tipo?: string }) {
-  const t = (tipo ?? "").toLowerCase();
-  if (t.includes("video")) return <Video className="h-4 w-4 text-blue-500 shrink-0" />;
-  if (t.includes("pdf") || t.includes("doc")) return <FileText className="h-4 w-4 text-red-500 shrink-0" />;
-  if (t.includes("link") || t.includes("url")) return <LinkIcon className="h-4 w-4 text-emerald-500 shrink-0" />;
-  return <Paperclip className="h-4 w-4 text-zinc-400 shrink-0" />;
-}
-
-function Recursos({ recursos }: { recursos: RecursoRecord[] }) {
-  if (recursos.length === 0) return null;
-  return (
-    <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-2">
-      <div className="flex items-center gap-2 mb-1">
-        <Paperclip className="h-4 w-4 text-zinc-500" />
-        <p className="text-sm font-semibold text-zinc-700">Recursos</p>
-      </div>
-      <ul className="space-y-1.5">
-        {recursos.map((r) => (
-          <li key={r.id} className="flex items-start gap-2">
-            <RecursoIcon tipo={r.tipo} />
-            <div className="flex-1 min-w-0">
-              {r.url ? (
-                <a
-                  href={r.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-zinc-700 hover:text-blue-600 hover:underline break-words"
-                >
-                  {r.titulo || r.url}
-                </a>
-              ) : (
-                <p className="text-sm font-medium text-zinc-700">{r.titulo}</p>
-              )}
-              {r.descripcion && (
-                <p className="text-xs text-zinc-500 mt-0.5">{r.descripcion}</p>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 function TareaNpsWrapper({
@@ -125,7 +75,6 @@ function MisionActivaCard({
   npsSubmitted,
   consignaPorTarea,
   misionCompletada,
-  now,
 }: {
   mision: MisionRecord & { tareasData: TareaRecord[] };
   clase: ClaseRecord & { recursosData: RecursoRecord[] };
@@ -133,7 +82,6 @@ function MisionActivaCard({
   npsSubmitted: boolean;
   consignaPorTarea: Map<string, ConsignaRecord>;
   misionCompletada: boolean;
-  now: number;
 }) {
   const days = daysLeft(mision.fecha_limite);
   const isCompletada = misionCompletada;
@@ -150,10 +98,6 @@ function MisionActivaCard({
   const tareasOrdenadas = [...mision.tareasData].sort(
     (a, b) => (a.orden ?? 999) - (b.orden ?? 999),
   );
-
-  const recursosVisibles = isRecursoVisible(clase.fecha, now)
-    ? clase.recursosData
-    : [];
 
   return (
     <div className={`bg-white rounded-2xl border-2 ${border} overflow-hidden transition-all`}>
@@ -191,15 +135,12 @@ function MisionActivaCard({
           <Markdown className="!text-zinc-500">{mision.descripcion}</Markdown>
         )}
 
-        {/* Recursos add-on */}
-        <Recursos recursos={recursosVisibles} />
-
         {/* Tareas — renderizadas en el orden del template, sin agruparlas por tipo.
             Cualquiera puede completarse en desorden. */}
         {tareasOrdenadas.length > 0 && (
           <div className="space-y-3">
             {tareasOrdenadas.map((t) => {
-              if (t.tipo === "NPS") {
+              if (t.tipo === "NPS" || t.tipo === "Feedback") {
                 if (clasesTitulos.length === 0) return null;
                 return (
                   <TareaNpsWrapper
@@ -361,7 +302,9 @@ export default async function MisionesPage({
   let npsSubmitted = false;
   let clasesTitulos: { id: string; titulo: string }[] = [];
   if (misionActiva) {
-    const tareaNps = misionActiva.mision.tareasData.find((t) => t.tipo === "NPS");
+    const tareaNps = misionActiva.mision.tareasData.find(
+      (t) => t.tipo === "NPS" || t.tipo === "Feedback",
+    );
     clasesTitulos = (tareaNps?.clases_nps ?? [])
       .map((id) => claseById.get(id))
       .filter(Boolean)
@@ -412,7 +355,6 @@ export default async function MisionesPage({
           npsSubmitted={npsSubmitted}
           consignaPorTarea={consignaPorTarea}
           misionCompletada={misionActivaCompletada}
-          now={now}
         />
       ) : (
         <div className="bg-white rounded-2xl border border-zinc-200 p-10 text-center">
