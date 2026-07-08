@@ -1658,6 +1658,8 @@ export interface ConsignaRecord {
   enviada_at?: string;
   actualizada_at?: string;
   founder_que_envio?: string;
+  atrasado?: boolean;
+  fecha_entrega_tardia?: string;
 }
 
 // Nota clave: no podemos filtrar por `startup_record` ni `tarea` con
@@ -1705,6 +1707,9 @@ export async function upsertConsigna(data: {
   adjuntos?: Array<{ url: string; filename: string }>;
   url_extra?: string;
   founderEmail: string;
+  // Entrega tardía (OP-1905): si el founder envía por el link admin del día,
+  // marcamos la consigna como atrasada con la fecha del token.
+  fechaTardia?: string;
 }): Promise<{ id: string; created: boolean }> {
   const now = new Date().toISOString();
   const idConsigna = makeIdConsigna(data.startupId, data.tareaId);
@@ -1719,6 +1724,12 @@ export async function upsertConsigna(data: {
     actualizada_at: now,
   };
   if (data.adjuntos && data.adjuntos.length) fields.adjuntos = data.adjuntos;
+  // Solo tocamos los campos de atraso cuando viene una fecha tardía: enviar por
+  // el flujo normal NO desmarca una entrega que ya estaba registrada como tardía.
+  if (data.fechaTardia) {
+    fields.atrasado = true;
+    fields.fecha_entrega_tardia = data.fechaTardia;
+  }
 
   const existing = await getConsignaByStartupTarea(data.startupId, data.tareaId);
   if (existing?.id) {
@@ -1810,6 +1821,8 @@ export interface FeedbackRecord {
   rating?: number;
   comentario?: string;
   fecha?: string;
+  atrasado?: boolean;
+  fecha_entrega_tardia?: string;
 }
 
 export async function createFeedback(data: {
@@ -1817,6 +1830,9 @@ export async function createFeedback(data: {
   claseId: string;
   rating: number;
   comentario?: string;
+  // Entrega tardía (OP-1905): fecha del token del día si la encuesta se envió
+  // por el link admin de misiones atrasadas.
+  fechaTardia?: string;
 }): Promise<string> {
   const fields: Record<string, unknown> = {
     id_feedback: `${data.startupId}-${data.claseId}-${Date.now()}`,
@@ -1829,6 +1845,10 @@ export async function createFeedback(data: {
   // campo queda vacío en Airtable en vez de guardar un string "".
   const comentario = data.comentario?.trim();
   if (comentario) fields.comentario = comentario;
+  if (data.fechaTardia) {
+    fields.atrasado = true;
+    fields.fecha_entrega_tardia = data.fechaTardia;
+  }
 
   const record = await base(Tables.FEEDBACK).create(fields as never);
   return record.id;

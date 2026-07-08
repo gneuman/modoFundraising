@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { obtenerSesion } from "@/lib/auth";
+import { verificarTokenDia } from "@/lib/late-token";
 import {
   getAllApplications,
   createFeedback,
@@ -22,9 +23,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const { tareaId, startupId: adminStartupId, ratings } = await req.json() as {
+  const { tareaId, startupId: adminStartupId, t: lateToken, ratings } = await req.json() as {
     tareaId?: string;
     startupId?: string;
+    t?: string;
     ratings: { claseId: string; rating: number; comentario?: string }[];
   };
 
@@ -81,6 +83,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Entrega tardía (OP-1905): si viene un token del día válido, marcamos el
+  // feedback como atrasado con la fecha que codifica el token.
+  const fechaTardia = (await verificarTokenDia(lateToken)) ?? undefined;
+
   await Promise.all(
     ratings.map((r) =>
       createFeedback({
@@ -88,6 +94,7 @@ export async function POST(req: NextRequest) {
         claseId: r.claseId,
         rating: r.rating,
         comentario: r.comentario,
+        fechaTardia,
       })
     )
   );

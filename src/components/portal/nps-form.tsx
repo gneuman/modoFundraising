@@ -42,19 +42,23 @@ export function NpsForm({ tarea, clases, initialSubmitted }: NpsFormProps) {
     setLoading(true);
     setError(null);
     try {
-      // Si un admin está impersonando con ?as=recXXX, mandamos ese startupId
-      // para que el backend guarde el feedback de esa startup. Los founders lo
-      // ignoran: el backend deriva su startup de la sesión.
-      const adminStartupId =
+      // Query params relevantes de la URL:
+      //   - ?as=recXXX: admin impersonando → guardar en esa startup.
+      //   - ?t=<token>: link admin de misiones atrasadas → marcar entrega tardía.
+      // Los founders sin estos params envían normal.
+      const qs =
         typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("as") ?? undefined
-          : undefined;
+          ? new URLSearchParams(window.location.search)
+          : new URLSearchParams();
+      const adminStartupId = qs.get("as") ?? undefined;
+      const lateToken = qs.get("t") ?? undefined;
       const res = await fetch("/api/portal/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tareaId: tarea.id,
           startupId: adminStartupId,
+          t: lateToken,
           ratings: clases.map((c) => {
             const comentario = (comentarios[c.id] ?? "").trim();
             // Comentario opcional: si está vacío no lo mandamos.
