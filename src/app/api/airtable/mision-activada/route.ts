@@ -1,4 +1,9 @@
 export const dynamic = "force-dynamic";
+// El fan-out manda los correos en serie con pausa (~1/seg), así que con un
+// cohort grande (~99 founders) el request tarda ~2 min. El default de Vercel
+// (10-15s) lo mataría a la mitad. 300s da margen de sobra. Mismo patrón que
+// el cron sync-attendees, que también envía en serie con delay.
+export const maxDuration = 300;
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import {
@@ -50,14 +55,16 @@ function buildSlackText(mision: { titulo?: string; descripcion?: string }): stri
   ].filter(Boolean).join("\n");
 }
 
-// Concurrencia del fan-out de correos. Gmail API tira
-// "Too many concurrent requests for user" cuando le llegan demasiados
-// envíos simultáneos del mismo usuario. Con 99 founders en paralelo
-// (Promise.allSettled sobre todo el map) fallaban ~19. Mandamos en lotes
-// chicos con pausa entre lotes: nunca hay más de MISION_SEND_CONCURRENCY
-// requests concurrentes contra Gmail.
-const MISION_SEND_CONCURRENCY = 3;
-const MISION_SEND_BATCH_PAUSE_MS = 1_000;
+// Ritmo del fan-out de correos, anclado a los límites reales de Gmail API:
+//   - Rate por usuario: 6,000 quota units / minuto / usuario.
+//   - messages.send cuesta 100 units → techo = 60 correos/min = 1 correo/seg.
+//   - Concurrencia alta también revienta: mandar los 99 en paralelo
+//     (Promise.allSettled sobre todo el map) tiraba
+//     "Too many concurrent requests for user" y fallaban ~19 de 99.
+// Por eso enviamos UNO A LA VEZ (serial) con pausa entre cada correo.
+// 1200ms deja margen bajo el techo de 1/seg y evita rozar el rate limit.
+// Con ~99 founders: ~120s de envío → por eso maxDuration=300 arriba.
+const MISION_SEND_INTERVAL_MS = 1_200;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((res) => setTimeout(res, ms));
@@ -182,27 +189,28 @@ async function handleActivada(
         first_name: f.first_name,
       }));
 
-  // Fan-out no bloqueante, en lotes chicos con pausa entre lotes.
-  // NO en paralelo total: Gmail rechaza demasiados envíos concurrentes del
-  // mismo usuario ("Too many concurrent requests for user"). Mantenemos el
-  // orden de `destinatarios` en `results` para poder mapear failures por email.
+  // Fan-out SERIAL: un correo a la vez con pausa entre cada uno (~1/seg).
+  // NO en paralelo: Gmail rechaza demasiados envíos concurrentes del mismo
+  // usuario ("Too many concurrent requests for user") y además tiene un rate
+  // de 60 correos/min por usuario. El loop con pausa respeta ambos límites.
+  // Guardamos el resultado por índice para poder mapear failures por email.
   const results: PromiseSettledResult<unknown>[] = [];
-  for (let i = 0; i < destinatarios.length; i += MISION_SEND_CONCURRENCY) {
-    const batch = destinatarios.slice(i, i + MISION_SEND_CONCURRENCY);
-    const settled = await Promise.allSettled(
-      batch.map((f) =>
-        sendMisionActivadaEmail(
-          f.email,
-          f.first_name || "founder",
-          mision,
-          PORTAL_URL,
-        ),
-      ),
-    );
-    results.push(...settled);
-    // Pausa entre lotes (no después del último) para no martillar a Gmail.
-    if (i + MISION_SEND_CONCURRENCY < destinatarios.length) {
-      await sleep(MISION_SEND_BATCH_PAUSE_MS);
+  for (let i = 0; i < destinatarios.length; i++) {
+    const f = destinatarios[i];
+    try {
+      await sendMisionActivadaEmail(
+        f.email,
+        f.first_name || "founder",
+        mision,
+        PORTAL_URL,
+      );
+      results.push({ status: "fulfilled", value: undefined });
+    } catch (reason) {
+      results.push({ status: "rejected", reason });
+    }
+    // Pausa entre correos (no después del último) para respetar el rate de Gmail.
+    if (i < destinatarios.length - 1) {
+      await sleep(MISION_SEND_INTERVAL_MS);
     }
   }
 
