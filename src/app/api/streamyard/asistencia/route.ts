@@ -105,6 +105,22 @@ export async function POST(req: NextRequest) {
 
   const a = parseStreamYardBody(bodyStr);
 
+  // El trigger del Zap es "Update Registrant Status" → dispara en CADA cambio de
+  // status, incluido "registered" (solo se registró, no asistió). Solo contamos
+  // asistencia real. Enfoque robusto: rechazar explícitamente "registered" y
+  // contar cualquier otro status (attended, joined, live, reorder, …) — así un
+  // status de asistencia nuevo que StreamYard invente después igual cuenta. OP-1925.
+  const statusNorm = (a.status ?? "").toLowerCase().trim();
+  if (statusNorm === "registered") {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "solo_registrado",
+      email: a.email,
+      status: a.status,
+    });
+  }
+
   const resolved = await resolveAsistenciaStreamYard({
     email: a.email,
     firstName: a.firstName,
