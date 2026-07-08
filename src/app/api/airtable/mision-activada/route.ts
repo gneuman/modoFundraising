@@ -50,6 +50,19 @@ function buildSlackText(mision: { titulo?: string; descripcion?: string }): stri
   ].filter(Boolean).join("\n");
 }
 
+// Concurrencia del fan-out de correos. Gmail API tira
+// "Too many concurrent requests for user" cuando le llegan demasiados
+// envíos simultáneos del mismo usuario. Con 99 founders en paralelo
+// (Promise.allSettled sobre todo el map) fallaban ~19. Mandamos en lotes
+// chicos con pausa entre lotes: nunca hay más de MISION_SEND_CONCURRENCY
+// requests concurrentes contra Gmail.
+const MISION_SEND_CONCURRENCY = 3;
+const MISION_SEND_BATCH_PAUSE_MS = 1_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((res) => setTimeout(res, ms));
+}
+
 const inflightLocks = new Map<string, number>();
 const LOCK_TTL_MS = 30_000;
 
@@ -169,17 +182,29 @@ async function handleActivada(
         first_name: f.first_name,
       }));
 
-  // Fan-out no bloqueante
-  const results = await Promise.allSettled(
-    destinatarios.map((f) =>
-      sendMisionActivadaEmail(
-        f.email,
-        f.first_name || "founder",
-        mision,
-        PORTAL_URL,
+  // Fan-out no bloqueante, en lotes chicos con pausa entre lotes.
+  // NO en paralelo total: Gmail rechaza demasiados envíos concurrentes del
+  // mismo usuario ("Too many concurrent requests for user"). Mantenemos el
+  // orden de `destinatarios` en `results` para poder mapear failures por email.
+  const results: PromiseSettledResult<unknown>[] = [];
+  for (let i = 0; i < destinatarios.length; i += MISION_SEND_CONCURRENCY) {
+    const batch = destinatarios.slice(i, i + MISION_SEND_CONCURRENCY);
+    const settled = await Promise.allSettled(
+      batch.map((f) =>
+        sendMisionActivadaEmail(
+          f.email,
+          f.first_name || "founder",
+          mision,
+          PORTAL_URL,
+        ),
       ),
-    ),
-  );
+    );
+    results.push(...settled);
+    // Pausa entre lotes (no después del último) para no martillar a Gmail.
+    if (i + MISION_SEND_CONCURRENCY < destinatarios.length) {
+      await sleep(MISION_SEND_BATCH_PAUSE_MS);
+    }
+  }
 
   const ok = results.filter((r) => r.status === "fulfilled").length;
   const failed = results.length - ok;
