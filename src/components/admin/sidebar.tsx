@@ -19,7 +19,6 @@ import {
   UserMinus,
   CreditCard,
   Star,
-  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -36,7 +35,8 @@ const NAV = [
   { href: "/admin/calendario",    label: "Calendario",     icon: CalendarDays },
   { href: "/admin/clases",        label: "Clases",         icon: BookOpen },
   { href: "/admin/misiones",      label: "Misiones",       icon: Target },
-  { href: "/admin/misiones-atrasadas", label: "Ponerse al día", icon: Clock },
+  // "Ponerse al día" (/admin/misiones-atrasadas, OP-1905) se oculta del menú
+  // por pedido (OP-1920). La página sigue viva y accesible por URL directa.
   { href: "/admin/recursos",       label: "Recursos",        icon: Link2 },
   { href: "/admin/comunicaciones", label: "Comunicaciones",  icon: Mail },
   { href: "/admin/design",         label: "Diseño",          icon: Palette },
