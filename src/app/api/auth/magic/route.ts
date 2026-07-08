@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { crearTokenMagic, esAdmin } from "@/lib/auth";
+import { crearTokenMagic, esAdmin, sanitizarNext } from "@/lib/auth";
 import { getFounderByEmail } from "@/lib/airtable";
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json().catch(() => ({}));
+  const { email, next } = await req.json().catch(() => ({}));
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "Email requerido" }, { status: 400 });
   }
+  const destino = sanitizarNext(typeof next === "string" ? next : null);
 
   const normalizado = email.trim().toLowerCase();
   const rol = esAdmin(normalizado) ? "admin" : "founder";
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const token = await crearTokenMagic(normalizado);
+  const token = await crearTokenMagic(normalizado, undefined, destino);
 
   const { sendMagicLink } = await import("@/lib/email-engine");
   await sendMagicLink(normalizado, token, rol);

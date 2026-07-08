@@ -21,18 +21,36 @@ export function normalizarEmail(email: string): string {
 export const TTL_MAGIC_LOGIN = "15m";
 export const TTL_MAGIC_ONBOARDING = "72h";
 
-export async function crearTokenMagic(email: string, ttl: string = TTL_MAGIC_LOGIN) {
-  return new SignJWT({ email: normalizarEmail(email) })
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime(ttl)
-    .setIssuedAt()
-    .sign(getSecretoMagic());
+// Sanitiza un destino post-login. Solo aceptamos rutas internas absolutas
+// (empiezan con "/" pero no "//" ni "/\") para evitar open-redirect a otros hosts.
+export function sanitizarNext(next: string | null | undefined): string | null {
+  if (!next || typeof next !== "string") return null;
+  if (!next.startsWith("/")) return null;
+  if (next.startsWith("//") || next.startsWith("/\\")) return null;
+  return next;
 }
 
-export async function verificarTokenMagic(token: string): Promise<string | null> {
+export async function crearTokenMagic(
+  email: string,
+  ttl: string = TTL_MAGIC_LOGIN,
+  next?: string | null,
+) {
+  const jwt = new SignJWT({ email: normalizarEmail(email), ...(sanitizarNext(next) ? { next: sanitizarNext(next) } : {}) })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(ttl)
+    .setIssuedAt();
+  return jwt.sign(getSecretoMagic());
+}
+
+export async function verificarTokenMagic(
+  token: string,
+): Promise<{ email: string; next: string | null } | null> {
   try {
     const { payload } = await jwtVerify(token, getSecretoMagic());
-    return normalizarEmail(payload.email as string);
+    return {
+      email: normalizarEmail(payload.email as string),
+      next: sanitizarNext(payload.next as string | undefined),
+    };
   } catch {
     return null;
   }
