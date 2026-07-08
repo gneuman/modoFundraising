@@ -1544,6 +1544,166 @@ export async function getAllAsistencias(): Promise<AsistenciaRecord[]> {
   return records.map((r) => ({ id: r.id, ...r.fields }) as AsistenciaRecord);
 }
 
+// ─── Resolución de asistencia StreamYard ──────────────────────────────────────
+// Fuente de verdad compartida entre el webhook (/api/streamyard/asistencia) y el
+// script de backfill (scripts/ingesta-asistencias-streamyard.ts). Dado un asistente
+// crudo de StreamYard, resuelve (startupId, claseId) sin escribir nada. OP-1923.
+
+// Normaliza texto para comparar: minúsculas, sin acentos/emojis/puntuación.
+function normText(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function textKeywords(s: string): Set<string> {
+  const stop = new Set([
+    "clase", "mf26", "para", "por", "session", "sesion", "startups",
+    "the", "con", "las", "los", "program", "modo", "fundraising",
+  ]);
+  return new Set(normText(s).split(" ").filter((w) => w.length > 3 && !stop.has(w)));
+}
+function kwOverlap(a: Set<string>, b: Set<string>): number {
+  let n = 0;
+  for (const w of a) if (b.has(w)) n++;
+  return n;
+}
+
+export interface StreamYardAttendee {
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  startupName: string | null; // del customField "Startup" (texto libre, opcional)
+  webinarTitle: string | null;
+  createdAt: string | null; // ISO
+}
+
+export interface StreamYardResolution {
+  startupId: string | null;
+  claseId: string | null;
+  viaStartup: "email" | "nombre-startup" | "nombre-founder" | null;
+  viaClase: "webinarTitle" | "fecha" | null;
+}
+
+export async function resolveAsistenciaStreamYard(
+  a: StreamYardAttendee,
+): Promise<StreamYardResolution> {
+  const [founderRecs, startupRecs, claseRecs, postulacionRecs] = await Promise.all([
+    base(Tables.FOUNDERS).select().all(),
+    base(Tables.STARTUPS).select({ fields: ["startup_name"] }).all(),
+    base(Tables.CLASES).select({ fields: ["titulo", "fecha"] }).all(),
+    base(Tables.POSTULACIONES).select({ fields: ["startup_record"] }).all(),
+  ]);
+
+  // postulacionId → startupId (para founders sin link directo a startup, ~30%).
+  const startupByPostulacion = new Map<string, string>();
+  for (const r of postulacionRecs) {
+    const sid = (r.fields.startup_record as string[] | undefined)?.[0];
+    if (sid) startupByPostulacion.set(r.id, sid);
+  }
+  const startupOfFounder = (f: Record<string, unknown>): string | null => {
+    const directo = (f["Startups MF26"] as string[] | undefined)?.[0];
+    if (directo) return directo;
+    for (const pid of (f["Postulaciones MF26"] as string[] | undefined) ?? []) {
+      const sid = startupByPostulacion.get(pid);
+      if (sid) return sid;
+    }
+    return null;
+  };
+
+  // Índices founder por email y por nombre.
+  const founderByEmail = new Map<string, string | null>();
+  const founderByName = new Map<string, (string | null)[]>();
+  for (const r of founderRecs) {
+    const f = r.fields as Record<string, unknown>;
+    const startupId = startupOfFounder(f);
+    const email = (f.email as string | undefined)?.toLowerCase().trim();
+    if (email) founderByEmail.set(email, startupId);
+    const nk = normText(`${f.first_name ?? ""} ${f.last_name ?? ""}`);
+    if (nk) {
+      const arr = founderByName.get(nk) ?? [];
+      arr.push(startupId);
+      founderByName.set(nk, arr);
+    }
+  }
+
+  // Índice startup por nombre normalizado (respaldo).
+  const startupIdByName = new Map<string, string[]>();
+  for (const r of startupRecs) {
+    const nk = normText((r.fields.startup_name as string) ?? "");
+    if (!nk) continue;
+    const arr = startupIdByName.get(nk) ?? [];
+    arr.push(r.id);
+    startupIdByName.set(nk, arr);
+  }
+
+  // Clases: por keywords de título y por fecha.
+  type Clase = { id: string; fecha: string; kw: Set<string> };
+  const clases: Clase[] = claseRecs.map((r) => {
+    const f = r.fields as Record<string, unknown>;
+    return {
+      id: r.id,
+      fecha: ((f.fecha as string) ?? "").slice(0, 10),
+      kw: textKeywords((f.titulo as string) ?? ""),
+    };
+  });
+  const clasePorFecha = new Map<string, Clase[]>();
+  for (const c of clases) {
+    if (!c.fecha) continue;
+    const arr = clasePorFecha.get(c.fecha) ?? [];
+    arr.push(c);
+    clasePorFecha.set(c.fecha, arr);
+  }
+
+  // ── Resolver clase ──
+  let claseId: string | null = null;
+  let viaClase: StreamYardResolution["viaClase"] = null;
+  if (a.webinarTitle) {
+    const kw = textKeywords(a.webinarTitle);
+    const scored = clases.map((c) => ({ c, s: kwOverlap(kw, c.kw) })).sort((x, y) => y.s - x.s);
+    if (scored[0]?.s >= 1 && scored[0].s > (scored[1]?.s ?? -1)) {
+      claseId = scored[0].c.id;
+      viaClase = "webinarTitle";
+    }
+  }
+  if (!claseId) {
+    const fecha = (a.createdAt ?? "").slice(0, 10);
+    const porFecha = clasePorFecha.get(fecha) ?? [];
+    if (porFecha.length === 1) {
+      claseId = porFecha[0].id;
+      viaClase = "fecha";
+    }
+  }
+
+  // ── Resolver startup (cascada, email primero) ──
+  let startupId: string | null = null;
+  let viaStartup: StreamYardResolution["viaStartup"] = null;
+  if (a.email && founderByEmail.get(a.email)) {
+    startupId = founderByEmail.get(a.email)!;
+    viaStartup = "email";
+  }
+  if (!startupId && a.startupName) {
+    const ids = startupIdByName.get(normText(a.startupName));
+    if (ids && ids.length === 1) {
+      startupId = ids[0];
+      viaStartup = "nombre-startup";
+    }
+  }
+  if (!startupId && (a.firstName || a.lastName)) {
+    const arr = (founderByName.get(normText(`${a.firstName ?? ""} ${a.lastName ?? ""}`)) ?? [])
+      .filter((x): x is string => !!x);
+    if (arr.length === 1) {
+      startupId = arr[0];
+      viaStartup = "nombre-founder";
+    }
+  }
+
+  return { startupId, claseId, viaStartup, viaClase };
+}
+
 // ─── Misiones Completadas ─────────────────────────────────────────────────────
 
 export interface MisionCompletadaRecord {
