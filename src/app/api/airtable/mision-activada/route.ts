@@ -128,8 +128,12 @@ async function handleActivada(
     });
   }
 
-  // Gate por idempotencia — ya se envió antes
-  if (mision.notif_enviada_at) {
+  const testEmail = testEmailRaw?.trim();
+
+  // Gate por idempotencia — ya se envió antes.
+  // En modo test NO aplica: probar el template no debe quedar bloqueado por
+  // un envío previo. Solo el envío real respeta la idempotencia.
+  if (!testEmail && mision.notif_enviada_at) {
     return NextResponse.json({
       ok: true,
       skipped: `ya se notifico el ${mision.notif_enviada_at}`,
@@ -148,12 +152,15 @@ async function handleActivada(
   // Marca ANTES de mandar (cross-process lock).
   // Si algo falla después, el timestamp queda y evita re-envíos accidentales.
   // Para forzar re-envío, vaciar `notif_enviada_at` manual en Airtable.
-  await markMisionNotifSent(recordId).catch((e) => {
-    console.error("[mision-activada] early mark fail:", e instanceof Error ? e.message : e);
-  });
+  // En modo test NO se marca: así se puede re-probar el correo sin resetear
+  // el campo cada vez ni bloquear el envío real posterior.
+  if (!testEmail) {
+    await markMisionNotifSent(recordId).catch((e) => {
+      console.error("[mision-activada] early mark fail:", e instanceof Error ? e.message : e);
+    });
+  }
 
   // Resolver destinatarios
-  const testEmail = testEmailRaw?.trim();
   const destinatarios = testEmail
     ? [{ id: "test", email: testEmail, first_name: "test" }]
     : (await getAllFoundersWithAccess()).map((f) => ({
