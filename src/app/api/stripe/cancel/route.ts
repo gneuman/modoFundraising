@@ -13,7 +13,7 @@ import {
   type ChurnReasonCode,
 } from "@/lib/airtable";
 import { sendChurnEmail } from "@/lib/email-engine";
-import { removeAttendeeFromAllEvents } from "@/lib/calendar";
+import { removeAttendeesFromAllEvents } from "@/lib/calendar";
 
 const VALID_REASONS: ChurnReasonCode[] = [
   "precio",
@@ -95,9 +95,7 @@ export async function POST(req: NextRequest) {
   if (founderEmails.length) {
     try {
       const eventIds = await getCalendarEventIds();
-      await Promise.allSettled(
-        founderEmails.map((em) => removeAttendeeFromAllEvents(eventIds, em)),
-      );
+      await removeAttendeesFromAllEvents(eventIds, founderEmails);
     } catch (err) {
       console.error(
         "[cancel] calendar remove error:",

@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllApplications, updateApplicationStatus, markAdmissionEmailSent, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
+import { getAllApplications, updateApplicationStatus, markAdmissionEmailSent, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, deactivateAllFoundersForApplication, statusOtorgaAcceso, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink, sendPaymentConfirmation } from "@/lib/email-engine";
 import { buildCheckoutUrl } from "@/lib/checkout-url";
-import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
+import { addAttendeesToAllEvents, removeAttendeesFromAllEvents } from "@/lib/calendar";
 import { activatePortalForStartup } from "@/lib/inscripcion";
 
 async function inviteStartupToCalendar(startupId: string) {
@@ -257,24 +257,37 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  if (status === "Churn" || status === "Churn By Founder") {
+  // Guardrail uniforme (OP-1939): si el nuevo status NO otorga acceso al programa
+  // —Churn, Churn By Founder, Rechazada, Rechazada por founder, Money Back, Sin
+  // Respuesta, o cualquier valor futuro fuera del allowlist— hay que apagar el
+  // acceso en origen: desactivar portal_access de TODOS los founders de la
+  // postulación Y sacarlos del calendario. Así el flag nunca queda sucio y el
+  // reconciliador no tiene que limpiar basura. Antes solo Churn sacaba del
+  // calendario (y ni siquiera desactivaba portal_access); Rechazada/Money Back no
+  // hacían nada → invitaciones fantasma.
+  if (!statusOtorgaAcceso(status)) {
     try {
       const apps = await getAllApplications();
       const app = apps.find((a) => a.id === recordId);
       const startupId = (app?.startup_record as string[] | undefined)?.[0];
-      if (startupId) {
-        const [founderEmails, eventIds] = await Promise.all([
-          getFounderEmailsByStartup(startupId),
-          getCalendarEventIds(),
-        ]);
-        if (founderEmails.length && eventIds.length) {
-          await Promise.allSettled(
-            founderEmails.map((email) => removeAttendeeFromAllEvents(eventIds, email))
-          );
+
+      // Emails ANTES de desactivar (getFounderEmailsByStartup filtra portal_access=1).
+      const founderEmails = startupId
+        ? await getFounderEmailsByStartup(startupId).catch(() => [] as string[])
+        : [];
+
+      await deactivateAllFoundersForApplication(recordId).catch((err) =>
+        console.error("Deactivate founders error:", err instanceof Error ? err.message : err)
+      );
+
+      if (founderEmails.length) {
+        const eventIds = await getCalendarEventIds();
+        if (eventIds.length) {
+          await removeAttendeesFromAllEvents(eventIds, founderEmails);
         }
       }
     } catch (err) {
-      console.error("Calendar remove error:", err instanceof Error ? err.message : err);
+      console.error("Guardrail salida (deactivate+calendar) error:", err instanceof Error ? err.message : err);
     }
   }
 

@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getAllApplications, updateApplicationStatus } from "@/lib/airtable";
+import { getAllApplications, updateApplicationStatus, getFounderEmailsByStartup, getCalendarEventIds } from "@/lib/airtable";
 import { sendPaymentFailedEmail, sendPortalDeactivatedEmail } from "@/lib/email-engine";
 import { deactivateAllFoundersForApplication } from "@/lib/airtable";
+import { removeAttendeesFromAllEvents } from "@/lib/calendar";
 import { getSubscription } from "@/lib/stripe";
 
 const CRON_SECRET = process.env.CRON_SECRET ?? "";
@@ -74,8 +75,28 @@ export async function POST(req: NextRequest) {
 
       // Suspender si ya pasaron los días tras el 3er aviso
       if (app.payment_reminder_3_at && daysSince(app.payment_reminder_3_at) >= DAYS_SUSPEND) {
+        // Emails ANTES de desactivar (getFounderEmailsByStartup filtra portal_access=1).
+        const startupId = (app.startup_record as string[] | undefined)?.[0];
+        const founderEmails = startupId
+          ? await getFounderEmailsByStartup(startupId).catch(() => [] as string[])
+          : [];
+
         await updateApplicationStatus(app.id!, "Churn", { portal_access: false });
         await deactivateAllFoundersForApplication(app.id!);
+
+        // Sacar del calendario también (OP-1939): antes suspendía portal_access
+        // pero dejaba al founder invitado a las clases → invitación fantasma.
+        if (founderEmails.length) {
+          try {
+            const eventIds = await getCalendarEventIds();
+            if (eventIds.length) {
+              await removeAttendeesFromAllEvents(eventIds, founderEmails);
+            }
+          } catch (err) {
+            console.error("[cobranza] calendar remove error:", err instanceof Error ? err.message : err);
+          }
+        }
+
         if (app.email && app.first_name) {
           await sendPortalDeactivatedEmail(app.email, app.first_name);
         }
