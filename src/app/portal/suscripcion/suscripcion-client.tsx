@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, AlertTriangle, CreditCard, ExternalLink } from "lucide-react";
+import { Loader2, AlertTriangle, CreditCard, ExternalLink, CheckCircle2, Calendar, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { PaymentStatus } from "@/lib/airtable";
+import type { SubscriptionSummary } from "@/lib/stripe";
 import { iniciarPago } from "./actions";
 
 const PAGADO_STATUSES: PaymentStatus[] = [
@@ -19,6 +20,32 @@ interface Props {
   stripeSubscriptionId?: string;
   discountPercent?: number;
   pagoFallido?: boolean;
+  subscription?: SubscriptionSummary | null;
+}
+
+const CARD_BRAND_LABEL: Record<string, string> = {
+  visa: "Visa",
+  mastercard: "Mastercard",
+  amex: "American Express",
+  discover: "Discover",
+};
+
+function formatFecha(iso: string | null): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString("es-MX", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return null;
+  }
+}
+
+function formatMoney(amount: number | null, currency: string): string | null {
+  if (amount == null) return null;
+  return `${currency === "USD" ? "US$" : ""}${amount.toLocaleString("es-MX")}`;
 }
 
 type ReasonCode =
@@ -44,6 +71,7 @@ export function SuscripcionClient({
   stripeSubscriptionId,
   discountPercent,
   pagoFallido,
+  subscription,
 }: Props) {
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -97,6 +125,18 @@ export function SuscripcionClient({
   // en pago único (sin subscription en Stripe) solo lo saca del programa (ya
   // pagó completo, sin reembolso). El endpoint maneja ambos casos.
   const puedeCancel = haPagado && !cuotasCompletas;
+
+  // Datos reales de la suscripción de Stripe (null si es pago único, beca sin
+  // sub, o si Stripe falló — en ese caso caemos a los textos por defecto).
+  const sub = subscription ?? null;
+  // total_cuotas puede venir de la metadata de Stripe o del cálculo por defecto (3).
+  const subTotalCuotas = sub?.totalCuotas ?? null;
+  const subCuotasPagadas = sub?.cuotasPagadas ?? null;
+  // El "próximo cobro" solo tiene sentido si aún faltan cuotas por pagar.
+  const proximaCuotaPendiente =
+    subTotalCuotas == null ||
+    subCuotasPagadas == null ||
+    subCuotasPagadas < subTotalCuotas;
 
   async function handleCancel() {
     if (!reasonCode) {
@@ -316,15 +356,116 @@ export function SuscripcionClient({
                 Modo Fundraising 2026
               </h3>
               <p className="text-sm text-zinc-500 mt-0.5">
-                {esPagoUnico
-                  ? `Pago único · US$${ONETIME_FULL_PRICE}`
-                  : "US$349 / mes · 3 cuotas"}
+                {esPagoUnico ? (
+                  `Pago único · US$${ONETIME_FULL_PRICE}`
+                ) : sub && sub.found && sub.amount != null ? (
+                  <>
+                    {formatMoney(sub.amount, sub.currency)}
+                    {sub.interval === "month" ? " / mes" : ""}
+                    {subTotalCuotas ? ` · ${subTotalCuotas} cuotas` : ""}
+                    {sub.baseAmount != null && sub.amount < sub.baseAmount && (
+                      <>
+                        {" "}
+                        <span className="line-through text-zinc-400">
+                          {formatMoney(sub.baseAmount, sub.currency)}
+                        </span>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  "US$349 / mes · 3 cuotas"
+                )}
               </p>
             </div>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
               {paymentStatus}
             </span>
           </div>
+
+          {/* ── Datos reales de la suscripción (Stripe) ── */}
+          {!esPagoUnico && sub && sub.found && (
+            <div className="rounded-xl border border-zinc-100 bg-zinc-50/60 divide-y divide-zinc-100">
+              {sub.coupon && (sub.coupon.percentOff || sub.coupon.amountOff) && (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Tag className="h-4 w-4 text-green-600 shrink-0" />
+                  <div className="flex-1 text-sm">
+                    <span className="text-zinc-500">Cupón aplicado</span>
+                    <div className="font-medium text-green-700">
+                      {sub.coupon.code || sub.coupon.name || "Descuento"}
+                      {" · "}
+                      {sub.coupon.percentOff
+                        ? `${sub.coupon.percentOff}% off`
+                        : `${formatMoney(sub.coupon.amountOff, sub.currency)} off`}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(subCuotasPagadas != null || subTotalCuotas != null) && (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0" />
+                  <div className="flex-1 text-sm">
+                    <span className="text-zinc-500">Cuotas pagadas</span>
+                    <div className="font-medium text-zinc-800">
+                      {subCuotasPagadas ?? "—"}
+                      {subTotalCuotas ? ` de ${subTotalCuotas}` : ""}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {sub.currentPeriodEnd &&
+                sub.status === "active" &&
+                !sub.cancelAtPeriodEnd &&
+                proximaCuotaPendiente && (
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <Calendar className="h-4 w-4 text-zinc-500 shrink-0" />
+                    <div className="flex-1 text-sm">
+                      <span className="text-zinc-500">Próximo cobro</span>
+                      <div className="font-medium text-zinc-800">
+                        {formatFecha(sub.currentPeriodEnd)}
+                        {sub.amount != null && (
+                          <span className="text-zinc-500 font-normal">
+                            {" · "}
+                            {formatMoney(sub.amount, sub.currency)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              {sub.card && sub.card.last4 && (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <CreditCard className="h-4 w-4 text-zinc-500 shrink-0" />
+                  <div className="flex-1 text-sm">
+                    <span className="text-zinc-500">Método de pago</span>
+                    <div className="font-medium text-zinc-800">
+                      {CARD_BRAND_LABEL[sub.card.brand ?? ""] ??
+                        (sub.card.brand
+                          ? sub.card.brand.charAt(0).toUpperCase() +
+                            sub.card.brand.slice(1)
+                          : "Tarjeta")}{" "}
+                      •••• {sub.card.last4}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {sub.cancelAtPeriodEnd && (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <div className="flex-1 text-sm text-amber-700">
+                    Tu suscripción se cancelará al final del período actual
+                    {sub.currentPeriodEnd
+                      ? ` (${formatFecha(sub.currentPeriodEnd)})`
+                      : ""}
+                    . No se harán más cobros.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="border-t border-zinc-100 pt-4">
             {puedeCancel && (

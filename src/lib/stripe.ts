@@ -163,6 +163,153 @@ export async function getSubscription(subscriptionId: string) {
   return stripe.subscriptions.retrieve(subscriptionId);
 }
 
+// ── Resumen de la suscripción para el portal del founder ──────────────────────
+// Lee el estado REAL desde Stripe (monto cobrado, cupón aplicado, próximo cobro,
+// tarjeta) en lugar de mostrar precios fijos/adivinados. Es la fuente de verdad
+// que ve el founder en /portal/suscripcion.
+export type SubscriptionSummary = {
+  found: boolean;
+  status: string | null; // active, past_due, canceled, ...
+  amount: number | null; // monto por cobro DESPUÉS de descuento (USD)
+  baseAmount: number | null; // monto de lista antes de descuento (USD)
+  currency: string;
+  interval: string | null; // "month"
+  currentPeriodEnd: string | null; // ISO — próximo cobro
+  cancelAtPeriodEnd: boolean;
+  cuotasPagadas: number | null; // # de facturas pagadas de esta sub
+  totalCuotas: number | null; // # total de cuotas del plan (metadata)
+  coupon: {
+    name: string | null;
+    percentOff: number | null;
+    amountOff: number | null; // USD
+    code: string | null; // promotion code legible, si aplica
+  } | null;
+  card: { brand: string | null; last4: string | null } | null;
+};
+
+export async function getSubscriptionSummary(
+  subscriptionId: string,
+): Promise<SubscriptionSummary> {
+  const empty: SubscriptionSummary = {
+    found: false,
+    status: null,
+    amount: null,
+    baseAmount: null,
+    currency: "USD",
+    interval: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    cuotasPagadas: null,
+    totalCuotas: null,
+    coupon: null,
+    card: null,
+  };
+
+  let sub: Stripe.Subscription;
+  try {
+    sub = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: [
+        "discounts.source.coupon",
+        "discounts.promotion_code",
+        "default_payment_method",
+        "items.data.price",
+      ],
+    });
+  } catch {
+    return empty;
+  }
+
+  const item = sub.items?.data?.[0];
+  const price = item?.price;
+  const baseUnit = price?.unit_amount != null ? price.unit_amount / 100 : null;
+  const currency = (price?.currency ?? "usd").toUpperCase();
+  const interval = price?.recurring?.interval ?? null;
+
+  // Descuento activo en la suscripción. En esta API el descuento vive en
+  // sub.discounts[]; cada uno referencia un coupon (y opcionalmente un
+  // promotion_code legible).
+  let couponInfo: SubscriptionSummary["coupon"] = null;
+  let percentOff: number | null = null;
+  let amountOff: number | null = null;
+  const rawDiscounts = (sub as unknown as { discounts?: unknown }).discounts;
+  const firstDiscount = Array.isArray(rawDiscounts) ? rawDiscounts[0] : rawDiscounts;
+  const discount =
+    firstDiscount && typeof firstDiscount !== "string"
+      ? (firstDiscount as Stripe.Discount)
+      : null;
+  // En esta versión de la API el cupón vive en discount.source.coupon
+  // (antes era discount.coupon directamente).
+  const couponRef = discount?.source?.coupon;
+  const c =
+    couponRef && typeof couponRef !== "string"
+      ? (couponRef as Stripe.Coupon)
+      : null;
+  if (discount && c) {
+    percentOff = c.percent_off ?? null;
+    amountOff = c.amount_off != null ? c.amount_off / 100 : null;
+    let code: string | null = null;
+    const promo = discount.promotion_code;
+    if (promo && typeof promo !== "string") code = promo.code ?? null;
+    couponInfo = {
+      name: c.name ?? null,
+      percentOff,
+      amountOff,
+      code,
+    };
+  }
+
+  // Monto que realmente se cobra por período (base menos descuento).
+  let amount = baseUnit;
+  if (baseUnit != null) {
+    if (percentOff != null) amount = Math.round(baseUnit * (1 - percentOff / 100));
+    else if (amountOff != null) amount = Math.max(0, baseUnit - amountOff);
+  }
+
+  // Próximo cobro: current_period_end vive en el item de la suscripción.
+  const periodEnd =
+    (item as unknown as { current_period_end?: number })?.current_period_end ??
+    (sub as unknown as { current_period_end?: number }).current_period_end ??
+    null;
+
+  const totalCuotasRaw = sub.metadata?.total_cuotas;
+  const totalCuotas = totalCuotasRaw ? Number(totalCuotasRaw) : null;
+
+  // # de facturas pagadas de esta suscripción (cuotas ya abonadas).
+  let cuotasPagadas: number | null = null;
+  try {
+    const invs = await stripe.invoices.list({
+      subscription: subscriptionId,
+      status: "paid",
+      limit: 12,
+    });
+    cuotasPagadas = invs.data.length;
+  } catch {
+    // informativo
+  }
+
+  // Tarjeta por defecto de la suscripción.
+  let card: SubscriptionSummary["card"] = null;
+  const pm = sub.default_payment_method;
+  if (pm && typeof pm !== "string" && pm.card) {
+    card = { brand: pm.card.brand ?? null, last4: pm.card.last4 ?? null };
+  }
+
+  return {
+    found: true,
+    status: sub.status ?? null,
+    amount,
+    baseAmount: baseUnit,
+    currency,
+    interval,
+    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+    cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+    cuotasPagadas,
+    totalCuotas: totalCuotas && !Number.isNaN(totalCuotas) ? totalCuotas : null,
+    coupon: couponInfo,
+    card,
+  };
+}
+
 // Resuelve la suscripción cancelable de un customer cuando el subscription_id
 // no está guardado en Airtable (migración / webhook viejo — ver WI-1818).
 // Devuelve la suscripción activa/al-día más reciente, o null si no hay ninguna
