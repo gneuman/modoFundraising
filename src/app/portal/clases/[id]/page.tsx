@@ -59,6 +59,13 @@ function getEmbedUrl(url?: string): string | null {
   return null;
 }
 
+// Un recurso puede ser un link manual (campo url) o un archivo subido
+// (PDF en Attachments). Preferimos el url manual; si no hay, usamos el
+// primer attachment. Sin esto, los PDF subidos quedan sin href y no descargan.
+function resolveRecursoUrl(r: RecursoRecord): string | undefined {
+  return r.url ?? r.Attachments?.[0]?.url;
+}
+
 function TipoIcon({ tipo }: { tipo?: string }) {
   const t = tipo?.toLowerCase() ?? "";
   if (t.includes("pdf")) return <FileText className="h-4 w-4 text-red-500" />;
@@ -352,7 +359,7 @@ export default async function ClaseDetailPage({
           </h2>
           <div className="bg-white rounded-2xl border border-zinc-200 divide-y divide-zinc-100 overflow-hidden">
             {clase.recursosData.map((r) => (
-              <a key={r.id} href={r.url ?? "#"} target="_blank" rel="noreferrer"
+              <a key={r.id} href={resolveRecursoUrl(r) ?? "#"} target="_blank" rel="noreferrer"
                 className="flex items-center gap-3 px-5 py-4 hover:bg-zinc-50 transition-colors group">
                 <TipoIcon tipo={r.tipo} />
                 <div className="flex-1 min-w-0">
