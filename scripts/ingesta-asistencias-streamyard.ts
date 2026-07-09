@@ -50,6 +50,7 @@ function parseBody(body: string) {
     firstName: kv.get("firstName")?.trim() || null,
     lastName: kv.get("lastName")?.trim() || null,
     startupName: startup,
+    webinarId: kv.get("webinarId")?.trim() || null,
     webinarTitle: kv.get("webinarTitle")?.trim() || null,
     createdAt: kv.get("createdAt")?.trim() || null,
   };

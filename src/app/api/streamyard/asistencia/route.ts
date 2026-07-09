@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
     firstName: a.firstName,
     lastName: a.lastName,
     startupName: a.startup,
+    webinarId: a.webinarId,
     webinarTitle: a.webinarTitle,
     createdAt: a.createdAt,
   });

@@ -1577,6 +1577,7 @@ export interface StreamYardAttendee {
   firstName: string | null;
   lastName: string | null;
   startupName: string | null; // del customField "Startup" (texto libre, opcional)
+  webinarId: string | null; // id único de StreamYard (match primario de clase)
   webinarTitle: string | null;
   createdAt: string | null; // ISO
 }
@@ -1585,7 +1586,16 @@ export interface StreamYardResolution {
   startupId: string | null;
   claseId: string | null;
   viaStartup: "email" | "nombre-startup" | "nombre-founder" | null;
-  viaClase: "webinarTitle" | "fecha" | null;
+  viaClase: "webinarId" | "webinarTitle" | "fecha" | null;
+}
+
+// Extrae el webinarId de StreamYard embebido en el url_live de una clase.
+// Formato: https://streamyard.com/watch/<webinarId> (o /<webinarId>). Verificado
+// 28/28 clases sin duplicados (OP-1926). Devuelve null si no matchea.
+function webinarIdFromUrlLive(url: string | undefined | null): string | null {
+  if (!url) return null;
+  const m = url.match(/streamyard\.com\/(?:watch\/)?([A-Za-z0-9]+)/);
+  return m?.[1] ?? null;
 }
 
 export async function resolveAsistenciaStreamYard(
@@ -1594,7 +1604,7 @@ export async function resolveAsistenciaStreamYard(
   const [founderRecs, startupRecs, claseRecs, postulacionRecs] = await Promise.all([
     base(Tables.FOUNDERS).select().all(),
     base(Tables.STARTUPS).select({ fields: ["startup_name"] }).all(),
-    base(Tables.CLASES).select({ fields: ["titulo", "fecha"] }).all(),
+    base(Tables.CLASES).select({ fields: ["titulo", "fecha", "url_live"] }).all(),
     base(Tables.POSTULACIONES).select({ fields: ["startup_record"] }).all(),
   ]);
 
@@ -1640,7 +1650,7 @@ export async function resolveAsistenciaStreamYard(
     startupIdByName.set(nk, arr);
   }
 
-  // Clases: por keywords de título y por fecha.
+  // Clases: por webinarId (del url_live), por keywords de título y por fecha.
   type Clase = { id: string; fecha: string; kw: Set<string> };
   const clases: Clase[] = claseRecs.map((r) => {
     const f = r.fields as Record<string, unknown>;
@@ -1657,11 +1667,21 @@ export async function resolveAsistenciaStreamYard(
     arr.push(c);
     clasePorFecha.set(c.fecha, arr);
   }
+  // webinarId (extraído del url_live) → claseId. Match exacto, el más confiable.
+  const claseIdByWebinar = new Map<string, string>();
+  for (const r of claseRecs) {
+    const wid = webinarIdFromUrlLive((r.fields as Record<string, unknown>).url_live as string);
+    if (wid) claseIdByWebinar.set(wid, r.id);
+  }
 
-  // ── Resolver clase ──
+  // ── Resolver clase (webinarId exacto → título → fecha) ──
   let claseId: string | null = null;
   let viaClase: StreamYardResolution["viaClase"] = null;
-  if (a.webinarTitle) {
+  if (a.webinarId && claseIdByWebinar.has(a.webinarId)) {
+    claseId = claseIdByWebinar.get(a.webinarId)!;
+    viaClase = "webinarId";
+  }
+  if (!claseId && a.webinarTitle) {
     const kw = textKeywords(a.webinarTitle);
     const scored = clases.map((c) => ({ c, s: kwOverlap(kw, c.kw) })).sort((x, y) => y.s - x.s);
     if (scored[0]?.s >= 1 && scored[0].s > (scored[1]?.s ?? -1)) {
