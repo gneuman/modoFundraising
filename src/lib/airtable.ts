@@ -72,6 +72,31 @@ export type PaymentStatus =
   | "Rechazada por founder"
   | "Baja";
 
+// ─── Fuente de verdad: ¿este status da acceso al programa? ───────────────────
+// ALLOWLIST (positiva, no denylist): SOLO estos status de Postulación otorgan
+// acceso legítimo al portal y al calendario. Cualquier otro valor —incluidos los
+// que existen en Airtable pero no en el enum de arriba (ej. "Money Back"), o los
+// que el equipo agregue en el futuro— se considera SIN acceso por defecto.
+//
+// Es a prueba de futuro a propósito: si aparece un status nuevo de salida, el
+// sistema lo trata como "fuera" hasta que alguien lo agregue explícitamente aquí.
+// Falla del lado seguro (negar acceso), nunca del lado de la invitación fantasma.
+//
+// Esta es la única definición de "está dentro del programa". El gate del portal,
+// el reconciliador de calendario y la auditoría de suscripciones la comparten.
+const STATUS_CON_ACCESO: ReadonlySet<string> = new Set([
+  "Inscrita", // pagó / enrolado
+  "Invitada institucional", // enrolada por invitación (becada/institucional)
+  "Admitida", // aceptada, pago pendiente — el portal la deja entrar con banner
+]);
+
+// Devuelve true si el status de Postulación otorga acceso al programa.
+// Acepta el valor crudo de Airtable (string) porque el lookup a veces trae
+// valores fuera del enum tipado (ej. "Money Back").
+export function statusOtorgaAcceso(status: string | null | undefined): boolean {
+  return !!status && STATUS_CON_ACCESO.has(status);
+}
+
 // Full form data coming from the application form
 export interface ApplicationFormData {
   // Founder fields → go to Founders MF26
@@ -336,6 +361,99 @@ export async function getAllFoundersWithAccess(
       };
     })
     .filter((f) => f.email);
+}
+
+// Devuelve TODOS los founders (email + portal_access), sin filtrar. Lo usa el
+// reconciliador de calendario para distinguir "es founder sin acceso" (se saca)
+// de "no es founder" (staff/instructor/organizador → se deja en paz). Nunca saca
+// del calendario a alguien que no esté en la tabla Founders.
+export async function getAllFounderEmailsWithAccessFlag(): Promise<
+  { email: string; portalAccess: boolean }[]
+> {
+  const records = await base(Tables.FOUNDERS)
+    .select({ fields: ["email", "portal_access"] })
+    .all();
+  return records
+    .map((r) => {
+      const f = r.fields as Record<string, unknown>;
+      return {
+        email: ((f.email as string) ?? "").toLowerCase(),
+        portalAccess: (f.portal_access as boolean) ?? false,
+      };
+    })
+    .filter((f) => f.email);
+}
+
+// Un founder con portal_access=true cuyo status de Postulación NO otorga acceso.
+// Es el "flag sucio" que mete invitaciones fantasma al calendario.
+export interface FounderHuerfano {
+  id: string;
+  email: string;
+  status: string; // status de Postulación (crudo, puede estar fuera del enum)
+  invitadoCalendarAt?: string; // si tiene valor, está (o estuvo) en el calendario
+  invitadoCalendarBy?: string;
+}
+
+// Audita todos los founders con portal_access=true y devuelve los HUÉRFANOS:
+// aquellos cuyo status de Postulación (lookup "Status Postulación") no está en el
+// allowlist STATUS_CON_ACCESO. Fuente única para el fix one-shot y el cron
+// reconciliador. Read-only: no escribe nada.
+//
+// `sinStatus` son founders con portal_access=true pero sin status de Postulación
+// resoluble (ej. staff/admin o founder sin postulación ligada) — se reportan
+// aparte para revisión manual, NUNCA se tocan automáticamente.
+export async function auditFoundersConAcceso(): Promise<{
+  total: number;
+  conAcceso: number;
+  huerfanos: FounderHuerfano[];
+  sinStatus: { id: string; email: string; startupsLinked: number }[];
+}> {
+  const records = await base(Tables.FOUNDERS)
+    .select({
+      filterByFormula: `{portal_access} = 1`,
+      fields: [
+        "email",
+        "portal_access",
+        "Status Postulación",
+        "invitado_calendar_at",
+        "invitado_calendar_by",
+        "Startups MF26",
+      ],
+    })
+    .all();
+
+  const huerfanos: FounderHuerfano[] = [];
+  const sinStatus: { id: string; email: string; startupsLinked: number }[] = [];
+
+  for (const r of records) {
+    const f = r.fields as Record<string, unknown>;
+    const email = ((f.email as string) ?? "").toLowerCase();
+    if (!email) continue;
+    const statusArr = (f["Status Postulación"] as string[] | undefined) ?? [];
+    const status = statusArr[0] ?? "";
+
+    if (!status) {
+      const startups = (f["Startups MF26"] as string[] | undefined)?.length ?? 0;
+      sinStatus.push({ id: r.id, email, startupsLinked: startups });
+      continue;
+    }
+    if (!statusOtorgaAcceso(status)) {
+      huerfanos.push({
+        id: r.id,
+        email,
+        status,
+        invitadoCalendarAt: (f.invitado_calendar_at as string) ?? undefined,
+        invitadoCalendarBy: (f.invitado_calendar_by as string) ?? undefined,
+      });
+    }
+  }
+
+  return {
+    total: records.length,
+    conAcceso: records.length,
+    huerfanos,
+    sinStatus,
+  };
 }
 
 // Marca founders como invitados a Calendar para no reinvitarlos despues.

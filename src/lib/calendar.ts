@@ -232,22 +232,101 @@ export async function addAttendeesToAllEvents(
   return { ok, failed, skipped };
 }
 
+// Lee los attendees actuales de varios eventos y devuelve el set único de emails
+// (en minúsculas) presentes en al menos un evento, junto con el detalle por email
+// de en cuántos/cuáles eventos aparece. Lo usa el reconciliador para detectar a
+// quién hay que SACAR (está en el calendario pero ya no tiene portal_access).
+// Procesa en serie con delay para no rate-limitear Calendar API.
+export async function getAttendeesAcrossEvents(
+  eventIds: string[],
+  opts: { delayMs?: number } = {},
+): Promise<{
+  emails: string[]; // set único, minúsculas
+  byEmail: Map<string, string[]>; // email → eventIds donde aparece
+  errors: { eventId: string; error: string }[];
+}> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+  const delayMs = opts.delayMs ?? 300;
+  const byEmail = new Map<string, string[]>();
+  const errors: { eventId: string; error: string }[] = [];
+
+  for (let i = 0; i < eventIds.length; i++) {
+    const eventId = eventIds[i];
+    try {
+      const res = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
+      for (const a of res.data.attendees ?? []) {
+        const email = (a.email ?? "").toLowerCase();
+        if (!email) continue;
+        const list = byEmail.get(email) ?? [];
+        list.push(eventId);
+        byEmail.set(email, list);
+      }
+    } catch (err) {
+      errors.push({ eventId, error: err instanceof Error ? err.message : String(err) });
+    }
+    if (i < eventIds.length - 1 && delayMs > 0) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+
+  return { emails: [...byEmail.keys()], byEmail, errors };
+}
+
 // Elimina un attendee de todos los eventos del programa
 export async function removeAttendeeFromAllEvents(eventIds: string[], email: string): Promise<void> {
-  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+  await removeAttendeesFromAllEvents(eventIds, [email]);
+}
 
-  await Promise.allSettled(
-    eventIds.map(async (eventId) => {
+// Quita VARIOS emails de varios eventos, en SERIE y con un solo PATCH por evento.
+//
+// Por qué serie + un patch (no Promise.all ni un patch por email):
+//   - Google Calendar rate-limitea 30 GET+PATCH concurrentes; allSettled tragaba
+//     los errores en silencio (el fix reportaba "sacado" sin sacar nada — OP-1939).
+//   - Llamar removeAttendee 1×por-email sobre el mismo evento dispara patches
+//     concurrentes que hacen GET de la lista vieja y se pisan: el último PATCH
+//     re-agrega a quien otro acababa de sacar. Mismo patrón que el fix OP-1881
+//     (attendees: un solo patch) y el fan-out serial de Gmail (OP-1914).
+//   - Comparación case-insensitive: el casing del email en Calendar puede diferir
+//     del de Airtable; `!==` exacto dejaba al attendee dentro.
+//
+// Idempotente. Devuelve el desglose por evento (cuántos se quitaron / error).
+export async function removeAttendeesFromAllEvents(
+  eventIds: string[],
+  emails: string[],
+  opts: { delayMs?: number } = {},
+): Promise<{ totalRemoved: number; perEvent: { eventId: string; removed: number; error?: string }[] }> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+  const delayMs = opts.delayMs ?? 500;
+  const drop = new Set(emails.map((e) => e.toLowerCase()));
+  const perEvent: { eventId: string; removed: number; error?: string }[] = [];
+  let totalRemoved = 0;
+
+  for (let i = 0; i < eventIds.length; i++) {
+    const eventId = eventIds[i];
+    try {
       const res = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
-      const attendees = (res.data.attendees ?? []).filter((a) => a.email !== email);
-      await calendar.events.patch({
-        calendarId: CALENDAR_ID,
-        eventId,
-        sendUpdates: "none", // no notificar al removido
-        requestBody: { attendees },
-      });
-    })
-  );
+      const attendees = res.data.attendees ?? [];
+      const kept = attendees.filter((a) => !drop.has((a.email ?? "").toLowerCase()));
+      const removed = attendees.length - kept.length;
+      if (removed > 0) {
+        await calendar.events.patch({
+          calendarId: CALENDAR_ID,
+          eventId,
+          sendUpdates: "none", // no notificar a los removidos
+          requestBody: { attendees: kept },
+        });
+        totalRemoved += removed;
+      }
+      perEvent.push({ eventId, removed });
+    } catch (err) {
+      perEvent.push({ eventId, removed: 0, error: err instanceof Error ? err.message : String(err) });
+    }
+    if (i < eventIds.length - 1 && delayMs > 0) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
+  }
+
+  return { totalRemoved, perEvent };
 }
 
 // Actualiza título, descripción y/o fecha de un evento existente

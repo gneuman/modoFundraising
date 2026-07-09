@@ -17,7 +17,7 @@ import {
   sendChurnEmail,
   sendPortalDeactivatedEmail,
 } from "@/lib/email-engine";
-import { removeAttendeeFromAllEvents } from "@/lib/calendar";
+import { removeAttendeesFromAllEvents } from "@/lib/calendar";
 import { activatePortalForStartup } from "@/lib/inscripcion";
 
 // Resuelve la postulación de un invoice de Stripe con fallbacks en cascada para
@@ -73,11 +73,11 @@ async function deactivatePortalForStartup(
     startupRecordId ? updateStartupStatus(startupRecordId, "Churn") : Promise.resolve(),
   ]);
 
-  // Remover founders de todos los eventos de Calendar
+  // Remover founders de todos los eventos de Calendar (un solo barrido serial).
   if (founderEmails.length) {
     try {
       const eventIds = await getCalendarEventIds();
-      await Promise.allSettled(founderEmails.map((em) => removeAttendeeFromAllEvents(eventIds, em)));
+      await removeAttendeesFromAllEvents(eventIds, founderEmails);
     } catch (err) {
       console.error("Calendar remove error:", err instanceof Error ? err.message : err);
     }
@@ -302,11 +302,32 @@ export async function POST(req: NextRequest) {
 
     // ── Subscription cancelled ─────────────────────────────────────────────────
     case "customer.subscription.deleted": {
-      const sub = event.data.object as { id: string };
+      const sub = event.data.object as {
+        id: string;
+        cancellation_details?: { reason?: string | null } | null;
+      };
       const app = apps.find((a) => a.stripe_subscription_id === sub.id);
       if (!app) break;
-      // Only churn if they haven't finished paying AND didn't cancel themselves
-      if (app.payment_status !== "Cuota 3 pagada" && app.status !== "Churn By Founder") {
+
+      // El mismo evento se dispara en dos situaciones muy distintas:
+      //   (a) FIN NATURAL: el founder terminó de pagar sus cuotas, Stripe cierra la
+      //       sub sola (no hay más que cobrar). reason === null. NO es churn — debe
+      //       CONSERVAR el acceso al programa.
+      //   (b) CANCELACIÓN REAL: alguien la canceló a mano en Stripe, o cayó por
+      //       falla de pago / disputa. reason ∈ {cancellation_requested,
+      //       payment_failed, payment_disputed, canceled_by_retention_policy}.
+      //       SÍ es churn → apagar portal_access + sacar del calendario.
+      //
+      // Antes se usaba la heurística `payment_status !== "Cuota 3 pagada"`, que
+      // dejaba con acceso fantasma a quien ya había pagado completo y luego se le
+      // cancelaba la sub a mano (OP-1939). La señal cancellation_details.reason de
+      // Stripe distingue ambos casos sin ambigüedad.
+      const reason = sub.cancellation_details?.reason ?? null;
+      const esCancelacionReal = reason !== null;
+
+      // Guarda: si el propio founder ya se dio de baja por el portal
+      // (Churn By Founder), ese flujo ya limpió todo — no re-procesar.
+      if (esCancelacionReal && app.status !== "Churn By Founder") {
         const startupRecordId = (app.startup_record as string[] | undefined)?.[0];
         await deactivatePortalForStartup(app.id!, app.email, app.first_name, startupRecordId);
       }
