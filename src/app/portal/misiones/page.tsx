@@ -302,11 +302,12 @@ export default async function MisionesPage({
     }
   }
 
-  // Filtro de la vista principal: solo la Activa/Actual como card grande.
+  // Vista principal: TODAS las misiones Activas/Actuales como cards grandes,
+  // ordenadas por semana descendente (la más reciente arriba).
   // Todas las demás Próximas ya se filtraron por WI-1632.
-  const misionActiva = allMisiones.find(
-    (m) => m.mision.status === "Activa" || m.mision.status === "Actual",
-  );
+  const misionesActivas = allMisiones
+    .filter((m) => m.mision.status === "Activa" || m.mision.status === "Actual")
+    .sort((a, b) => (b.clase.semana ?? 0) - (a.clase.semana ?? 0));
 
   // Historial: solo las Cerradas
   const misionesCerradas = allMisiones
@@ -322,10 +323,6 @@ export default async function MisionesPage({
 
   // Mapa clase por ID para NPS lookup
   const claseById = new Map(clases.map((c) => [c.id!, c]));
-
-  const misionActivaCompletada = misionActiva?.mision.id
-    ? misionCompletadaMap.get(misionActiva.mision.id) ?? false
-    : false;
 
   return (
     <div className="space-y-6">
@@ -355,16 +352,21 @@ export default async function MisionesPage({
         </div>
       </div>
 
-      {/* Misión activa */}
-      {misionActiva ? (
-        <MisionActivaCard
-          mision={misionActiva.mision}
-          clase={misionActiva.clase}
-          claseById={claseById}
-          feedbackClaseIds={feedbackClaseIds}
-          consignaPorTarea={consignaPorTarea}
-          misionCompletada={misionActivaCompletada}
-        />
+      {/* Misiones activas — una card por cada misión Activa/Actual */}
+      {misionesActivas.length > 0 ? (
+        <div className="space-y-6">
+          {misionesActivas.map(({ mision, clase }) => (
+            <MisionActivaCard
+              key={mision.id ?? clase.id}
+              mision={mision}
+              clase={clase}
+              claseById={claseById}
+              feedbackClaseIds={feedbackClaseIds}
+              consignaPorTarea={consignaPorTarea}
+              misionCompletada={mision.id ? misionCompletadaMap.get(mision.id) ?? false : false}
+            />
+          ))}
+        </div>
       ) : (
         <div className="bg-white rounded-2xl border border-zinc-200 p-10 text-center">
           <Target className="h-10 w-10 text-zinc-200 mx-auto mb-3" />
