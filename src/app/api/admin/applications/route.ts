@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllApplications, updateApplicationStatus, markAdmissionEmailSent, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, deactivateAllFoundersForApplication, activateAllFoundersForApplication, updateStartupStatus, statusOtorgaAcceso, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
-import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink, sendPaymentConfirmation } from "@/lib/email-engine";
+import { getAllApplications, updateApplicationStatus, markAdmissionEmailSent, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, deactivateAllFoundersForApplication, activateAllFoundersForApplication, updateStartupStatus, getFoundersForOnboardingByStartup, markFounderOnboardingSent, statusOtorgaAcceso, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
+import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink, sendOnboardingEmail } from "@/lib/email-engine";
 import { buildCheckoutUrl } from "@/lib/checkout-url";
 import { addAttendeesToAllEvents, removeAttendeesFromAllEvents } from "@/lib/calendar";
 import { activatePortalForStartup } from "@/lib/inscripcion";
@@ -19,6 +19,26 @@ async function inviteStartupToCalendar(startupId: string) {
     }
   } catch (err) {
     console.error("Calendar invite error (non-blocking):", err instanceof Error ? err.message : err);
+  }
+}
+
+// Manda el correo de onboarding (acceso al portal) a los founders de la startup
+// que aun no lo recibieron. Serial + idempotente (marca onboarding_enviado_at),
+// mismo patron que inscripcion.ts. Non-blocking: si falla uno, sigue con el resto.
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://portal.modofundraising.com").replace(/\/$/, "");
+async function sendOnboardingForStartup(startupId: string) {
+  try {
+    const founders = await getFoundersForOnboardingByStartup(startupId);
+    for (const f of founders) {
+      try {
+        await sendOnboardingEmail(f.email, f.first_name || "founder", `${APP_URL}/portal`);
+        await markFounderOnboardingSent(f.id);
+      } catch (err) {
+        console.error("[onboarding] error for", f.email, ":", err instanceof Error ? err.message : err);
+      }
+    }
+  } catch (err) {
+    console.error("[onboarding] fan-out error (non-blocking):", err instanceof Error ? err.message : err);
   }
 }
 
@@ -280,14 +300,23 @@ export async function PATCH(req: NextRequest) {
           // Beca 100%: no hay cobro real. Marcamos payment_status propio para que
           // el campo refleje la realidad (no "Pendiente") y alimente el badge.
           await updateApplicationStatus(recordId, "Inscrita", { portal_access: true, payment_status: "Beca 100%" });
-          // Mandar el correo de confirmación PRIMERO para pre-warmear Gmail
-          // con `admin@impacta.vc` y evitar el warning "remitente desconocido"
-          // en la invitación de Calendar que viene a continuación.
-          if (app.email && app.first_name) {
-            await sendPaymentConfirmation(app.email, app.first_name, 1);
-          }
+          // Activar portal_access en TODOS los founders. Sin esto, el founder no
+          // puede entrar al portal (el gate se rige por portal_access del Founder)
+          // y getFoundersForOnboardingByStartup los ignora → no llega onboarding.
+          await activateAllFoundersForApplication(recordId).catch((err) =>
+            console.error("[admit beca] activate founders error:", err instanceof Error ? err.message : err)
+          );
           const startupId = (app.startup_record as string[] | undefined)?.[0];
-          if (startupId) await inviteStartupToCalendar(startupId);
+          if (startupId) {
+            await updateStartupStatus(startupId, "Inscrita").catch((err) =>
+              console.error("[admit beca] update startup error:", err instanceof Error ? err.message : err)
+            );
+            // Invitar a Calendar (S1/S2) ANTES del onboarding para pre-warmear Gmail.
+            await inviteStartupToCalendar(startupId);
+            // Onboarding: el correo con el acceso al portal. Es el que faltaba —
+            // la beca solo mandaba el de "pago recibido" (desactualizado y sin link).
+            await sendOnboardingForStartup(startupId);
+          }
           return NextResponse.json({ success: true, inscrita_directa: true });
         }
         const checkoutUrl = await buildCheckoutUrl(recordId, app);
