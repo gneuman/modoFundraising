@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllApplications, updateApplicationStatus, markAdmissionEmailSent, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, deactivateAllFoundersForApplication, statusOtorgaAcceso, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
+import { getAllApplications, updateApplicationStatus, markAdmissionEmailSent, getFounderEmailsByStartup, getCalendarEventIds, getFutureCalendarEventIds, deactivateAllFoundersForApplication, activateAllFoundersForApplication, updateStartupStatus, statusOtorgaAcceso, type ApplicationStatus, type PaymentStatus } from "@/lib/airtable";
 import { sendAdmissionEmail, sendRejectionEmail, sendCouponLink, sendPaymentConfirmation } from "@/lib/email-engine";
 import { buildCheckoutUrl } from "@/lib/checkout-url";
 import { addAttendeesToAllEvents, removeAttendeesFromAllEvents } from "@/lib/calendar";
@@ -144,6 +144,71 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true, amountUSD, stripeInvoiceId });
     } catch (err) {
       console.error(`[mark_paid_manual] error recordId=${recordId}`, err);
+      return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    }
+  }
+
+  // ── Reactivar sin cobro (dados de baja) ──────────────────────────────────────
+  // El admin reactiva a un founder dado de baja (Churn / Churn By Founder) para
+  // que recupere acceso al portal AUNQUE no haya pagado todavía. NO toca Stripe:
+  // no crea checkout ni suscripción, así que NO puede generar un cobro duplicado.
+  // El cobro pendiente lo regulariza el founder por su cuenta (billing portal o
+  // checkout desde /admin/recuperar-pagos, que diagnostica el estado real de la
+  // sub). Al pagar, el webhook lo procesa normal y vuelve al flujo (misiones,
+  // asistencia, pagos). Lo dejamos en "Admitida": otorga acceso (banner de pago
+  // pendiente) y el cron de cobranza lo IGNORA (solo procesa "Inscrita"), así que
+  // el payment_failed_at viejo no lo re-suspende. Igual limpiamos los sensores de
+  // cobranza para que, si mañana algo lo vuelve a "Inscrita", el cron arranque limpio.
+  if (body.action === "reactivate_no_charge") {
+    try {
+      const apps = await getAllApplications();
+      const app = apps.find((a) => a.id === recordId);
+      if (!app) return NextResponse.json({ error: "Postulación no encontrada" }, { status: 404 });
+
+      // Solo aplica a dados de baja. Evita usarlo por error sobre una activa.
+      if (app.status !== "Churn" && app.status !== "Churn By Founder") {
+        return NextResponse.json({
+          error: `Solo se puede reactivar sin cobro a una postulación dada de baja (Churn). Estado actual: "${app.status}".`,
+        }, { status: 409 });
+      }
+      // Idempotencia: si ya tiene acceso, no hacer nada.
+      if (statusOtorgaAcceso(app.status)) {
+        return NextResponse.json({ error: "La postulación ya tiene acceso." }, { status: 409 });
+      }
+
+      const nota = typeof body.nota === "string" ? body.nota.trim() : "";
+      console.log(`[reactivate_no_charge] recordId=${recordId} email=${app.email} statusPrevio=${app.status} nota="${nota}"`);
+
+      // Airtable: status "Admitida" + portal_access + limpiar sensores de cobranza.
+      // NO tocamos Stripe. churn_reason deja rastro de la reactivación manual.
+      await updateApplicationStatus(recordId, "Admitida", {
+        portal_access: true,
+        payment_failed_at: null,
+        payment_resolved_at: null,
+        payment_reminder_1_at: null,
+        payment_reminder_2_at: null,
+        payment_reminder_3_at: null,
+        churn_reason: `Reactivado sin cobro ${new Date().toISOString().slice(0, 10)}${nota ? ` — ${nota}` : ""}`,
+      } as never);
+
+      // Reactivar acceso con helpers granulares (NO activatePortalForStartup, que
+      // mandaría el correo de "pago recibido" — sería falso, no pagó). Esto pone
+      // portal_access=true en todos los founders, reactiva la startup y reinvita
+      // a S1/S2 en calendar.
+      await activateAllFoundersForApplication(recordId).catch((err) =>
+        console.error("[reactivate_no_charge] activate founders error:", err instanceof Error ? err.message : err)
+      );
+      const startupId = (app.startup_record as string[] | undefined)?.[0];
+      if (startupId) {
+        await updateStartupStatus(startupId, "Inscrita").catch((err) =>
+          console.error("[reactivate_no_charge] update startup error:", err instanceof Error ? err.message : err)
+        );
+        await inviteStartupToCalendar(startupId);
+      }
+
+      return NextResponse.json({ success: true });
+    } catch (err) {
+      console.error(`[reactivate_no_charge] error recordId=${recordId}`, err);
       return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
     }
   }
