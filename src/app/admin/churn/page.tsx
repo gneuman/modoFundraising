@@ -1,10 +1,29 @@
 import { getAllApplications, listRechazos, type RechazoRecord } from "@/lib/airtable";
 import { listAllPagosFromStripe } from "@/lib/stripe";
-import { UserMinus, AlertCircle, Clock, DollarSign } from "lucide-react";
+import { UserMinus, AlertCircle, Clock, DollarSign, CreditCard } from "lucide-react";
 import { ChurnFilters } from "./churn-filters";
 import { RefundButton } from "./refund-button";
+import { ReactivateButton } from "./reactivate-button";
 
 export const dynamic = "force-dynamic";
+
+// Tipo de baja, derivado del status + huella de cobranza:
+//  - no_pago: Churn con payment_failed_at estampado (el cron/webhook lo suspendió por no pagar)
+//  - voluntaria: Churn By Founder (el founder se dio de baja él mismo)
+//  - manual: Churn sin payment_failed_at (cancelación manual en Stripe / disputa)
+type TipoBaja = "no_pago" | "voluntaria" | "manual";
+
+const TIPO_BAJA_LABEL: Record<TipoBaja, string> = {
+  no_pago: "No pago",
+  voluntaria: "Voluntaria",
+  manual: "Cancelación manual",
+};
+
+const TIPO_BAJA_CLASS: Record<TipoBaja, string> = {
+  no_pago: "bg-red-100 text-red-700",
+  voluntaria: "bg-amber-100 text-amber-700",
+  manual: "bg-zinc-100 text-zinc-600",
+};
 
 // Inicio del programa Modo Fundraising 2026: martes 24 de junio de 2026 UTC.
 // La ventana de reembolso de 14 dias se cuenta desde aca; vence el 8-jul-2026.
@@ -19,6 +38,8 @@ interface ChurnRow {
   founder: string;
   email: string;
   status: ChurnStatus;
+  tipoBaja: TipoBaja;
+  paymentFailedAt: string | null;
   reasonLabel: string;
   reasonCode: string;
   detail: string;
@@ -37,11 +58,12 @@ function daysBetweenUtc(fromMs: number, toMs: number): number {
 export default async function ChurnPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ filter?: string; reason?: string }>;
+  searchParams?: Promise<{ filter?: string; reason?: string; tipo?: string }>;
 }) {
   const params = (await searchParams) ?? {};
   const filter = params.filter ?? "todos";
   const reasonFilter = params.reason ?? "todos";
+  const tipoFilter = params.tipo ?? "todos";
 
   const [apps, rechazos, pagos] = await Promise.all([
     getAllApplications(),
@@ -84,12 +106,22 @@ export default async function ChurnPage({
       ? Math.max(0, pago.amount - pago.refunded)
       : 0;
 
+    const paymentFailedAt = a.payment_failed_at ?? null;
+    const tipoBaja: TipoBaja =
+      a.status === "Churn By Founder"
+        ? "voluntaria"
+        : paymentFailedAt
+          ? "no_pago"
+          : "manual";
+
     return {
       postulacionId: a.id!,
       startup: a.startup_name ?? "—",
       founder: [a.first_name, a.last_name].filter(Boolean).join(" ") || "—",
       email: a.email ?? "—",
       status: a.status as ChurnStatus,
+      tipoBaja,
+      paymentFailedAt,
       reasonLabel: rechazo?.reason_label ?? "—",
       reasonCode: rechazo?.reason_code ?? "",
       detail: rechazo?.detail ?? "",
@@ -107,6 +139,7 @@ export default async function ChurnPage({
     if (filter === "reembolsados" && r.amountRefunded <= 0) return false;
     if (filter === "fuera_ventana" && r.inWindow) return false;
     if (reasonFilter !== "todos" && r.reasonCode !== reasonFilter) return false;
+    if (tipoFilter !== "todos" && r.tipoBaja !== tipoFilter) return false;
     return true;
   });
 
@@ -117,6 +150,7 @@ export default async function ChurnPage({
   });
 
   const totalChurn = rows.length;
+  const bajaPorNoPago = rows.filter((r) => r.tipoBaja === "no_pago").length;
   const enVentana = rows.filter((r) => r.inWindow).length;
   const montoEnRiesgo = rows.reduce((s, r) => s + r.amountRefundable, 0);
   const reasonCounts = new Map<string, number>();
@@ -132,21 +166,30 @@ export default async function ChurnPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">Churn</h1>
+        <h1 className="text-2xl font-bold text-zinc-800">Dados de baja</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          Startups fuera del programa · Ventana reembolso: 14 dias desde{" "}
+          Startups fuera del programa · Filtra por tipo de baja (no pago / voluntaria /
+          manual). Ventana reembolso: 14 dias desde{" "}
           <strong>24-jun-2026</strong> (vence 8-jul-2026)
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <div className="flex items-center gap-2 mb-2">
             <UserMinus className="h-4 w-4 text-red-500" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">Total churn</p>
+            <p className="text-xs text-zinc-500 uppercase tracking-wide">Total baja</p>
           </div>
           <p className="text-2xl font-bold text-red-600">{totalChurn}</p>
           <p className="text-xs text-zinc-400 mt-1">startups fuera</p>
+        </div>
+        <div className="bg-white rounded-xl border border-zinc-200 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="h-4 w-4 text-red-500" />
+            <p className="text-xs text-zinc-500 uppercase tracking-wide">Baja por no pago</p>
+          </div>
+          <p className="text-2xl font-bold text-red-600">{bajaPorNoPago}</p>
+          <p className="text-xs text-zinc-400 mt-1">reactivables</p>
         </div>
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <div className="flex items-center gap-2 mb-2">
@@ -185,6 +228,7 @@ export default async function ChurnPage({
       <ChurnFilters
         currentFilter={filter}
         currentReason={reasonFilter}
+        currentTipo={tipoFilter}
         reasonOptions={reasonOptions}
       />
 
@@ -199,6 +243,7 @@ export default async function ChurnPage({
               <tr className="bg-zinc-50 border-b border-zinc-100">
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Startup</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Founder</th>
+                <th className="text-left px-4 py-3 font-semibold text-zinc-600">Tipo de baja</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Motivo</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Cancelado</th>
                 <th className="text-left px-4 py-3 font-semibold text-zinc-600">Ventana 14d</th>
@@ -212,7 +257,7 @@ export default async function ChurnPage({
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-zinc-400">
+                  <td colSpan={11} className="px-4 py-12 text-center text-zinc-400">
                     Sin resultados con estos filtros
                   </td>
                 </tr>
@@ -223,6 +268,18 @@ export default async function ChurnPage({
                   <td className="px-4 py-3 text-zinc-600">
                     <div>{r.founder}</div>
                     <div className="text-xs text-zinc-400">{r.email}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_BAJA_CLASS[r.tipoBaja]}`}
+                    >
+                      {TIPO_BAJA_LABEL[r.tipoBaja]}
+                    </span>
+                    {r.tipoBaja === "no_pago" && r.paymentFailedAt && (
+                      <div className="text-xs text-zinc-400 mt-0.5">
+                        falló {new Date(r.paymentFailedAt).toLocaleDateString("es")}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-zinc-600 text-xs max-w-xs">
                     <div>{r.reasonLabel}</div>
@@ -264,11 +321,17 @@ export default async function ChurnPage({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <RefundButton
-                      email={r.email}
-                      amountRefundable={r.amountRefundable}
-                      startup={r.startup}
-                    />
+                    <div className="flex flex-col gap-1.5">
+                      <RefundButton
+                        email={r.email}
+                        amountRefundable={r.amountRefundable}
+                        startup={r.startup}
+                      />
+                      <ReactivateButton
+                        recordId={r.postulacionId}
+                        startup={r.startup}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
