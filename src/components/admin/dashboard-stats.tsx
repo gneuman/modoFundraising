@@ -1,29 +1,10 @@
 "use client";
 
-import {
-  Users,
-  UserCheck,
-  TrendingDown,
-  DollarSign,
-  XCircle,
-  UserX,
-  CalendarDays,
-  Globe,
-  Rocket,
-} from "lucide-react";
+import { Globe, Rocket } from "lucide-react";
 
 interface Props {
-  total: number;
-  incompletas: number;
-  nuevas: number;
-  admitidas: number;
-  rechazadas: number;
-  rechazadasPorFounder: number;
-  churn: number;
-  revenue: number;
   countryCounts: Record<string, number>;
   totalInscritas: number;
-  proximaClase: { titulo: string; fecha?: string } | null;
 }
 
 function KpiCard({
@@ -63,54 +44,17 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function DashboardStats({
-  total,
-  incompletas,
-  nuevas,
-  admitidas,
-  rechazadas,
-  rechazadasPorFounder,
-  churn,
-  revenue,
-  countryCounts,
-  totalInscritas,
-  proximaClase,
-}: Props) {
-  const topCountries = Object.entries(countryCounts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 6);
-
-  const formatDate = (iso?: string) => {
-    if (!iso) return "";
-    return new Date(iso).toLocaleDateString("es", {
-      timeZone: "America/Santiago",
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  };
+export function DashboardStats({ countryCounts, totalInscritas }: Props) {
+  // Todos los países con inscritas, de mayor a menor (antes se cortaba a top 6;
+  // la clienta necesita ver los ~10 países reales de Airtable — OP-2158).
+  const countries = Object.entries(countryCounts).sort(([, a], [, b]) => b - a);
 
   return (
     <div className="space-y-8">
-
       {/* ── PROGRAMA ─────────────────────────────────────────── */}
       <div>
         <SectionLabel>Programa</SectionLabel>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard
-            label="Postulaciones recibidas"
-            value={total}
-            sub={`${nuevas > 0 ? `${nuevas} sin revisar` : "Al día"}${incompletas > 0 ? ` · ${incompletas} sin terminar` : ""}`}
-            icon={Users}
-            accent="bg-zinc-100 text-zinc-500"
-          />
-          <KpiCard
-            label="Admitidas"
-            value={admitidas}
-            sub="pendiente de pago"
-            icon={UserCheck}
-            accent="bg-blue-50 text-blue-500"
-          />
           <KpiCard
             label="Inscritas"
             value={totalInscritas}
@@ -118,81 +62,22 @@ export function DashboardStats({
             icon={Rocket}
             accent="bg-violet-50 text-violet-500"
           />
-          <KpiCard
-            label="Revenue cobrado"
-            value={`US$${revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            sub="total cobrado · vía Stripe"
-            icon={DollarSign}
-            accent="bg-green-50 text-green-600"
-          />
-        </div>
-      </div>
-
-      {/* ── BAJAS Y PRÓXIMA CLASE ─────────────────────────────── */}
-      <div>
-        <SectionLabel>Estado del programa</SectionLabel>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard
-            label="Rechazadas"
-            value={rechazadas}
-            sub="por el equipo"
-            icon={XCircle}
-            accent="bg-red-50 text-red-500"
-          />
-          <KpiCard
-            label="Rechazadas por founder"
-            value={rechazadasPorFounder}
-            sub="admitidas, declinaron"
-            icon={UserX}
-            accent="bg-orange-50 text-orange-500"
-          />
-          <KpiCard
-            label="Churn"
-            value={churn}
-            sub="startups de baja"
-            icon={TrendingDown}
-            accent="bg-red-50 text-red-400"
-          />
-
-          {/* Próxima clase — card especial */}
-          <div className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Próxima clase</span>
-              <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-pink-50 text-pink-500">
-                <CalendarDays className="w-4 h-4" />
-              </span>
-            </div>
-            {proximaClase ? (
-              <div>
-                <p className="text-base font-bold text-zinc-900 leading-snug line-clamp-2">
-                  {proximaClase.titulo}
-                </p>
-                {proximaClase.fecha && (
-                  <p className="text-xs text-zinc-400 mt-1.5 capitalize">
-                    {formatDate(proximaClase.fecha)}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-zinc-400">Sin clase programada</p>
-            )}
-          </div>
         </div>
       </div>
 
       {/* ── PAÍSES ───────────────────────────────────────────── */}
-      {topCountries.length > 0 && (
+      {countries.length > 0 && (
         <div>
           <SectionLabel>Distribución geográfica</SectionLabel>
           <div className="bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-5">
               <Globe className="w-4 h-4 text-zinc-400" />
               <span className="text-sm font-semibold text-zinc-700">
-                Países de origen — startups inscritas
+                Países de origen — startups inscritas ({countries.length})
               </span>
             </div>
             <div className="space-y-3">
-              {topCountries.map(([country, count]) => {
+              {countries.map(([country, count]) => {
                 const pct = totalInscritas > 0 ? Math.round((count / totalInscritas) * 100) : 0;
                 return (
                   <div key={country} className="flex items-center gap-4">
