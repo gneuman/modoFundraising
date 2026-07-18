@@ -125,7 +125,7 @@ export async function sendMagicLink(
   const url = `${APP_URL}/api/auth/verify?token=${token}&role=${role}`;
   const html = wrapInBaseLayout(`
     ${h1("Ingresa a tu portal")}
-    ${p(`Haz clic en el botón para acceder. Este enlace es válido por <strong>${validez}</strong>. Si expira, te enviaremos uno nuevo automáticamente.`)}
+    ${p(`Haz clic en el botón para acceder. Este enlace es válido por <strong>${validez}</strong>. Si expira, vuelve a <a href="${APP_URL}/ingresar" style="color:#2563eb;">ingresar</a> con tu correo para recibir uno nuevo.`)}
     ${btn(url, "Ingresar al portal →")}
     ${divider()}
     ${small("Si no solicitaste este acceso, ignora este mensaje. Tu cuenta está segura.<br/>¿Problemas? Escríbenos a <a href='mailto:admin@impacta.vc' style='color:#a1a1aa;'>admin@impacta.vc</a>")}

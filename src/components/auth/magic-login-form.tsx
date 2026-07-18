@@ -73,7 +73,7 @@ export function MagicLoginForm({
               </div>
               <h1 className="text-xl font-bold text-white">Revisa tu correo</h1>
               <p className="text-sm text-white/60">
-                Enviamos un enlace de acceso a <strong className="text-white">{enviado}</strong>. Es válido por 15 minutos.
+                Enviamos un enlace de acceso a <strong className="text-white">{enviado}</strong>. Es válido por 1 hora.
               </p>
               <button
                 type="button"
