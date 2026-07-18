@@ -1,7 +1,17 @@
 /**
  * Recrea los 26 eventos de Modo Fundraising 2026 en el calendar primary
- * (admin@impacta.vc) y guarda los nuevos calendar_event_id, meet_link y
- * url_live en Airtable.
+ * (admin@impacta.vc) y guarda los nuevos calendar_event_id en Airtable.
+ *
+ * ⚠️ IMPORTANTE (OP-2156): el programa NO usa Google Meet — usa Streamyard.
+ * El link en vivo va en la DESCRIPCIÓN del evento ("🔴 EN VIVO:"), no como
+ * videollamada de Meet. Este script ANTES pedía Meet (conferenceDataVersion:1 +
+ * hangoutsMeet) y ensuciaba los eventos con Meet erróneo. Eso se removió: ahora
+ * crea eventos SIN Meet, alineado con src/lib/calendar.ts (createCalendarEvent).
+ *
+ * Preferí usar el flujo de producción (webhook clase-upsert / rutas admin de
+ * calendar) antes que este script. Existe como respaldo de emergencia.
+ *
+ * Para limpiar Meet de eventos ya creados: scripts/limpiar-meet-eventos.ts.
  *
  * Idempotente: si una clase ya tiene calendar_event_id, no la toca.
  * Para reemplazar, primero correr scripts/cleanup-eventos-viejos.ts.
@@ -105,39 +115,30 @@ async function main() {
       const start = new Date(clase.fecha);
       const end = new Date(start.getTime() + DURACION_MIN * 60_000);
 
+      // SIN Meet (OP-2156): no pasamos conferenceDataVersion ni conferenceData.
+      // El programa usa Streamyard; el link va en la descripción, no como Meet.
       const res = await calendar.events.insert({
         calendarId: CALENDAR_ID,
-        conferenceDataVersion: 1,
         sendUpdates: "none",
         requestBody: {
           summary: clase.titulo,
           description: clase.descripcion ?? "",
           start: { dateTime: start.toISOString(), timeZone: TZ },
           end: { dateTime: end.toISOString(), timeZone: TZ },
-          conferenceData: {
-            createRequest: {
-              requestId: `mf26-${clase.id}-${Date.now()}`,
-              conferenceSolutionKey: { type: "hangoutsMeet" },
-            },
-          },
           guestsCanSeeOtherGuests: false,
           guestsCanInviteOthers: false,
         },
       });
 
       const eventId = res.data.id!;
-      const meetLink =
-        res.data.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === "video")?.uri ?? "";
 
-      // OJO: NO tocamos url_live. Ese campo lo administra el usuario a mano
-      // (puede ser Zoom, Streamyard, link propio del programa). Pisarlo con el
-      // Meet link borra esa configuracion. meet_link queda como referencia tecnica.
+      // NO tocamos url_live ni meet_link. url_live lo administra el usuario a mano
+      // (Streamyard). meet_link ya no se genera.
       await base("Clases MF26").update(clase.id, {
         calendar_event_id: eventId,
-        meet_link: meetLink,
       } as never);
 
-      console.log(`${prefix} → ✓ ${eventId} · ${meetLink}`);
+      console.log(`${prefix} → ✓ ${eventId}`);
       creadas++;
     } catch (err) {
       console.log(`${prefix} → ✗ FALLÓ: ${err instanceof Error ? err.message : err}`);

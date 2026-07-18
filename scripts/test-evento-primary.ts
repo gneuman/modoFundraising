@@ -42,22 +42,17 @@ async function main() {
   const end = new Date(start.getTime() + 30 * 60_000);
 
   console.log("1. Creando evento de prueba...");
+  // SIN Meet (OP-2156): el programa usa Streamyard, no Google Meet. TZ Santiago
+  // como el resto del sistema (antes usaba Mexico_City, inconsistente).
   const created = await calendar.events.insert({
     calendarId: CALENDAR_ID,
-    conferenceDataVersion: 1,
     sendUpdates: "all",
     requestBody: {
       summary: "[TEST] Modo Fundraising — borrar después",
       description: "Evento de prueba para verificar que el remitente aparece como admin@impacta.vc",
-      start: { dateTime: start.toISOString(), timeZone: "America/Mexico_City" },
-      end: { dateTime: end.toISOString(), timeZone: "America/Mexico_City" },
+      start: { dateTime: start.toISOString(), timeZone: "America/Santiago" },
+      end: { dateTime: end.toISOString(), timeZone: "America/Santiago" },
       attendees: [{ email }],
-      conferenceData: {
-        createRequest: {
-          requestId: `mf26-test-${Date.now()}`,
-          conferenceSolutionKey: { type: "hangoutsMeet" },
-        },
-      },
       guestsCanSeeOtherGuests: false,
       guestsCanInviteOthers: false,
     },

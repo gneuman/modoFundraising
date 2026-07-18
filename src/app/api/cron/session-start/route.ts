@@ -54,7 +54,10 @@ async function getClasesPendientes(): Promise<ClaseConNotif[]> {
 }
 
 function founderLink(clase: ClaseRecord): string {
-  return clase.meet_link || clase.url_live || `${APP_URL}/portal/clases`;
+  // Link founder: SIEMPRE url_live (Streamyard), igual que session-notify. El
+  // meet_link es residuo del flujo viejo de Google Meet (ya no se usa, OP-2156);
+  // priorizarlo mandaba a los founders un link de Meet muerto en vez del vivo.
+  return clase.url_live || clase.meet_link || `${APP_URL}/portal/clases`;
 }
 
 function buildSlackText(clase: ClaseRecord): string {
