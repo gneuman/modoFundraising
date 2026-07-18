@@ -19,6 +19,7 @@ import {
   UserMinus,
   CreditCard,
   Star,
+  LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -40,6 +41,7 @@ const NAV = [
   { href: "/admin/recursos",       label: "Recursos",        icon: Link2 },
   { href: "/admin/comunicaciones", label: "Comunicaciones",  icon: Mail },
   { href: "/admin/design",         label: "Diseño",          icon: Palette },
+  { href: "/admin/guias",          label: "Guías",           icon: LifeBuoy },
   { href: "/admin/api",            label: "API Docs",        icon: Code2 },
 ];
 
