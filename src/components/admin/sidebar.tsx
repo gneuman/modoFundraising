@@ -38,7 +38,7 @@ const NAV = [
   // como métrica del dashboard, no la herramienta operativa).
   { href: "/admin/churn",         label: "Dados de baja", icon: UserMinus },
   { href: "/admin/inconsistencias", label: "Inconsistencias", icon: ShieldAlert },
-  { href: "/admin/nps",           label: "NPS sesiones",   icon: Star },
+  { href: "/admin/nps",           label: "Feedback Sesiones", icon: Star },
   { href: "/admin/cupones",       label: "Cupones",        icon: Tag },
   { href: "/admin/calendario",    label: "Calendario",     icon: CalendarDays },
   { href: "/admin/clases",        label: "Clases",         icon: BookOpen },
