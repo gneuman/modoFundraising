@@ -17,8 +17,10 @@ export function normalizarEmail(email: string): string {
 }
 
 // ── Token de magic link ──────────────────────────────────────────────────────
-// TTL por defecto 15 min (login recurrente). Onboarding/invitación pasa "72h".
-export const TTL_MAGIC_LOGIN = "15m";
+// TTL por defecto 60 min (login recurrente). Antes era 15m, pero un TTL corto
+// hacía que muchos links llegaran ya expirados y (con el viejo auto-reenvío)
+// alimentaba el bucle de correos. Onboarding/invitación pasa "72h".
+export const TTL_MAGIC_LOGIN = "60m";
 export const TTL_MAGIC_ONBOARDING = "72h";
 
 // Sanitiza un destino post-login. Solo aceptamos rutas internas absolutas

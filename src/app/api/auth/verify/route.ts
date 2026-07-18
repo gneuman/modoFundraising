@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decodeJwt } from "jose";
 import {
   verificarTokenMagic,
   crearSesion,
   esAdmin,
-  crearTokenMagic,
-  decodificarEmailToken,
-  sanitizarNext,
-  TTL_MAGIC_LOGIN,
 } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
@@ -18,23 +13,19 @@ export async function GET(req: NextRequest) {
 
   const verificado = await verificarTokenMagic(token);
   if (!verificado) {
-    // Token vencido o inválido: intentar auto-reenviar un link nuevo al mismo correo.
-    // El email se lee del payload SIN validar firma — solo para saber a dónde mandar
-    // un magic link legítimo; la autenticación sigue pasando por el inbox.
-    const emailToken = decodificarEmailToken(token);
-    if (emailToken) {
-      try {
-        const rol = esAdmin(emailToken) ? "admin" : "founder";
-        // Preservar el destino post-login en el link reenviado si el token expirado lo traía.
-        const nextExpirado = sanitizarNext(decodeJwt(token).next as string | undefined);
-        const nuevo = await crearTokenMagic(emailToken, TTL_MAGIC_LOGIN, nextExpirado);
-        const { sendMagicLink } = await import("@/lib/email-engine");
-        await sendMagicLink(emailToken, nuevo, rol);
-        return NextResponse.redirect(new URL("/ingresar?reenviado=1", req.url));
-      } catch {
-        // Si falla el reenvío, caer al flujo normal de "expirado"
-      }
-    }
+    // Token vencido o inválido: NO reenviar automáticamente desde este GET.
+    //
+    // Antes se auto-reenviaba un magic link nuevo aquí, pero este endpoint es un
+    // GET público y los escáneres de seguridad de correo (Gmail Safe Browsing,
+    // Outlook Safe Links, Proofpoint, etc.) pre-fetchean cada URL del email.
+    // Cada pre-fetch de un link ya expirado disparaba otro correo, cuyo link se
+    // volvía a pre-fetchear → bucle de "muchos correos". Los tokens son JWT sin
+    // marca de un-solo-uso, así que no había forma de frenar el loop.
+    //
+    // Ahora redirigimos a /ingresar?error=expirado, que muestra "Tu enlace expiró,
+    // ingresa tu correo y te enviamos uno nuevo". El reenvío pasa a ser una acción
+    // EXPLÍCITA del usuario (POST /api/auth/magic desde el form) que los escáneres
+    // no disparan.
     return NextResponse.redirect(new URL("/ingresar?error=expirado", req.url));
   }
 
