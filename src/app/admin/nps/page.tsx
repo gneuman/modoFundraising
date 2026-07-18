@@ -1,27 +1,11 @@
 import { getAllFeedback, getClasesWithContentCached, type FeedbackRecord, type ClaseRecord } from "@/lib/airtable";
-import { Star, MessageSquare, TrendingUp, Users } from "lucide-react";
+import { Star, MessageSquare, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-// NPS clásico sobre escala 1-10:
-//   Promotores = 9-10, Pasivos = 7-8, Detractores = 1-6
-//   Score = %promotores - %detractores  (rango -100 a +100)
-function npsScore(ratings: number[]): number {
-  if (ratings.length === 0) return 0;
-  const prom = ratings.filter((r) => r >= 9).length;
-  const detr = ratings.filter((r) => r <= 6).length;
-  return Math.round(((prom - detr) / ratings.length) * 100);
-}
 
 function promedio(ratings: number[]): number {
   if (ratings.length === 0) return 0;
   return ratings.reduce((s, r) => s + r, 0) / ratings.length;
-}
-
-function scoreColor(score: number): string {
-  if (score >= 50) return "text-green-600";
-  if (score >= 0) return "text-amber-600";
-  return "text-red-600";
 }
 
 interface ClaseNps {
@@ -30,7 +14,6 @@ interface ClaseNps {
   semana?: number;
   fecha?: string;
   n: number;
-  score: number;
   promedio: number;
   comentarios: { texto: string; rating: number; fecha?: string }[];
 }
@@ -65,7 +48,6 @@ export default async function NpsPage() {
       semana: clase?.semana,
       fecha: clase?.fecha,
       n: ratings.length,
-      score: npsScore(ratings),
       promedio: promedio(ratings),
       comentarios: fbs
         .filter((f) => (f.comentario ?? "").trim())
@@ -86,7 +68,6 @@ export default async function NpsPage() {
   const allRatings = feedback
     .map((f) => f.rating)
     .filter((r): r is number => typeof r === "number");
-  const scoreGlobal = npsScore(allRatings);
   const promedioGlobal = promedio(allRatings);
   const totalRespuestas = allRatings.length;
   const totalComentarios = feedback.filter((f) => (f.comentario ?? "").trim()).length;
@@ -94,25 +75,17 @@ export default async function NpsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">NPS de sesiones</h1>
+        <h1 className="text-2xl font-bold text-zinc-800">Feedback Sesiones</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          Feedback de los founders por clase · escala 1-10 (Promotores 9-10, Detractores 1-6)
+          Feedback de los founders por clase · escala 1-10
         </p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-4 w-4 text-blue-500" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">NPS global</p>
-          </div>
-          <p className={`text-2xl font-bold ${scoreColor(scoreGlobal)}`}>{scoreGlobal}</p>
-          <p className="text-xs text-zinc-400 mt-1">rango -100 a +100</p>
-        </div>
-        <div className="bg-white rounded-xl border border-zinc-200 p-5">
-          <div className="flex items-center gap-2 mb-2">
             <Star className="h-4 w-4 text-amber-500" />
-            <p className="text-xs text-zinc-500 uppercase tracking-wide">Promedio</p>
+            <p className="text-xs text-zinc-500 uppercase tracking-wide">Promedio Feedback</p>
           </div>
           <p className="text-2xl font-bold text-amber-600">
             {promedioGlobal.toFixed(1)}<span className="text-sm text-zinc-400 font-normal">/10</span>
@@ -155,12 +128,8 @@ export default async function NpsPage() {
                 </div>
                 <div className="flex items-center gap-6 shrink-0">
                   <div className="text-right">
-                    <p className={`text-lg font-bold ${scoreColor(r.score)}`}>{r.score}</p>
-                    <p className="text-[10px] text-zinc-400 uppercase tracking-wide">NPS</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-amber-600">{r.promedio.toFixed(1)}</p>
-                    <p className="text-[10px] text-zinc-400 uppercase tracking-wide">Prom.</p>
+                    <p className="text-lg font-bold text-amber-600">{r.promedio.toFixed(1)}<span className="text-xs text-zinc-400 font-normal">/10</span></p>
+                    <p className="text-[10px] text-zinc-400 uppercase tracking-wide">Promedio</p>
                   </div>
                 </div>
               </div>
