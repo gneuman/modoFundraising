@@ -456,6 +456,90 @@ export async function auditFoundersConAcceso(): Promise<{
   };
 }
 
+// ── Inconsistencias de acceso (OP-2167) ──────────────────────────────────────
+// El caso INVERSO a auditFoundersConAcceso: startups que SÍ deberían tener acceso
+// (Inscrita/Invitada institucional pagada o Beca 100%) pero cuyos founders tienen
+// portal_access=false. Nace del caso Ciudata (doble-sub dejó churn erróneo con
+// founders sin acceso) y del bug de beca (OP-2154, becados sin activar founders).
+
+const PAYMENT_PAGADO: ReadonlySet<string> = new Set([
+  "Cuota 1 pagada", "Cuota 2 pagada", "Cuota 3 pagada", "Cuota 4 pagada", "Beca 100%",
+]);
+
+export type TipoInconsistencia =
+  | "founder_sin_acceso"   // status/pago otorga acceso pero algún founder portal_access=false → bug real
+  | "postulacion_desync"   // founders con acceso pero portal_access de la postulación en false → cosmético
+  | "startup_churn_pagada"; // startup marcada Churn pero la postulación está Inscrita/pagada
+
+export interface AccesoInconsistente {
+  postulacionId: string;
+  startupRecordId?: string;
+  startupName: string;
+  email: string;
+  status: string;
+  paymentStatus: string;
+  startupStatus: string;
+  postulacionAccess: boolean;
+  foundersAccess: boolean[];   // portal_access de cada founder ligado
+  tipos: TipoInconsistencia[]; // puede tener varias marcas
+}
+
+// Devuelve las startups en estado inconsistente de acceso. Read-only.
+// Excluye churn legítimo (payment_failed_at presente) y Money Back — en esos el
+// acceso apagado es correcto.
+export async function auditAccesoInconsistente(): Promise<{
+  total: number;
+  inconsistentes: AccesoInconsistente[];
+}> {
+  const [apps, foundersFlag] = await Promise.all([
+    getAllApplications(),
+    getAllFounderEmailsWithAccessFlag(),
+  ]);
+  const accessByEmail = new Map(foundersFlag.map((f) => [f.email, f.portalAccess]));
+
+  const inconsistentes: AccesoInconsistente[] = [];
+
+  for (const a of apps) {
+    const status = a.status ?? "";
+    const payment = a.payment_status ?? "";
+    const startupStatus = a.startup?.status ?? "";
+    // Churn legítimo por no-pago o Money Back: acceso apagado correcto, saltar.
+    if (a.payment_failed_at) continue;
+    if (status === "Money Back") continue;
+
+    const enPrograma = statusOtorgaAcceso(status);
+    const pago = PAYMENT_PAGADO.has(payment);
+    if (!enPrograma && !pago) continue; // no debería tener acceso, no es inconsistencia
+
+    const founderEmails = (a.all_founder_emails ?? []).map((e) => e.toLowerCase());
+    const foundersAccess = founderEmails.map((e) => accessByEmail.get(e) ?? false);
+    const algunFounderSinAcceso = foundersAccess.some((v) => !v);
+    const postulacionAccess = !!a.portal_access;
+
+    const tipos: TipoInconsistencia[] = [];
+    if (algunFounderSinAcceso) tipos.push("founder_sin_acceso");
+    else if (!postulacionAccess) tipos.push("postulacion_desync");
+    if (startupStatus === "Churn") tipos.push("startup_churn_pagada");
+
+    if (tipos.length === 0) continue;
+
+    inconsistentes.push({
+      postulacionId: a.id!,
+      startupRecordId: (a.startup_record as string[] | undefined)?.[0],
+      startupName: a.startup_name ?? "—",
+      email: a.email ?? "—",
+      status,
+      paymentStatus: payment,
+      startupStatus,
+      postulacionAccess,
+      foundersAccess,
+      tipos,
+    });
+  }
+
+  return { total: inconsistentes.length, inconsistentes };
+}
+
 // Marca founders como invitados a Calendar para no reinvitarlos despues.
 // Guarda timestamp + email del admin que apretó el botón.
 export async function markFoundersAsInvited(
