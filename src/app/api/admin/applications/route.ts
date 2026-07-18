@@ -233,6 +233,45 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  // ── Corregir acceso inconsistente (OP-2167) ──────────────────────────────────
+  // Para startups Inscrita/pagada/Beca cuyos founders quedaron sin portal_access
+  // (caso Ciudata: doble-sub → churn erróneo; o becados sin activar). Reactiva
+  // acceso SIN cambiar el status (ya está Inscrita) y sin tocar Stripe. Idempotente.
+  if (body.action === "fix_access") {
+    try {
+      const apps = await getAllApplications();
+      const app = apps.find((a) => a.id === recordId);
+      if (!app) return NextResponse.json({ error: "Postulación no encontrada" }, { status: 404 });
+
+      // Solo corregir a quien DEBERÍA tener acceso (status en el allowlist). No
+      // reactivar churn/rechazos por error.
+      if (!statusOtorgaAcceso(app.status ?? "")) {
+        return NextResponse.json({
+          error: `El status "${app.status}" no otorga acceso. Usa "Reactivar sin cobro" si querés reingresarlo.`,
+        }, { status: 409 });
+      }
+
+      console.log(`[fix_access] recordId=${recordId} email=${app.email} status=${app.status}`);
+
+      await activateAllFoundersForApplication(recordId).catch((err) =>
+        console.error("[fix_access] activate founders error:", err instanceof Error ? err.message : err)
+      );
+      await updateApplicationStatus(recordId, app.status as ApplicationStatus, { portal_access: true });
+      const startupId = (app.startup_record as string[] | undefined)?.[0];
+      if (startupId) {
+        await updateStartupStatus(startupId, "Inscrita").catch((err) =>
+          console.error("[fix_access] update startup error:", err instanceof Error ? err.message : err)
+        );
+        await inviteStartupToCalendar(startupId);
+      }
+
+      return NextResponse.json({ success: true });
+    } catch (err) {
+      console.error(`[fix_access] error recordId=${recordId}`, err);
+      return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    }
+  }
+
   // ── Asignar cupón ────────────────────────────────────────────────────────────
   if (!status && coupon_code !== undefined) {
     try {
