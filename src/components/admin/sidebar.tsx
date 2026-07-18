@@ -17,7 +17,6 @@ import {
   Mail,
   Palette,
   UserMinus,
-  CreditCard,
   Star,
   LifeBuoy,
   ShieldAlert,
@@ -30,7 +29,13 @@ const NAV = [
   { href: "/admin/postulaciones", label: "Postulaciones",  icon: FileText },
   { href: "/admin/empresas",      label: "Empresas",       icon: Building2 },
   { href: "/admin/revenue",       label: "Revenue",        icon: DollarSign },
-  { href: "/admin/suscripciones", label: "Suscripciones",  icon: CreditCard },
+  // "Suscripciones" oculta del menú por pedido (OP-2159). La página y su lógica
+  // (auditoría de morosos/doble-sub) siguen VIVAS y accesibles por URL directa
+  // /admin/suscripciones — no se borró, solo se sacó del sidebar.
+  // { href: "/admin/suscripciones", label: "Suscripciones",  icon: CreditCard },
+  // "Churn" se reenfocó como "Dados de baja" (OP-2153): es la herramienta para
+  // reactivar founders, así que se MANTIENE visible (el pedido era quitar churn
+  // como métrica del dashboard, no la herramienta operativa).
   { href: "/admin/churn",         label: "Dados de baja", icon: UserMinus },
   { href: "/admin/inconsistencias", label: "Inconsistencias", icon: ShieldAlert },
   { href: "/admin/nps",           label: "NPS sesiones",   icon: Star },

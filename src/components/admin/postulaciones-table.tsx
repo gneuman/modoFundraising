@@ -9,14 +9,12 @@ import { cn } from "@/lib/utils";
 import type { ApplicationRecord, ApplicationStatus } from "@/lib/airtable";
 import { applicationSchema } from "@/lib/form-schema";
 
+// Solo Nueva postulación y Admitida por pedido de la clienta (OP-2159). Los otros
+// estados (Rechazada, Churn, Sin respuesta, etc.) viven en sus propias vistas
+// (Dados de baja, etc.), no en Postulaciones.
 const STATUS_TABS: { label: string; value: ApplicationStatus | "all" }[] = [
-  { label: "Todas", value: "all" },
   { label: "Nueva postulación", value: "Nueva postulación" },
   { label: "Admitida", value: "Admitida" },
-  { label: "Rechazada por founder", value: "Rechazada por founder" },
-  { label: "Churn", value: "Churn" },
-  { label: "Sin respuesta", value: "Sin Respuesta" },
-  { label: "Rechazada", value: "Rechazada" },
 ];
 
 // Estados que NO se muestran en /admin/postulaciones (viven en otra vista, ej. Empresas activas)
@@ -114,7 +112,7 @@ const COLUMN_LABELS: Record<ColumnKey, string> = {
 
 export function PostulacionesTable({ initialData }: { initialData: ApplicationRecord[] }) {
   const [data, setData] = useState(initialData);
-  const [activeTab, setActiveTab] = useState<ApplicationStatus | "all">("all");
+  const [activeTab, setActiveTab] = useState<ApplicationStatus | "all">("Nueva postulación");
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
   const [copiando, setCopiando] = useState<string | null>(null);
