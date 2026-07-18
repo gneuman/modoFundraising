@@ -6,8 +6,6 @@ import { RefundsYearFilter } from "./refunds-year-filter";
 
 export const dynamic = "force-dynamic";
 
-const PRECIO_CUOTA = 349;
-
 const REFUND_REASON_LABEL: Record<string, string> = {
   requested_by_customer: "Pedido por el cliente",
   duplicate: "Duplicado",
@@ -59,10 +57,6 @@ export default async function RevenuePage({
   const pagosTotales = pagos.reduce((sum, p) => sum + p.amount, 0);
   const pagosConFallo = apps.filter((a) => a.payment_status === "Baja").length;
 
-  const cuota1 = apps.filter((a) => a.payment_status === "Cuota 1 pagada").length;
-  const cuota2 = apps.filter((a) => a.payment_status === "Cuota 2 pagada").length;
-  const cuota3 = apps.filter((a) => a.payment_status === "Cuota 3 pagada").length;
-
   return (
     <div className="space-y-6">
       <div>
@@ -90,32 +84,6 @@ export default async function RevenuePage({
           </div>
           <p className="text-2xl font-bold text-red-500">{pagosConFallo}</p>
           <p className="text-xs text-zinc-400 mt-1">startups con baja</p>
-        </div>
-      </div>
-
-      {/* Progreso de cuotas */}
-      <div className="bg-white rounded-xl border border-zinc-200 p-6">
-        <h2 className="text-sm font-semibold text-zinc-700 mb-4">Progreso de cuotas</h2>
-        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: "Cuota 1", count: cuota1, amount: cuota1 * PRECIO_CUOTA, color: "bg-amber-500" },
-            { label: "Cuota 2", count: cuota2, amount: cuota2 * PRECIO_CUOTA, color: "bg-blue-500" },
-            { label: "Cuota 3", count: cuota3, amount: cuota3 * PRECIO_CUOTA, color: "bg-green-500" },
-          ].map((c) => (
-            <div key={c.label} className="text-center space-y-2">
-              <p className="text-xs text-zinc-500 font-medium">{c.label}</p>
-              <p className="text-2xl font-bold text-zinc-800">{c.count}</p>
-              <p className="text-sm font-semibold text-zinc-600">US${c.amount.toLocaleString()}</p>
-              {inscritas.length > 0 && (
-                <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${c.color} rounded-full transition-all`}
-                    style={{ width: `${Math.min(100, (c.count / inscritas.length) * 100)}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
         </div>
       </div>
 
