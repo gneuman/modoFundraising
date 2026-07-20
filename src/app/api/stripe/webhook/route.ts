@@ -8,6 +8,7 @@ import {
   getFounderEmailsByStartup,
   getCalendarEventIds,
   updateStartupStatus,
+  statusOtorgaAcceso,
   type PaymentStatus,
   type PostulacionRecord,
 } from "@/lib/airtable";
@@ -86,6 +87,64 @@ async function deactivatePortalForStartup(
   if (email && firstName) await sendChurnEmail(email, firstName, airtableId);
 }
 
+// Espejo inverso de deactivatePortalForStartup: si un pago entra para una
+// postulación que estaba FUERA del programa (Churn / Churn By Founder), la
+// resucita a "Inscrita" con todos los accesos. Reutiliza activatePortalForStartup,
+// que reactiva founders + startup + reinvita S1/S2 en calendar + onboarding.
+//
+// Idempotente: si el status ya otorga acceso, es no-op → los 3 eventos de Stripe
+// (checkout.session.completed, invoice.payment_succeeded, subscription.updated→active)
+// pueden dispararse juntos sin duplicar la activación.
+//
+// Allowlist estricta: SOLO resucita desde Churn/Churn By Founder. Nunca desde
+// Rechazada, Money Back u otro estado de salida — un pago tardío sobre una baja
+// definitiva no debe reingresar a nadie sin decisión humana.
+//
+// Devuelve true si reactivó (para que el caller sepa que ya activó el portal y no
+// lo vuelva a hacer). false = no hizo falta (ya dentro, o no aplica).
+async function reactivateFromChurnIfNeeded(
+  app: PostulacionRecord,
+  opts: { amount: number; cuota: number; stripeInvoiceId?: string; stripeSubscriptionId?: string; stripeCustomerId?: string },
+): Promise<boolean> {
+  if (statusOtorgaAcceso(app.status)) return false;
+  if (app.status !== "Churn" && app.status !== "Churn By Founder") return false;
+
+  console.warn(`[webhook] reactivación por pago: ${app.email} venía de ${app.status} → Inscrita`);
+
+  const startupRecordId = (app.startup_record as string[] | undefined)?.[0];
+
+  // Status "Inscrita" + limpiar sensores de cobranza para que un payment_failed_at
+  // viejo no la re-suspenda en el próximo ciclo del cron.
+  await updateApplicationStatus(app.id!, "Inscrita", {
+    portal_access: true,
+    payment_failed_at: null,
+    payment_resolved_at: null,
+    payment_reminder_1_at: null,
+    payment_reminder_2_at: null,
+    payment_reminder_3_at: null,
+    churn_reason: `Reactivado por pago ${new Date().toISOString().slice(0, 10)}`,
+  } as never);
+
+  // activatePortalForStartup manda el correo "pago recibido" — acá es verdad (sí
+  // pagó), a diferencia de reactivate_no_charge. Registra el pago y reinvita calendar.
+  await activatePortalForStartup({
+    airtableId: app.id!,
+    email: app.email,
+    firstName: app.first_name,
+    stripeCustomerId: opts.stripeCustomerId,
+    startupRecordId,
+    amount: opts.amount,
+    cuota: opts.cuota,
+    stripeInvoiceId: opts.stripeInvoiceId,
+    stripeSubscriptionId: opts.stripeSubscriptionId,
+    startup_name: app.startup_name,
+    cuotaParaCorreo: 1,
+    totalCuotas: app.total_cuotas ?? 3,
+  });
+
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const sig = req.headers.get("stripe-signature")!;
@@ -137,12 +196,31 @@ export async function POST(req: NextRequest) {
       const cuota = isOneTime ? 3 : 1;
       const paymentStatus = isOneTime ? "Cuota 3 pagada" : "Cuota 1 pagada";
 
+      // Si el checkout viene de un founder que estaba en Churn (retomó pago desde
+      // /admin/recuperar-pagos o billing portal), este flujo ya lo pone en Inscrita
+      // y activa el portal más abajo. Solo falta limpiar los sensores de cobranza
+      // viejos y dejar rastro de la reactivación.
+      const veniaDeChurn = app.status === "Churn" || app.status === "Churn By Founder";
+      if (veniaDeChurn) {
+        console.warn(`[webhook] reactivación por checkout: ${app.email} venía de ${app.status} → Inscrita`);
+      }
+
       await updateApplicationStatus(airtableId, "Inscrita", {
         stripe_subscription_id: session.subscription ?? undefined,
         stripe_customer_id: session.customer,
         payment_status: paymentStatus,
         portal_access: true,
-      });
+        ...(veniaDeChurn
+          ? {
+              payment_failed_at: null,
+              payment_resolved_at: null,
+              payment_reminder_1_at: null,
+              payment_reminder_2_at: null,
+              payment_reminder_3_at: null,
+              churn_reason: `Reactivado por pago ${new Date().toISOString().slice(0, 10)}`,
+            }
+          : {}),
+      } as never);
 
       // Set cancel_at on the subscription so Stripe hard-stops after the configured cuotas
       // total_cuotas todavía no está seteado en este punto del flujo (se hace después por el script
@@ -199,6 +277,17 @@ export async function POST(req: NextRequest) {
 
       const app = matchAppForInvoice(apps, invoice, "invoice.payment_succeeded");
       if (!app) break;
+
+      // Si venía de Churn, este pago lo reingresa: reactiva todos los accesos y
+      // registra el pago (vía activatePortalForStartup). Corta acá para no duplicar.
+      const reactivado = await reactivateFromChurnIfNeeded(app, {
+        amount: (invoice.amount_paid ?? 34900) / 100,
+        cuota: 1,
+        stripeInvoiceId: invoice.id,
+        stripeSubscriptionId: invoice.subscription,
+        stripeCustomerId: invoice.customer,
+      });
+      if (reactivado) break;
 
       const totalCuotas = app.total_cuotas ?? 3;
       const prevMatch = (app.payment_status ?? "").match(/Cuota (\d+) pagada/);
@@ -282,10 +371,27 @@ export async function POST(req: NextRequest) {
     // el que ya envía invoice.payment_failed.
     case "customer.subscription.updated": {
       const sub = event.data.object as { id: string; status: string; customer?: string };
-      if (sub.status !== "past_due" && sub.status !== "unpaid") break;
 
       let app = apps.find((a) => a.stripe_subscription_id === sub.id);
       if (!app && sub.customer) app = apps.find((a) => a.stripe_customer_id === sub.customer);
+
+      // Reintento de Stripe exitoso: la sub vuelve a "active". Si el founder estaba
+      // en Churn (la sub cayó a unpaid y luego se recuperó), reingresarlo con todos
+      // los accesos. Idempotente: no-op si ya está dentro.
+      if (sub.status === "active") {
+        if (app) {
+          await reactivateFromChurnIfNeeded(app, {
+            amount: 34900 / 100,
+            cuota: 1,
+            stripeSubscriptionId: sub.id,
+            stripeCustomerId: sub.customer,
+          });
+        }
+        break;
+      }
+
+      if (sub.status !== "past_due" && sub.status !== "unpaid") break;
+
       if (!app) {
         console.error("[webhook] subscription.updated past_due: NO se encontró postulación", { sub: sub.id, customer: sub.customer });
         break;

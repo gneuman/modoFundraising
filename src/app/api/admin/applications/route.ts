@@ -54,6 +54,84 @@ export async function PATCH(req: NextRequest) {
   if (denied) return denied;
   const body = await req.json();
   const { recordId, status, rejection_reason, coupon_code, discount_percent, stripe_coupon_id, stripe_promotion_code_id } = body;
+
+  // ── Reactivar por búsqueda (email o nombre de startup) ───────────────────────
+  // Botón manual del admin: pega un correo de founder o el nombre de la startup y
+  // reactiva TODOS los accesos sin necesitar el recordId. Resuelve la postulación
+  // y delega en la misma lógica de reactivate_no_charge (status Admitida, sin tocar
+  // Stripe). Se maneja ANTES de la validación de recordId porque no lo requiere.
+  if (body.action === "reactivate_by_lookup") {
+    try {
+      const rawQuery = typeof body.query === "string" ? body.query.trim() : "";
+      if (!rawQuery) {
+        return NextResponse.json({ error: "Escribe un correo de founder o el nombre de la startup." }, { status: 400 });
+      }
+      const q = rawQuery.toLowerCase();
+      const apps = await getAllApplications();
+
+      // Match por email exacto primero (más preciso), luego por nombre de startup
+      // (exacto, después parcial). Recolecta candidatos para reportar ambigüedad.
+      const byEmail = apps.filter((a) => (a.email ?? "").toLowerCase().trim() === q);
+      const byStartupExact = apps.filter((a) => (a.startup_name ?? "").toLowerCase().trim() === q);
+      const byStartupPartial = apps.filter((a) => (a.startup_name ?? "").toLowerCase().includes(q));
+
+      let candidates = byEmail.length ? byEmail : byStartupExact.length ? byStartupExact : byStartupPartial;
+
+      if (candidates.length === 0) {
+        return NextResponse.json({ error: `No se encontró ninguna postulación para "${rawQuery}".` }, { status: 404 });
+      }
+      if (candidates.length > 1) {
+        const opciones = candidates.map((a) => `${a.startup_name ?? "?"} (${a.email ?? "?"}) — ${a.status ?? "?"}`).join("; ");
+        return NextResponse.json({
+          error: `"${rawQuery}" coincide con ${candidates.length} postulaciones: ${opciones}. Buscá por correo exacto.`,
+        }, { status: 409 });
+      }
+
+      const app = candidates[0];
+
+      // Idempotencia: si ya tiene acceso, avisar (no es error de datos, es no-op).
+      if (statusOtorgaAcceso(app.status)) {
+        return NextResponse.json({
+          error: `${app.startup_name ?? app.email} ya tiene acceso (status "${app.status}"). No hay nada que reactivar.`,
+        }, { status: 409 });
+      }
+
+      const nota = typeof body.nota === "string" ? body.nota.trim() : "manual admin";
+      console.log(`[reactivate_by_lookup] query="${rawQuery}" → recordId=${app.id} email=${app.email} statusPrevio=${app.status}`);
+
+      // Misma lógica que reactivate_no_charge: Admitida + portal_access + limpiar
+      // sensores de cobranza + reactivar founders/startup/calendar. NO toca Stripe.
+      await updateApplicationStatus(app.id!, "Admitida", {
+        portal_access: true,
+        payment_failed_at: null,
+        payment_resolved_at: null,
+        payment_reminder_1_at: null,
+        payment_reminder_2_at: null,
+        payment_reminder_3_at: null,
+        churn_reason: `Reactivado sin cobro ${new Date().toISOString().slice(0, 10)} — ${nota}`,
+      } as never);
+
+      await activateAllFoundersForApplication(app.id!).catch((err) =>
+        console.error("[reactivate_by_lookup] activate founders error:", err instanceof Error ? err.message : err)
+      );
+      const startupId = (app.startup_record as string[] | undefined)?.[0];
+      if (startupId) {
+        await updateStartupStatus(startupId, "Inscrita").catch((err) =>
+          console.error("[reactivate_by_lookup] update startup error:", err instanceof Error ? err.message : err)
+        );
+        await inviteStartupToCalendar(startupId);
+      }
+
+      return NextResponse.json({
+        success: true,
+        reactivated: { startup_name: app.startup_name, email: app.email, statusPrevio: app.status },
+      });
+    } catch (err) {
+      console.error(`[reactivate_by_lookup] error query="${body.query}"`, err);
+      return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    }
+  }
+
   if (!recordId) return NextResponse.json({ error: "Falta recordId" }, { status: 400 });
 
   // ── Reenviar checkout ────────────────────────────────────────────────────────

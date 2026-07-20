@@ -4,6 +4,7 @@ import { UserMinus, AlertCircle, Clock, DollarSign, CreditCard } from "lucide-re
 import { ChurnFilters } from "./churn-filters";
 import { RefundButton } from "./refund-button";
 import { ReactivateButton } from "./reactivate-button";
+import { ReactivateLookup } from "./reactivate-lookup";
 
 export const dynamic = "force-dynamic";
 
@@ -173,6 +174,8 @@ export default async function ChurnPage({
           <strong>24-jun-2026</strong> (vence 8-jul-2026)
         </p>
       </div>
+
+      <ReactivateLookup />
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border border-zinc-200 p-5">
