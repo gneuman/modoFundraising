@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const TIPO_LABEL: Record<TipoInconsistencia, string> = {
   founder_sin_acceso: "Founder sin acceso",
-  postulacion_desync: "Campo desincronizado",
+  postulacion_desync: "Cosmética (acceso OK)",
   startup_churn_pagada: "Startup Churn pero pagada",
 };
 
@@ -14,6 +14,16 @@ const TIPO_CLASS: Record<TipoInconsistencia, string> = {
   founder_sin_acceso: "bg-red-100 text-red-700",
   postulacion_desync: "bg-zinc-100 text-zinc-600",
   startup_churn_pagada: "bg-amber-100 text-amber-700",
+};
+
+// Qué está mal y qué hacer, para que cualquiera entienda la fila sin conocer el código.
+const TIPO_AYUDA: Record<TipoInconsistencia, string> = {
+  founder_sin_acceso:
+    "La startup debería tener acceso pero al menos un founder tiene el portal apagado. Presiona “Arreglar acceso” para reactivarlo.",
+  postulacion_desync:
+    "Los founders SÍ tienen acceso; solo el flag portal_access de la postulación quedó viejo. No afecta a nadie, no requiere acción.",
+  startup_churn_pagada:
+    "La startup está marcada como Churn pero la postulación está Inscrita/pagada. Revisa si el churn fue un error o si falta actualizar el status de la startup.",
 };
 
 export default async function InconsistenciasPage() {
@@ -98,7 +108,7 @@ export default async function InconsistenciasPage() {
                     <td className="px-4 py-3 text-xs font-mono text-zinc-600">
                       {conAcceso}/{i.foundersAccess.length}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 max-w-xs">
                       <div className="flex flex-wrap gap-1">
                         {i.tipos.map((t) => (
                           <span key={t} className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_CLASS[t]}`}>
@@ -106,6 +116,9 @@ export default async function InconsistenciasPage() {
                           </span>
                         ))}
                       </div>
+                      <p className="text-xs text-zinc-400 mt-1 leading-snug">
+                        {TIPO_AYUDA[i.tipos.includes("founder_sin_acceso") ? "founder_sin_acceso" : i.tipos[0]]}
+                      </p>
                     </td>
                     <td className="px-4 py-3">
                       {esBugReal ? (
