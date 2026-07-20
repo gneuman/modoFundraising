@@ -34,19 +34,33 @@ export default async function StartupPage() {
     return <StartupEditForm startup={startup} founder={founder} inline />;
   }
 
-  const fields: { label: string; value?: string | number | null; icon?: React.ReactNode; href?: string }[] = [
+  // Capital a levantar y Valuación son datos clave de fundraising: SIEMPRE se muestran
+  // en la vista del propio founder, incluso si faltan (0/undefined), con un prompt para
+  // completarlos. El resto de campos se esconde si está vacío.
+  const roundSizeValue = startup.round_size
+    ? `US$${startup.round_size.toLocaleString("en")}`
+    : undefined;
+  const valuationValue = startup.startup_valuation
+    ? `US$${startup.startup_valuation.toLocaleString("en")}`
+    : undefined;
+
+  const optionalFields: { label: string; value?: string | number | null; icon?: React.ReactNode }[] = [
     { label: "País de operación", value: startup.startup_country_ops, icon: <MapPin className="h-4 w-4" /> },
     { label: "Etapa", value: startup.startup_stage, icon: <Layers className="h-4 w-4" /> },
     { label: "Equipo", value: startup.startup_team_size ? `${startup.startup_team_size} personas` : undefined, icon: <Users className="h-4 w-4" /> },
     { label: "MRR", value: startup.startup_mrr ? `US$${startup.startup_mrr.toLocaleString("en")}` : undefined, icon: <TrendingUp className="h-4 w-4" /> },
     { label: "Ventas 12m", value: startup.startup_sales_12m ? `US$${startup.startup_sales_12m.toLocaleString("en")}` : undefined, icon: <DollarSign className="h-4 w-4" /> },
     { label: "Ronda", value: startup.round_series, icon: <Rocket className="h-4 w-4" /> },
-    { label: "Capital a levantar", value: startup.round_size ? `US$${startup.round_size.toLocaleString("en")}` : undefined, icon: <Target className="h-4 w-4" /> },
-    { label: "Valuación", value: startup.startup_valuation ? `US$${startup.startup_valuation.toLocaleString("en")}` : undefined, icon: <DollarSign className="h-4 w-4" /> },
     { label: "Runway", value: startup.runway ? `${startup.runway} meses` : undefined, icon: <Clock className="h-4 w-4" /> },
     { label: "Industrias", value: startup.startup_industries, icon: <Factory className="h-4 w-4" /> },
     { label: "Modelo de negocio", value: startup.business_model, icon: <Briefcase className="h-4 w-4" /> },
   ].filter((f) => f.value);
+
+  const fields: { label: string; value?: string | number | null; icon?: React.ReactNode; alwaysShow?: boolean }[] = [
+    { label: "Capital a levantar", value: roundSizeValue, icon: <Target className="h-4 w-4" />, alwaysShow: true },
+    { label: "Valuación", value: valuationValue, icon: <DollarSign className="h-4 w-4" />, alwaysShow: true },
+    ...optionalFields,
+  ];
 
   return (
     <div className="space-y-6">
@@ -88,7 +102,13 @@ export default async function StartupPage() {
             <p className="text-xs text-zinc-400 flex items-center gap-1 mb-1">
               {icon} {label}
             </p>
-            <p className="text-sm font-semibold text-zinc-800">{value}</p>
+            {value ? (
+              <p className="text-sm font-semibold text-zinc-800">{value}</p>
+            ) : (
+              <p className="text-sm font-medium text-zinc-400 italic">
+                Sin definir · <span className="text-blue-600 not-italic">Editar perfil</span>
+              </p>
+            )}
           </div>
         ))}
       </div>
