@@ -222,22 +222,33 @@ function AgendaView({ events, onSelectEvent }: { events: CalEvent[]; onSelectEve
 function TestPanel() {
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
-  const [audience, setAudience] = useState<"founders" | "team" | "both">("founders");
+  const [audience, setAudience] = useState<"founders" | "futuras" | "team" | "both">("founders");
   const [busy, setBusy] = useState<null | "invite" | "remove" | "onboarding">(null);
 
+  // Parsea el textarea: separa por coma, punto y coma, espacio o salto de línea.
+  // Permite pegar una lista completa de invitados de una sola vez.
+  function parseEmails(): string[] {
+    return [...new Set(
+      email.split(/[\s,;]+/).map((e) => e.trim().toLowerCase()).filter(Boolean)
+    )];
+  }
+
   async function run(action: "invite" | "remove" | "onboarding") {
-    if (!email.trim()) return toast.error("Pegá un email primero");
+    const emails = parseEmails();
+    if (!emails.length) return toast.error("Pegá al menos un email");
     setBusy(action);
     try {
       const res = await fetch("/api/admin/calendar/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), nombre: nombre.trim() || undefined, action, audience }),
+        body: JSON.stringify({ emails, nombre: nombre.trim() || undefined, action, audience }),
       });
       const data = await res.json();
       if (data.error) { toast.error(data.error); return; }
-      if (action === "invite") toast.success(`Invitado a ${data.events} evento${data.events !== 1 ? "s" : ""}`);
-      else if (action === "remove") toast.success(`Quitado de ${data.events} evento${data.events !== 1 ? "s" : ""}`);
+      const n = data.count ?? 1;
+      const quien = n === 1 ? "1 email" : `${n} emails`;
+      if (action === "invite") toast.success(`${quien} invitado(s) a ${data.events} evento${data.events !== 1 ? "s" : ""}`);
+      else if (action === "remove") toast.success(`${quien} quitado(s) de ${data.events} evento${data.events !== 1 ? "s" : ""}`);
       else toast.success(`Onboarding enviado a ${data.to}`);
     } catch {
       toast.error("Error en la acción de prueba");
@@ -250,32 +261,33 @@ function TestPanel() {
     <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-3">
       <div className="flex items-center gap-2">
         <FlaskConical className="h-4 w-4 text-purple-600" />
-        <p className="text-sm font-semibold text-purple-800">Modo prueba</p>
+        <p className="text-sm font-semibold text-purple-800">Invitar a Calendar</p>
         <span className="text-xs text-purple-600">— bypasea Airtable, no toca portal_access</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <input
-          type="email"
-          placeholder="email@prueba.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="text-sm border border-purple-200 bg-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
-        />
+      <textarea
+        placeholder="Pegá uno o varios emails (separados por coma, espacio o salto de línea)"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        rows={2}
+        className="w-full text-sm border border-purple-200 bg-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-y"
+      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         <input
           type="text"
-          placeholder="Nombre (para onboarding)"
+          placeholder="Nombre (solo para onboarding)"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           className="text-sm border border-purple-200 bg-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
         />
         <select
           value={audience}
-          onChange={(e) => setAudience(e.target.value as "founders" | "team" | "both")}
+          onChange={(e) => setAudience(e.target.value as "founders" | "futuras" | "team" | "both")}
           className="text-sm border border-purple-200 bg-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
         >
-          <option value="founders">Eventos founders</option>
+          <option value="founders">Founders (solo S1 y S2)</option>
+          <option value="futuras">Todas las clases futuras (de hoy en adelante)</option>
           <option value="team">Eventos equipo</option>
-          <option value="both">Ambos</option>
+          <option value="both">Founders + equipo</option>
         </select>
       </div>
       <div className="flex flex-wrap gap-2">
