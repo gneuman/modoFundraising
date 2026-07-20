@@ -4,7 +4,7 @@ import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import {
   ExternalLink, CheckCircle, XCircle, X, Loader2,
-  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, BellOff, Send, Building2, Search, AlertCircle,
+  AlertTriangle, Clock, CreditCard, Tag, MoreHorizontal, Link2, Send, Building2, Search, AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ApplicationProfile } from "@/components/admin/application-profile";
@@ -25,7 +25,6 @@ function isIncompleta(a: ApplicationRecord): boolean {
 const COLUMNS: { id: ApplicationStatus; label: string; border: string; header: string }[] = [
   { id: "Nueva postulación", label: "Nueva postulación", border: "border-t-zinc-400",  header: "bg-zinc-100 text-zinc-700" },
   { id: "Admitida",          label: "Admitida",           border: "border-t-blue-500",  header: "bg-blue-50 text-blue-700" },
-  { id: "Sin Respuesta",     label: "Sin respuesta",      border: "border-t-zinc-300",  header: "bg-zinc-50 text-zinc-500" },
 ];
 
 // Estados que NO se muestran en el kanban — viven en Empresas activas
@@ -76,12 +75,11 @@ interface ActionsModal {
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 function KanbanCard({
-  a, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, onCardClick, updating, onDragStart,
+  a, onAdmit, onReject, onRechazadoFounder, onActions, onCardClick, updating, onDragStart,
 }: {
   a: ApplicationRecord;
   onAdmit: (a: ApplicationRecord) => void;
   onReject: (a: ApplicationRecord) => void;
-  onSinRespuesta: (a: ApplicationRecord) => void;
   onRechazadoFounder: (a: ApplicationRecord) => void;
   onActions: (a: ApplicationRecord) => void;
   onCardClick: (a: ApplicationRecord) => void;
@@ -282,10 +280,6 @@ function KanbanCard({
                   : <Send className="h-4 w-4" />
                 }
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onSinRespuesta(a); }} disabled={updating === a.id} title="Sin respuesta"
-                className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-300 hover:text-zinc-500 transition-colors">
-                <BellOff className="h-4 w-4" />
-              </button>
               <button onClick={(e) => { e.stopPropagation(); onRechazadoFounder(a); }} disabled={updating === a.id} title="Rechazado por founder"
                 className="p-1.5 rounded-lg hover:bg-orange-50 text-zinc-300 hover:text-orange-500 transition-colors">
                 <XCircle className="h-4 w-4" />
@@ -301,13 +295,12 @@ function KanbanCard({
 // ─── Drop Column ──────────────────────────────────────────────────────────────
 
 function DropColumn({
-  col, cards, onAdmit, onReject, onSinRespuesta, onRechazadoFounder, onActions, onCardClick, updating, onDragStart, onDrop, dragOver, setDragOver,
+  col, cards, onAdmit, onReject, onRechazadoFounder, onActions, onCardClick, updating, onDragStart, onDrop, dragOver, setDragOver,
 }: {
   col: typeof COLUMNS[0];
   cards: ApplicationRecord[];
   onAdmit: (a: ApplicationRecord) => void;
   onReject: (a: ApplicationRecord) => void;
-  onSinRespuesta: (a: ApplicationRecord) => void;
   onRechazadoFounder: (a: ApplicationRecord) => void;
   onActions: (a: ApplicationRecord) => void;
   onCardClick: (a: ApplicationRecord) => void;
@@ -348,7 +341,7 @@ function DropColumn({
           </div>
         )}
         {cards.map((a) => (
-          <KanbanCard key={a.id} a={a} onAdmit={onAdmit} onReject={onReject} onSinRespuesta={onSinRespuesta} onRechazadoFounder={onRechazadoFounder} onActions={onActions} onCardClick={onCardClick} updating={updating} onDragStart={onDragStart} />
+          <KanbanCard key={a.id} a={a} onAdmit={onAdmit} onReject={onReject} onRechazadoFounder={onRechazadoFounder} onActions={onActions} onCardClick={onCardClick} updating={updating} onDragStart={onDragStart} />
         ))}
       </div>
     </div>
@@ -528,7 +521,6 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
 }) {
   const [data, setData] = useState(initialData);
   const [search, setSearch] = useState("");
-  const [filterStage, setFilterStage] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
   const [statusModal, setStatusModal] = useState<StatusModal | null>(null);
@@ -550,11 +542,10 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
         a.startup_country_ops?.toLowerCase().includes(q) ||
         a.startup_industries?.toLowerCase().includes(q)
       )) return false;
-      if (filterStage && a.startup_stage !== filterStage) return false;
       if (filterCountry && a.startup_country_ops !== filterCountry) return false;
       return true;
     });
-  }, [data, search, filterStage, filterCountry]);
+  }, [data, search, filterCountry]);
 
   const byColumn = useMemo(() => {
     const map: Record<string, ApplicationRecord[]> = {};
@@ -562,7 +553,6 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
     return map;
   }, [filteredData]);
 
-  const stages = useMemo(() => [...new Set(data.map((a) => a.startup_stage).filter(Boolean))].sort() as string[], [data]);
   const countries = useMemo(() => [...new Set(data.map((a) => a.startup_country_ops).filter(Boolean))].sort() as string[], [data]);
 
   function onDragStart(id: string) {
@@ -588,9 +578,6 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
   }
   function openReject(a: ApplicationRecord) {
     setStatusModal({ type: "Rechazada", recordId: a.id!, startupName: a.startup_name ?? "", founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(), reason: "" });
-  }
-  async function marcarSinRespuesta(a: ApplicationRecord) {
-    await applyStatus(a.id!, "Sin Respuesta");
   }
   function openRechazadoFounder(a: ApplicationRecord) {
     setStatusModal({ type: "Rechazada por founder", recordId: a.id!, startupName: a.startup_name ?? "", founderName: `${a.first_name ?? ""} ${a.last_name ?? ""}`.trim(), reason: "" });
@@ -657,14 +644,6 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
           />
         </div>
         <select
-          value={filterStage}
-          onChange={(e) => setFilterStage(e.target.value)}
-          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">Todas las etapas</option>
-          {stages.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select
           value={filterCountry}
           onChange={(e) => setFilterCountry(e.target.value)}
           className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -672,9 +651,9 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
           <option value="">Todos los países</option>
           {countries.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        {(search || filterStage || filterCountry) && (
+        {(search || filterCountry) && (
           <button
-            onClick={() => { setSearch(""); setFilterStage(""); setFilterCountry(""); }}
+            onClick={() => { setSearch(""); setFilterCountry(""); }}
             className="h-9 px-3 rounded-lg border border-zinc-200 text-sm text-zinc-500 hover:bg-zinc-50 transition-colors"
           >
             Limpiar
@@ -690,7 +669,6 @@ export function KanbanPostulaciones({ initialData, coupons, pagos }: {
             cards={byColumn[col.id] ?? []}
             onAdmit={openAdmit}
             onReject={openReject}
-            onSinRespuesta={marcarSinRespuesta}
             onRechazadoFounder={openRechazadoFounder}
             onActions={(a) => setActionsModal({ app: a })}
             onCardClick={(a) => setProfileApp(a)}
