@@ -37,7 +37,33 @@ function CopyButton({ text }: { text: string }) {
 
 // ─── Modal de detalle de evento ───────────────────────────────────────────────
 
-function EventModal({ event, onClose }: { event: CalEvent; onClose: () => void }) {
+function EventModal({ event, onClose, onInvited }: { event: CalEvent; onClose: () => void; onInvited: () => void }) {
+  const [inviting, setInviting] = useState(false);
+
+  async function inviteAllFounders() {
+    if (!confirm("¿Invitar a TODOS los founders con acceso a esta clase? Google le manda la invitación por email solo a quien todavía no esté.")) return;
+    setInviting(true);
+    try {
+      const res = await fetch("/api/admin/calendar/invite-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: event.id }),
+      });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      if (data.added === 0) {
+        toast.success(`Todos los founders ya estaban invitados (${data.total}). No se mandó ningún correo.`);
+      } else {
+        toast.success(`${data.added} founder${data.added !== 1 ? "s" : ""} invitado${data.added !== 1 ? "s" : ""} a "${event.summary}"${data.alreadyIn > 0 ? ` · ${data.alreadyIn} ya estaban` : ""}`);
+      }
+      onInvited();
+    } catch {
+      toast.error("Error al invitar founders a esta clase");
+    } finally {
+      setInviting(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
@@ -66,6 +92,16 @@ function EventModal({ event, onClose }: { event: CalEvent; onClose: () => void }
           <Users className="h-4 w-4" />
           <span>{event.attendeesCount} invitado{event.attendeesCount !== 1 ? "s" : ""}</span>
         </div>
+
+        <button
+          onClick={inviteAllFounders}
+          disabled={inviting}
+          className="w-full flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+          title="Invita a todos los founders con acceso al portal a esta clase. Solo notifica a los que aún no estén."
+        >
+          {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          Invitar a todos los founders a esta clase
+        </button>
 
         <div className="flex gap-2 pt-1">
           {event.meetLink && (
@@ -484,7 +520,7 @@ export function CalendarioAdmin({ calendarId }: { calendarId?: string }) {
 
   return (
     <div className="space-y-6">
-      {selected && <EventModal event={selected} onClose={() => setSelected(null)} />}
+      {selected && <EventModal event={selected} onClose={() => setSelected(null)} onInvited={load} />}
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4">

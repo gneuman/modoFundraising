@@ -3,7 +3,7 @@ export const maxDuration = 60; // 26 eventos × ~1s cada uno con sendUpdates="al
 
 import { NextRequest, NextResponse } from "next/server";
 import { verificarAdmin } from "@/lib/admin-auth";
-import { getAllFoundersWithAccess, getFutureCalendarEventIds, markFoundersAsInvited } from "@/lib/airtable";
+import { getAllFoundersWithAccess, getUpcomingClaseEventIds, markFoundersAsInvited } from "@/lib/airtable";
 import { addAttendeesToAllEvents } from "@/lib/calendar";
 import { obtenerSesion } from "@/lib/auth";
 
@@ -22,11 +22,15 @@ export async function POST(req: NextRequest) {
   const adminEmail = session?.email ?? "unknown";
   const force = new URL(req.url).searchParams.get("force") === "1";
 
-  // Solo S1 y S2 — el resto cae con el drip semanal (decision de Gabriel 2026-06-29)
-  const [founders, eventIds] = await Promise.all([
+  // TODAS las clases futuras, sin filtrar por nombre S1/S2 (OP-2227). Antes usaba
+  // getFutureCalendarEventIds (solo S1/S2) y dejaba fuera clases con otro título
+  // — ej. "Feedback & Networking…", "Rockstar Session…". Ahora usa la misma
+  // fuente que el cron sync-attendees: todas las clases de hoy en adelante.
+  const [founders, eventos] = await Promise.all([
     getAllFoundersWithAccess({ excludeAlreadyInvited: !force }),
-    getFutureCalendarEventIds(),
+    getUpcomingClaseEventIds(),
   ]);
+  const eventIds = eventos.map((e) => e.eventId);
 
   if (!eventIds.length) {
     return NextResponse.json(

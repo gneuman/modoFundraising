@@ -83,7 +83,7 @@ export function extractLiveUrl(description: string): string | null {
 //
 // sendUpdates:"all" → Google solo notifica a los attendees agregados en el diff,
 // no re-molesta a los que ya estaban. Devuelve cuántos se agregaron.
-async function ensureAttendees(
+export async function ensureAttendees(
   eventId: string,
   currentAttendees: { email?: string | null }[],
   emailsToEnsure: string[],
@@ -108,6 +108,20 @@ async function ensureAttendees(
     },
   });
   return nuevos.length;
+}
+
+// Invita una lista de emails a UN SOLO evento: GET del evento + un patch con los
+// faltantes (ensureAttendees). Idempotente: quien ya está no se re-notifica.
+// Devuelve cuántos se agregaron realmente (0 si ya estaban todos). Lo usa el
+// botón "Invitar a todos los founders a esta clase" del admin de calendario.
+export async function inviteFoundersToEvent(
+  eventId: string,
+  emails: string[],
+): Promise<{ added: number; total: number }> {
+  const calendar = google.calendar({ version: "v3", auth: getAuth() });
+  const res = await calendar.events.get({ calendarId: CALENDAR_ID, eventId });
+  const added = await ensureAttendees(eventId, res.data.attendees ?? [], emails);
+  return { added, total: emails.length };
 }
 
 // Sincroniza una lista de founders contra varios eventos: para cada evento hace
