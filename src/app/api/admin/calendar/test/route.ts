@@ -6,9 +6,41 @@ import {
   getFutureCalendarEventIds,
   getTeamCalendarEventIds,
   getUpcomingClaseEventIds,
+  getAllFounderEmailsWithAccessFlag,
 } from "@/lib/airtable";
 import { addAttendeesToAllEvents, removeAttendeeFromAllEvents } from "@/lib/calendar";
 import { sendOnboardingEmail } from "@/lib/email-engine";
+
+// Correos del team Impacta VC que sí van a Calendar aunque no sean founders en
+// Airtable. Fuente: TEAM_INVITEES en clase-upsert/route.ts (swap 2026-07-02).
+// Se consideran "conocidos" para la validación de invitación.
+const TEAM_KNOWN_EMAILS = [
+  "da@impacta.vc",
+  "maca@impacta.vc",
+  "lola@impacta.vc",
+  "nmacchiavello@impacta.vc",
+  "admin@impacta.vc",
+  "hola@impacta.vc",
+];
+
+// Devuelve, de una lista de emails, cuáles NO están en Airtable (ni founders ni
+// team conocido). Sirve para avisar al admin antes de dar acceso a un externo.
+async function separarConocidosYDesconocidos(emails: string[]): Promise<{
+  known: string[];
+  unknown: string[];
+}> {
+  const founderEmails = await getAllFounderEmailsWithAccessFlag().catch(() => []);
+  const conocidos = new Set<string>([
+    ...founderEmails.map((f) => f.email.toLowerCase()),
+    ...TEAM_KNOWN_EMAILS.map((e) => e.toLowerCase()),
+  ]);
+  const known: string[] = [];
+  const unknown: string[] = [];
+  for (const e of emails) {
+    (conocidos.has(e) ? known : unknown).push(e);
+  }
+  return { known, unknown };
+}
 
 // POST /api/admin/calendar/test
 // Acciones de QA contra uno o varios emails arbitrarios, SIN tocar Airtable / portal_access.
@@ -46,8 +78,15 @@ export async function POST(req: NextRequest) {
   if (invalid.length) {
     return NextResponse.json({ error: `Email(s) inválido(s): ${invalid.join(", ")}` }, { status: 400 });
   }
-  if (!action || !["invite", "remove", "onboarding"].includes(action)) {
-    return NextResponse.json({ error: "action debe ser invite | remove | onboarding" }, { status: 400 });
+  if (!action || !["invite", "remove", "onboarding", "check"].includes(action)) {
+    return NextResponse.json({ error: "action debe ser invite | remove | onboarding | check" }, { status: 400 });
+  }
+
+  // "check" (dry-run): NO invita. Solo dice cuáles emails no están en Airtable,
+  // para que el front avise antes de dar acceso a un externo. Ver OP-2209.
+  if (action === "check") {
+    const { known, unknown } = await separarConocidosYDesconocidos(emails);
+    return NextResponse.json({ ok: true, action, known, unknown });
   }
 
   if (action === "onboarding") {

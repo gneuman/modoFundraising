@@ -223,7 +223,10 @@ function TestPanel() {
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
   const [audience, setAudience] = useState<"founders" | "futuras" | "team" | "both">("founders");
-  const [busy, setBusy] = useState<null | "invite" | "remove" | "onboarding">(null);
+  const [busy, setBusy] = useState<null | "invite" | "remove" | "onboarding" | "check">(null);
+  // Emails que no están en Airtable, detectados antes de invitar. Si hay, se
+  // muestra el modal de confirmación (dar acceso a un externo). Ver OP-2209.
+  const [warnUnknown, setWarnUnknown] = useState<{ unknown: string[]; known: string[] } | null>(null);
 
   // Parsea el textarea: separa por coma, punto y coma, espacio o salto de línea.
   // Permite pegar una lista completa de invitados de una sola vez.
@@ -252,6 +255,32 @@ function TestPanel() {
       else toast.success(`Onboarding enviado a ${data.to}`);
     } catch {
       toast.error("Error en la acción de prueba");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Antes de invitar, valida contra Airtable. Si algún email no existe (ni founder
+  // ni team conocido), abre el modal de aviso. Si todos existen, invita directo.
+  async function handleInvite() {
+    const emails = parseEmails();
+    if (!emails.length) return toast.error("Pegá al menos un email");
+    setBusy("check");
+    try {
+      const res = await fetch("/api/admin/calendar/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emails, action: "check" }),
+      });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      if (data.unknown?.length) {
+        setWarnUnknown({ unknown: data.unknown, known: data.known ?? [] });
+      } else {
+        await run("invite");
+      }
+    } catch {
+      toast.error("No se pudo validar los emails");
     } finally {
       setBusy(null);
     }
@@ -292,11 +321,11 @@ function TestPanel() {
       </div>
       <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => run("invite")}
+          onClick={handleInvite}
           disabled={!!busy}
           className="flex items-center gap-1.5 text-sm font-semibold bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
         >
-          {busy === "invite" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          {busy === "invite" || busy === "check" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           Invitar a Calendar
         </button>
         <button
@@ -316,6 +345,70 @@ function TestPanel() {
           Enviar correo de onboarding
         </button>
       </div>
+
+      {/* Aviso: hay emails que no están en la base de datos (dar acceso a externos) */}
+      {warnUnknown && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          onClick={() => setWarnUnknown(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-zinc-800">Vas a dar acceso a la clase a alguien que no está en la base de datos</h2>
+                <p className="text-sm text-zinc-500 mt-1">
+                  {warnUnknown.unknown.length === 1
+                    ? "Este correo no es un founder ni team conocido:"
+                    : `Estos ${warnUnknown.unknown.length} correos no son founders ni team conocido:`}
+                </p>
+              </div>
+            </div>
+
+            <ul className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1 max-h-40 overflow-y-auto">
+              {warnUnknown.unknown.map((e) => (
+                <li key={e} className="text-sm font-mono text-amber-800">{e}</li>
+              ))}
+            </ul>
+
+            {warnUnknown.known.length > 0 && (
+              <p className="text-xs text-zinc-500">
+                {warnUnknown.known.length} correo{warnUnknown.known.length !== 1 ? "s" : ""} sí está{warnUnknown.known.length !== 1 ? "n" : ""} en la base y se invitará{warnUnknown.known.length !== 1 ? "n" : ""} igual.
+              </p>
+            )}
+
+            <p className="text-sm text-zinc-600">
+              Si confirmás, se invitará a <strong>todos</strong> (incluidos los desconocidos) y podrán entrar a las clases seleccionadas.
+            </p>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={async () => {
+                  setWarnUnknown(null);
+                  await run("invite");
+                }}
+                disabled={!!busy}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {busy === "invite" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                Invitar de todas formas
+              </button>
+              <button
+                onClick={() => setWarnUnknown(null)}
+                disabled={!!busy}
+                className="border border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
