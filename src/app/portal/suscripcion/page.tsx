@@ -20,6 +20,10 @@ export default async function SuscripcionPage() {
   const portalAccess = (profile?.portal_access || profile?.status === "Inscrita") ?? false;
   const stripeSubscriptionId = profile?.stripe_subscription_id;
   const discountPercent = profile?.discount_percent;
+  // Total de cuotas del plan. Airtable es la fuente de verdad: la metadata de
+  // Stripe suele venir vacía (caso Maity, 4 cuotas), así que sin esto el portal
+  // asumía 3 y trataba "Cuota 3 pagada" como plan terminado (OP-2245).
+  const totalCuotasAirtable = profile?.total_cuotas;
   // Pago fallido: falló y aún no se resolvió. Habilita el botón de actualizar tarjeta.
   const pagoFallido = !!profile?.payment_failed_at && !profile?.payment_resolved_at;
 
@@ -41,6 +45,7 @@ export default async function SuscripcionPage() {
       portalAccess={portalAccess}
       stripeSubscriptionId={stripeSubscriptionId}
       discountPercent={discountPercent}
+      totalCuotasAirtable={totalCuotasAirtable}
       pagoFallido={pagoFallido}
       subscription={subscription}
     />
