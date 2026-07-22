@@ -19,6 +19,8 @@ interface Props {
   portalAccess?: boolean;
   stripeSubscriptionId?: string;
   discountPercent?: number;
+  /** Total de cuotas del plan según Airtable (fuente de verdad; metadata de Stripe suele venir vacía). */
+  totalCuotasAirtable?: number;
   pagoFallido?: boolean;
   subscription?: SubscriptionSummary | null;
 }
@@ -70,6 +72,7 @@ export function SuscripcionClient({
   portalAccess,
   stripeSubscriptionId,
   discountPercent,
+  totalCuotasAirtable,
   pagoFallido,
   subscription,
 }: Props) {
@@ -112,26 +115,32 @@ export function SuscripcionClient({
   // paymentStatus === "Cuota 3 pagada", que confundía pago único con cuotas ya
   // terminadas y generaba textos contradictorios en el portal (WI-1846).
   const esPagoUnico = haPagado && !stripeSubscriptionId;
-  // Cuotas completadas → suscripción de 3 cuotas que terminó de pagar. OJO: el
-  // pago único también se marca "Cuota 3 pagada" en el webhook, así que hay que
-  // excluirlo con !esPagoUnico — de lo contrario un pago único quedaría como
-  // "completado" y no podría darse de baja. La marca real de cuotas terminadas
-  // es: llegó a Cuota 3/4 Y tiene subscription de Stripe (no es pago único).
-  const cuotasCompletas =
-    !esPagoUnico &&
-    (paymentStatus === "Cuota 3 pagada" || paymentStatus === "Cuota 4 pagada");
-  // "Darme de baja del programa" aplica a TODO founder activo que aún no
-  // completó cuotas — incluye pago único. En cuotas detiene los cobros futuros;
-  // en pago único (sin subscription en Stripe) solo lo saca del programa (ya
-  // pagó completo, sin reembolso). El endpoint maneja ambos casos.
-  const puedeCancel = haPagado && !cuotasCompletas;
 
   // Datos reales de la suscripción de Stripe (null si es pago único, beca sin
   // sub, o si Stripe falló — en ese caso caemos a los textos por defecto).
   const sub = subscription ?? null;
-  // total_cuotas puede venir de la metadata de Stripe o del cálculo por defecto (3).
-  const subTotalCuotas = sub?.totalCuotas ?? null;
+  // Total de cuotas del plan. Prioridad: Airtable (fuente de verdad) → metadata
+  // de Stripe → default 3. La metadata de Stripe suele venir vacía (caso Maity,
+  // plan de 4 cuotas), así que Airtable manda. Antes se asumía 3 y "Cuota 3
+  // pagada" se trataba como plan terminado aunque faltara la cuota 4 (OP-2245).
+  const subTotalCuotas = totalCuotasAirtable ?? sub?.totalCuotas ?? null;
   const subCuotasPagadas = sub?.cuotasPagadas ?? null;
+
+  // "Darme de baja del programa" SIEMPRE está disponible mientras el founder
+  // tenga acceso al programa (haPagado), aun con todas las cuotas pagadas o en
+  // pago único — así lo pidió Gabriel (OP-2245). En cuotas activas detiene los
+  // cobros futuros; si ya pagó todo (o pago único) solo lo saca del programa,
+  // sin reembolso (ya abonó). El endpoint /api/stripe/cancel maneja ambos casos
+  // (cancela la sub si existe, o solo ejecuta el churn). Este botón vive SOLO
+  // aquí, en la sección de Suscripción — no se ofrece en portal/clases/misiones.
+  const puedeCancel = haPagado;
+  // ¿Ya está todo abonado? Sirve solo para el copy (mensaje distinto), no para
+  // bloquear la baja. En cuotas: llegó al total. En pago único: siempre.
+  const yaAbonadoCompleto =
+    esPagoUnico ||
+    (subTotalCuotas != null &&
+      subCuotasPagadas != null &&
+      subCuotasPagadas >= subTotalCuotas);
   // El "próximo cobro" solo tiene sentido si aún faltan cuotas por pagar.
   const proximaCuotaPendiente =
     subTotalCuotas == null ||
@@ -156,7 +165,7 @@ export function SuscripcionClient({
       });
       if (!res.ok) throw new Error();
       toast.success(
-        esPagoUnico
+        yaAbonadoCompleto
           ? "Te diste de baja del programa. Se cerró tu acceso al portal."
           : "Suscripción cancelada. Se detuvieron los cobros futuros.",
       );
@@ -471,8 +480,8 @@ export function SuscripcionClient({
             {puedeCancel && (
               <>
                 <p className="text-sm text-zinc-500 mb-4">
-                  {esPagoUnico
-                    ? "Si te das de baja del programa perderás el acceso al portal, clases y misiones. Tu pago único ya está abonado y no genera reembolso."
+                  {yaAbonadoCompleto
+                    ? "Si te das de baja del programa perderás el acceso al portal, clases y misiones. Tu programa ya está completamente abonado y no genera reembolso."
                     : "Si te das de baja del programa se detendrán los cobros futuros y perderás el acceso al portal, clases y misiones."}
                 </p>
                 {!showConfirm ? (
@@ -494,8 +503,8 @@ export function SuscripcionClient({
                         <p className="text-xs text-red-600 mt-1">
                           Tu respuesta nos ayuda a mejorar el programa. Perderás
                           el acceso al portal y a todas las clases y misiones.
-                          {esPagoUnico
-                            ? " Recuerda que tu pago único ya está abonado y no hay reembolso."
+                          {yaAbonadoCompleto
+                            ? " Recuerda que tu programa ya está abonado y no hay reembolso."
                             : ""}
                         </p>
                       </div>
@@ -563,13 +572,6 @@ export function SuscripcionClient({
                   </div>
                 )}
               </>
-            )}
-            {!puedeCancel && haPagado && (
-              /* Solo llega aquí cuando el programa está completamente abonado
-                 (cuotas terminadas o pago único ya registrado como Cuota 3). */
-              <p className="text-sm text-zinc-400">
-                Tu programa está completamente abonado.
-              </p>
             )}
           </div>
         </div>
