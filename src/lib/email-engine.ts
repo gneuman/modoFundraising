@@ -341,6 +341,62 @@ export async function sendChurnEmail(
   });
 }
 
+// Buzón(es) del equipo que reciben el aviso interno cuando un founder se da de
+// baja. Default: admin@impacta.vc (buzón principal del equipo). Override por env
+// CHURN_ALERT_EMAILS (lista separada por comas) sin tocar código.
+function getChurnAlertRecipients(): string[] {
+  return (process.env.CHURN_ALERT_EMAILS ?? "admin@impacta.vc")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Aviso INTERNO al equipo de Impacta: un founder se dio de baja del programa.
+ * Incluye startup, contacto y la razón que puso en la encuesta de baja.
+ * Es transaccional (no depende de AutomationRules editables en Airtable) para
+ * que el equipo siempre se entere aunque nadie configure una regla.
+ */
+export async function sendChurnTeamAlert(data: {
+  firstName?: string;
+  email?: string;
+  startup?: string;
+  reasonLabel: string;
+  detail?: string;
+}): Promise<void> {
+  const recipients = getChurnAlertRecipients();
+  if (!recipients.length) return;
+
+  const nombre = data.firstName?.trim() || "(sin nombre)";
+  const startup = data.startup?.trim() || "(sin startup)";
+  const email = data.email?.trim() || "(sin email)";
+  const razon = data.detail?.trim()
+    ? `${data.reasonLabel} — “${data.detail.trim()}”`
+    : data.reasonLabel;
+
+  const content = `
+    ${h1("Un founder se dio de baja 📉")}
+    ${p(`<strong>${startup}</strong> se dio de baja del programa Modo Fundraising 2026. Se le cerró el acceso al portal, se detuvieron los cobros futuros y se sacó de las clases futuras del calendario.`)}
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin:8px 0 16px;font-size:14px;color:#3f3f46;">
+      <tr><td style="padding:6px 0;color:#71717a;width:120px;">Startup</td><td style="padding:6px 0;font-weight:600;">${startup}</td></tr>
+      <tr><td style="padding:6px 0;color:#71717a;">Contacto</td><td style="padding:6px 0;font-weight:600;">${nombre}</td></tr>
+      <tr><td style="padding:6px 0;color:#71717a;">Email</td><td style="padding:6px 0;"><a href="mailto:${email}" style="color:#2563eb;">${email}</a></td></tr>
+      <tr><td style="padding:6px 0;color:#71717a;vertical-align:top;">Motivo</td><td style="padding:6px 0;font-weight:600;">${razon}</td></tr>
+    </table>
+    ${small("Aviso automático del portal. La razón proviene de la encuesta de baja que el founder respondió al cancelar.")}
+  `;
+  const html = wrapInBaseLayout(content);
+  const subject = `📉 Baja: ${startup} — ${data.reasonLabel}`;
+
+  await Promise.all(
+    recipients.map((to) =>
+      sendViaGmail(to, subject, html).catch((err) => {
+        console.error(`[churn-alert] FAILED to=${to}`, err);
+      }),
+    ),
+  );
+}
+
 export async function sendPortalDeactivatedEmail(
   emailAddr: string,
   firstName: string,

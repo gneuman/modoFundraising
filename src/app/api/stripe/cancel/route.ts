@@ -12,7 +12,7 @@ import {
   CHURN_REASON_LABELS,
   type ChurnReasonCode,
 } from "@/lib/airtable";
-import { sendChurnEmail } from "@/lib/email-engine";
+import { sendChurnEmail, sendChurnTeamAlert } from "@/lib/email-engine";
 import { removeAttendeesFromAllEvents } from "@/lib/calendar";
 
 const VALID_REASONS: ChurnReasonCode[] = [
@@ -105,6 +105,21 @@ export async function POST(req: NextRequest) {
   }
 
   await sendChurnEmail(app.email!, app.first_name!);
+
+  // Aviso interno al equipo de Impacta con la razón de la encuesta de baja.
+  // No debe tumbar la respuesta si el correo falla (el churn ya se ejecutó).
+  await sendChurnTeamAlert({
+    firstName: app.first_name ?? undefined,
+    email: app.email ?? undefined,
+    startup: app.startup_name ?? undefined,
+    reasonLabel: CHURN_REASON_LABELS[reasonCode],
+    detail: detail || undefined,
+  }).catch((err) => {
+    console.error(
+      "[cancel] churn team alert error:",
+      err instanceof Error ? err.message : err,
+    );
+  });
 
   return NextResponse.json({ success: true });
 }
