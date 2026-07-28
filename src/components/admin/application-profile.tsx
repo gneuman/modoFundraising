@@ -85,12 +85,15 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
           },
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || `Error ${res.status} al admitir`);
+      }
       onStatusChange(app.id!, "Admitida");
       toast.success(`✅ ${app.startup_name} admitida — email con link de pago enviado`);
       onClose();
-    } catch {
-      toast.error("Error al admitir");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al admitir");
     } finally {
       setAdmitting(false);
     }
@@ -213,7 +216,14 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
     }
   }
 
-  const canAdmit = app.status === "Nueva postulación" || app.status === "Sin Respuesta" || app.status === "En revisión";
+  // "Admitida" también entra: re-admitir reenvía la liga y limpia los follow-ups
+  // de pago (arranca ciclo limpio). El cliente no tiene por qué saber si ya estaba
+  // admitida — clickea Admitir y el correo se manda igual.
+  const canAdmit =
+    app.status === "Nueva postulación" ||
+    app.status === "Sin Respuesta" ||
+    app.status === "En revisión" ||
+    app.status === "Admitida";
   const canSendLink = app.status === "Admitida";
   const cuotasPendientes =
     app.status === "Inscrita" &&

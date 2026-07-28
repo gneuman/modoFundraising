@@ -404,7 +404,16 @@ export async function PATCH(req: NextRequest) {
     extra.follow_up_2_sent_at = null;
     extra.admission_email_sent_at = null;
   }
-  await updateApplicationStatus(recordId, status as ApplicationStatus, extra);
+  try {
+    await updateApplicationStatus(recordId, status as ApplicationStatus, extra);
+  } catch (err) {
+    // Airtable rechazó la escritura (opción de select inválida, PAT sin permiso,
+    // rate limit, etc). Sin este catch el handler tira un 500 genérico y el admin
+    // solo ve "Error al admitir" sin pista. Devolvemos el mensaje real de Airtable.
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[status-change] update fail recordId=${recordId} status=${status}:`, msg);
+    return NextResponse.json({ error: `No se pudo actualizar el status en Airtable: ${msg}` }, { status: 500 });
+  }
 
   if (status === "Admitida") {
     try {
@@ -448,10 +457,22 @@ export async function PATCH(req: NextRequest) {
           console.error(`[admit] mark fail recordId=${recordId}:`, e instanceof Error ? e.message : e)
         );
       } else {
+        // No encontramos la postulación para armar/mandar la liga. El status ya
+        // quedó en "Admitida", pero el correo NO salió → hay que avisarle al admin.
         console.error(`[admit] app not found for recordId=${recordId}`);
+        return NextResponse.json({
+          error: "Se marcó Admitida pero no se pudo mandar la liga: no se encontró la postulación. Recargá y probá 'Reenviar link de pago'.",
+        }, { status: 500 });
       }
     } catch (err) {
+      // El status ya se guardó como "Admitida" (arriba, fuera de este try), pero el
+      // correo con la liga falló. Se lo devolvemos al admin con la causa real para
+      // que sepa qué pasó y no crea que la liga salió. La admisión NO se revierte.
+      const msg = err instanceof Error ? err.message : String(err);
       console.error(`[admit] email error recordId=${recordId}`, err);
+      return NextResponse.json({
+        error: `Se marcó Admitida pero falló el envío de la liga de pago: ${msg}`,
+      }, { status: 500 });
     }
   }
 
