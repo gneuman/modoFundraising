@@ -110,8 +110,43 @@ jobs:
           EOF
           )
 
+          # --assignee: sin esto el PR lo abre el bot y GitHub NO notifica a
+          # nadie. Se acumularon 24 PRs sin que Gabriel se enterara — el mas
+          # viejo 24 dias. Asignarselo lo pone en su bandeja "Assigned" y le
+          # manda correo.
           gh pr create \
             --base main \
             --head "$BRANCH" \
             --title "$TITLE" \
-            --body "$BODY"
+            --body "$BODY" \
+            --assignee gneuman
+
+      # Aviso a Slack. Solo corre si SLACK_BOT_TOKEN esta cargado como secret
+      # del repo (Settings -> Secrets -> Actions). Sin el, el paso se salta sin
+      # fallar: el PR ya quedo creado y asignado, que es lo que importa.
+      - name: Avisar en Slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL_LINEAR }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          # Sin el secret cargado no hay nada que hacer. Se sale en verde: el PR
+          # ya quedo creado y asignado, que es lo que de verdad importa.
+          if [ -z "$SLACK_BOT_TOKEN" ]; then
+            echo "SLACK_BOT_TOKEN no configurado — se omite el aviso."
+            exit 0
+          fi
+
+          PR_URL=$(gh pr view "$BRANCH" --json url --jq .url 2>/dev/null) || exit 0
+          PR_NUM=$(gh pr view "$BRANCH" --json number --jq .number)
+          PR_TITLE=$(gh pr view "$BRANCH" --json title --jq .title)
+
+          curl -sS -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d "$(jq -n \
+              --arg ch "${SLACK_CHANNEL:-#general}" \
+              --arg txt "PR #${PR_NUM} listo para revisar: <${PR_URL}|${PR_TITLE}>" \
+              '{channel: $ch, text: $txt, unfurl_links: false}')" \
+            > /dev/null || true
