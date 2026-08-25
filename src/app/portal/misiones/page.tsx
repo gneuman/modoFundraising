@@ -18,6 +18,7 @@ import { MisionActivaCard } from "@/components/portal/mision-activa-card";
 import { HistorialMisiones } from "@/components/portal/historial-misiones";
 import { Markdown } from "@/components/portal/markdown";
 import { formatFechaSinHora as formatFecha } from "@/lib/timezone";
+import { isMisionEnCurso, isMisionTerminada } from "@/lib/mision-status";
 
 export const dynamic = "force-dynamic";
 
@@ -27,14 +28,14 @@ function daysLeft(iso?: string): number | null {
 }
 
 // Visibilidad por fecha (WI-1632): David precarga todas las misiones al inicio.
-// Para no leakear contenido futuro, una misión no-Cerrada se muestra solo si
+// Para no leakear contenido futuro, una misión no terminada se muestra solo si
 // (fecha_clase + dias_offset * 1día) <= ahora.
 function isMisionVisible(
-  mision: { status?: string; dias_offset?: number },
+  mision: { status?: MisionRecord["status"]; dias_offset?: number },
   claseFecha: string | undefined,
   now: number,
 ): boolean {
-  if (mision.status === "Cerrada") return true;
+  if (isMisionTerminada(mision.status)) return true;
   if (!claseFecha || mision.dias_offset === undefined) return true;
   const activeAt = new Date(claseFecha).getTime() + mision.dias_offset * 86_400_000;
   return activeAt <= now;
@@ -303,19 +304,17 @@ export default async function MisionesPage({
   // ordenadas por semana descendente (la más reciente arriba).
   // Todas las demás Próximas ya se filtraron por WI-1632.
   const misionesActivas = allMisiones
-    .filter((m) => m.mision.status === "Activa" || m.mision.status === "Actual")
+    .filter((m) => isMisionEnCurso(m.mision.status))
     .sort((a, b) => (b.clase.semana ?? 0) - (a.clase.semana ?? 0));
 
-  // Historial: solo las Cerradas
+  // Historial: las ya terminadas ("Termino" hoy, "Cerrada" en registros viejos).
   const misionesCerradas = allMisiones
-    .filter((m) => m.mision.status === "Cerrada")
+    .filter((m) => isMisionTerminada(m.mision.status))
     .sort((a, b) => (b.clase.semana ?? 0) - (a.clase.semana ?? 0));
 
   // Stats
   const totalMisiones = allMisiones.length;
-  const activasCount = allMisiones.filter(
-    (m) => m.mision.status === "Activa" || m.mision.status === "Actual",
-  ).length;
+  const activasCount = allMisiones.filter((m) => isMisionEnCurso(m.mision.status)).length;
   const completadasCount = misionesCompletadas.filter((m) => m.completada).length;
 
   // Mapa clase por ID para NPS lookup

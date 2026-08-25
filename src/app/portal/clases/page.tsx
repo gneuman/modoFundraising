@@ -7,6 +7,7 @@ import {
   getAllFeedback,
 } from "@/lib/airtable";
 import { ClaseCard } from "@/components/clases/clase-card";
+import { isMisionEnCurso } from "@/lib/mision-status";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export default async function ClasesPage({
   );
   const misionesActivas = clases
     .flatMap((c) => c.misionesData)
-    .filter((m) => m.status === "Activa" || m.status === "Actual").length;
+    .filter((m) => isMisionEnCurso(m.status)).length;
 
   return (
     <div className="space-y-5">

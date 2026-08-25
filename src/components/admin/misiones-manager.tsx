@@ -8,13 +8,17 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { MisionRecord, ClaseRecord, RecursoRecord } from "@/lib/airtable";
 import { dateOnlyToISO, toSantiagoDate } from "@/lib/timezone";
+import { isMisionEnCurso, isMisionTerminada } from "@/lib/mision-status";
 
 type ClaseFull = ClaseRecord & { misionesData: MisionRecord[]; recursosData: RecursoRecord[] };
 
 // "Actual" = misión ya notificada por correo (auto-transición desde el webhook
 // mision-activada tras un envío exitoso). El admin puede mover a "Actual" manual
 // también, pero lo normal es que sea Activa → correo → Actual automático.
-const STATUS_MISION = ["Próxima", "Activa", "Actual", "Cerrada"] as const;
+// Debe reflejar el singleSelect real de Airtable (OP-2688). "Cerrada" salió de
+// la base y se reemplazó por "Termino"; ofrecerla desde el admin escribía un
+// status que ninguna vista del portal sabía interpretar.
+const STATUS_MISION = ["Próxima", "Activa", "Actual", "Termino"] as const;
 const STATUS_COLOR: Record<string, string> = {
   "Próxima": "bg-zinc-100 text-zinc-500",
   "Activa":  "bg-amber-100 text-amber-700",
@@ -57,7 +61,8 @@ function NuevaMisionForm({ clases, onCreated }: {
   const [saving, setSaving] = useState(false);
   const [claseId, setClaseId] = useState("");
   const [form, setForm] = useState({
-    titulo: "", descripcion: "", instrucciones: "", fecha_limite: "", status: "Próxima",
+    titulo: "", descripcion: "", instrucciones: "", fecha_limite: "",
+    status: "Próxima" as NonNullable<MisionRecord["status"]>,
   });
 
   async function submit() {
@@ -107,7 +112,7 @@ function NuevaMisionForm({ clases, onCreated }: {
         </div>
         <div className="space-y-1">
           <p className="text-xs text-zinc-500 font-medium">Status</p>
-          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}
+          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as (typeof STATUS_MISION)[number] })}
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
             {STATUS_MISION.map((s) => <option key={s}>{s}</option>)}
           </select>
@@ -135,13 +140,13 @@ function MisionRow({ mision, clases, onChange }: {
     descripcion: mision.descripcion ?? "",
     instrucciones: mision.instrucciones ?? "",
     fecha_limite: mision.fecha_limite ? mision.fecha_limite.slice(0, 16) : "",
-    status: mision.status ?? "Próxima",
+    status: (mision.status ?? "Próxima") as NonNullable<MisionRecord["status"]>,
     claseId: (mision.clase as string[] | undefined)?.[0] ?? "",
   });
 
   const days = daysLeft(mision.fecha_limite);
-  const isActiva = mision.status === "Activa";
-  const isCerrada = mision.status === "Cerrada";
+  const isActiva = isMisionEnCurso(mision.status);
+  const isCerrada = isMisionTerminada(mision.status);
   const claseId = (mision.clase as string[] | undefined)?.[0];
   const clase = claseId ? clases.find((c) => c.id === claseId) : null;
 
@@ -191,7 +196,7 @@ function MisionRow({ mision, clases, onChange }: {
             <Input type="date" value={toSantiagoDate(draft.fecha_limite)}
               onChange={(e) => setDraft({ ...draft, fecha_limite: e.target.value })} />
           </div>
-          <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+          <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as (typeof STATUS_MISION)[number] })}
             className="rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
             {STATUS_MISION.map((s) => <option key={s}>{s}</option>)}
           </select>
@@ -259,9 +264,13 @@ export function MisionesManager({ initialMisiones, clases }: {
 }) {
   const [misiones, setMisiones] = useState(initialMisiones);
 
-  const activas  = misiones.filter((m) => m.status === "Activa");
-  const proximas = misiones.filter((m) => m.status === "Próxima" || !m.status);
-  const cerradas = misiones.filter((m) => m.status === "Cerrada");
+  // "Actual" cuenta como en curso y "Termino" como terminada: sin esto quedaban
+  // fuera de las tres secciones y no se veían en el admin (OP-2688).
+  const activas  = misiones.filter((m) => isMisionEnCurso(m.status));
+  const cerradas = misiones.filter((m) => isMisionTerminada(m.status));
+  const proximas = misiones.filter(
+    (m) => !isMisionEnCurso(m.status) && !isMisionTerminada(m.status),
+  );
 
   function updateMision(updated: MisionRecord) {
     setMisiones((prev) => prev.map((m) => m.id === updated.id ? updated : m));
