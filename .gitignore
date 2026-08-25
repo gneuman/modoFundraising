@@ -43,3 +43,7 @@ next-env.d.ts
 .claude/worktrees/agent-a36627d6bdbec5bee
 .claude/settings.json
 .claude/settings.local.json
+
+# Scripts con PII (correos de founders) — nunca a git
+scripts/local/
+scratch-*.json

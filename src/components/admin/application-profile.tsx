@@ -56,10 +56,13 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
   const [assigningCoupon, setAssigningCoupon] = useState(false);
   const [manualPayOpen, setManualPayOpen] = useState(false);
   const [manualPaying, setManualPaying] = useState(false);
-  const cuotaSugerida =
-    app.payment_status === "Cuota 1 pagada" ? 2 :
-    app.payment_status === "Cuota 2 pagada" ? 3 :
-    3;
+  // Cuotas pagadas / total real del plan. total_cuotas vacío → 3 (default histórico).
+  const totalCuotasPlan = (app.total_cuotas as number | undefined) ?? 3;
+  const cuotasPagadas = parseInt(
+    (app.payment_status as string ?? "").match(/Cuota (\d+) pagada/)?.[1] ?? "0",
+    10,
+  );
+  const cuotaSugerida = Math.min(cuotasPagadas + 1, totalCuotasPlan);
   const [mpCuota, setMpCuota] = useState(cuotaSugerida);
   const [mpMetodo, setMpMetodo] = useState("Transferencia Chile");
   const [mpMoneda, setMpMoneda] = useState("USD");
@@ -225,9 +228,11 @@ export function ApplicationProfile({ app, coupons, pagos = [], onClose, onStatus
     app.status === "En revisión" ||
     app.status === "Admitida";
   const canSendLink = app.status === "Admitida";
+  // Quedan cuotas mientras no se llegue al total del plan. Antes estaba fijo en
+  // "Cuota 3 pagada", lo que escondía el botón de pago manual en planes de 4.
   const cuotasPendientes =
     app.status === "Inscrita" &&
-    app.payment_status !== "Cuota 3 pagada" &&
+    cuotasPagadas < totalCuotasPlan &&
     app.payment_status !== "Baja";
   const canMarkManual = canSendLink || cuotasPendientes;
 

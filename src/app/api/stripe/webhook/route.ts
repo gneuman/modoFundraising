@@ -21,6 +21,10 @@ import {
 import { removeAttendeesFromAllEvents } from "@/lib/calendar";
 import { activatePortalForStartup } from "@/lib/inscripcion";
 
+// Máximo de cuotas que puede tener un plan (ver /api/admin/set-cuotas: 1, 3 o 4).
+// Se usa como tope seguro de cancel_at cuando total_cuotas aún no está en Airtable.
+const MAX_CUOTAS = 4;
+
 // Resuelve la postulación de un invoice de Stripe con fallbacks en cascada para
 // que la cobranza por webhook nunca falle en silencio:
 //   1) por stripe_subscription_id (lo normal)
@@ -222,12 +226,20 @@ export async function POST(req: NextRequest) {
           : {}),
       } as never);
 
-      // Set cancel_at on the subscription so Stripe hard-stops after the configured cuotas
-      // total_cuotas todavía no está seteado en este punto del flujo (se hace después por el script
-      // de reconciliación o manualmente); para checkouts vía portal usamos 3 cuotas como base.
+      // Red de seguridad contra cobros infinitos si el webhook de cuotas fallara.
+      //
+      // OJO: total_cuotas casi siempre está VACÍO en este punto (se llena después,
+      // a mano o por reconciliación), así que aquí NO se puede saber si el plan es
+      // de 3 o de 4. Antes se asumía 3 y se programaba cancel_at a los 65 días:
+      // en planes de 4 cuotas Stripe mataba la sub ANTES de cobrar la cuarta, y ese
+      // subscription.deleted daba de baja al founder "sin motivo".
+      //
+      // Ahora el tope se calcula con el MÁXIMO de cuotas posible (4), nunca con un
+      // default que corte antes. La cancelación real, en su cuota correcta, la hace
+      // invoice.payment_succeeded cuando currentInstallment >= totalCuotas.
       if (!isOneTime && session.subscription) {
         const { stripe } = await import("@/lib/stripe");
-        const cuotasParaCancelar = app.total_cuotas ?? 3;
+        const cuotasParaCancelar = Math.max(app.total_cuotas ?? 0, MAX_CUOTAS);
         // Margen de 5 días por ciclo para que Stripe alcance a cobrar antes del cancel
         const diasParaCancelar = (cuotasParaCancelar - 1) * 30 + 5;
         await stripe.subscriptions.update(session.subscription, {

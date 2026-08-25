@@ -10,13 +10,21 @@ interface Props {
   startupName: string;
   contactName?: string;
   paymentStatus?: string | null;
+  totalCuotas?: number | null;
 }
 
-export function EmpresaPagoButton({ recordId, startupName, contactName, paymentStatus }: Props) {
+export function EmpresaPagoButton({ recordId, startupName, contactName, paymentStatus, totalCuotas }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  if (paymentStatus === "Cuota 3 pagada" || paymentStatus === "Baja") return null;
+  // Ocultar solo cuando ya se pagó el plan COMPLETO. Antes se comparaba contra
+  // "Cuota 3 pagada" fijo, lo que escondía el botón en planes de 4 cuotas.
+  const total = totalCuotas ?? 3;
+  const pagadas = parseInt(
+    (paymentStatus ?? "").match(/Cuota (\d+) pagada/)?.[1] ?? "0",
+    10,
+  );
+  if (pagadas >= total || paymentStatus === "Baja") return null;
 
   return (
     <>
