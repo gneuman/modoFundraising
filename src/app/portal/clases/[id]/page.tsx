@@ -16,6 +16,7 @@ import {
 import { VideoPlayer } from "@/components/portal/video-player";
 import { Markdown } from "@/components/portal/markdown";
 import { formatFechaConAnio as formatFecha } from "@/lib/timezone";
+import { isMisionEnCurso, isMisionTerminada } from "@/lib/mision-status";
 
 export const dynamic = "force-dynamic";
 
@@ -83,8 +84,8 @@ function MisionBlock({
   completada?: boolean;
 }) {
   const days = daysLeft(mision.fecha_limite);
-  const isEnCurso = mision.status === "Activa" || mision.status === "Actual";
-  const isCerrada = mision.status === "Cerrada";
+  const isEnCurso = isMisionEnCurso(mision.status);
+  const isCerrada = isMisionTerminada(mision.status);
   const isTerminada = !!completada;
 
   const borderColor = isTerminada
@@ -330,7 +331,7 @@ export default async function ClaseDetailPage({
           "Actual" = misión ya notificada, sigue en curso. */}
       {(() => {
         const visibles = clase.misionesData.filter((m) => {
-          const isEnCurso = m.status === "Activa" || m.status === "Actual";
+          const isEnCurso = isMisionEnCurso(m.status);
           const isTerminada = !!(m.id && misionesCompletadasSet.has(m.id));
           return isEnCurso || isTerminada;
         });

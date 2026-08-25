@@ -11,6 +11,7 @@ import { Suspense } from "react";
 import { Calendar, BookOpen, Users, CreditCard, ChevronRight } from "lucide-react";
 import { formatHora, formatFechaSinHora, TZ } from "@/lib/timezone";
 import { ClaseCardCTA } from "@/components/portal/clase-card-cta";
+import { isMisionEnCurso } from "@/lib/mision-status";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,7 @@ async function ClasesSection({ profile }: { profile: FounderProfile | null }) {
   const clases = await getClasesWithContentCached();
   const hayClases = clases.length > 0;
   const hayMisionesActivas = clases.some((c) =>
-    c.misionesData.some((m) => m.status === "Activa")
+    c.misionesData.some((m) => isMisionEnCurso(m.status))
   );
 
   // Server Component (async): Date.now() es determinista por request, no re-render.

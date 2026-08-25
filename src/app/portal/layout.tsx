@@ -7,6 +7,7 @@ import { getFounderProfileCached, getClasesWithContentCached } from "@/lib/airta
 import { PortalSidebar, PortalMobileHeader } from "@/components/portal/sidebar";
 import Link from "next/link";
 import { CreditCard } from "lucide-react";
+import { isMisionEnCurso, isMisionTerminada } from "@/lib/mision-status";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
@@ -24,8 +25,11 @@ export default async function PortalLayout({ children }: { children: React.React
 
   const clases = await getClasesWithContentCached();
   const showClases = clases.length > 0;
+  // Basta con que exista una misión ya publicada — en curso o terminada — para
+  // mostrar el link. Antes exigía status "Activa" exacto, así que con la misión
+  // de la semana en "Actual" el menú escondía Misiones por completo (OP-2688).
   const showMisiones = clases.some((c) =>
-    c.misionesData.some((m) => m.status === "Activa")
+    c.misionesData.some((m) => isMisionEnCurso(m.status) || isMisionTerminada(m.status))
   );
   const showRecursos = clases.some((c) => c.recursosData.length > 0);
 

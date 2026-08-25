@@ -1432,7 +1432,11 @@ export interface MisionRecord {
   semana?: number;
   dias_offset?: number;
   fecha_limite?: string;
-  status?: "Próxima" | "Activa" | "Actual" | "Cerrada";
+  // Valores reales del singleSelect en Airtable: Próxima · Activa · Actual · Termino.
+  // "Cerrada" es un valor histórico que ya no existe en la base; se conserva en el
+  // tipo porque puede seguir vivo en registros viejos. Nunca compares este campo
+  // contra strings sueltos — usa los helpers de `@/lib/mision-status` (OP-2688).
+  status?: "Próxima" | "Activa" | "Actual" | "Termino" | "Cerrada";
   clase?: string[];
 }
 

@@ -25,6 +25,7 @@ import {
 import { formatFecha, formatFechaCorta, toSantiagoInput, santiagoInputToISO } from "@/lib/timezone";
 import { EnterMeetButton } from "@/components/portal/enter-meet-button";
 import type { ClaseRecord, MisionRecord, RecursoRecord, TareaRecord } from "@/lib/airtable";
+import { isMisionEnCurso, isMisionTerminada } from "@/lib/mision-status";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,8 @@ export type ClaseFull = ClaseRecord & {
 type Mode = "view" | "admin";
 
 const STATUS_CLASE = ["Próxima", "En vivo", "Grabada"] as const;
-const STATUS_MISION = ["Próxima", "Activa", "Cerrada"] as const;
+// Valores reales del singleSelect de Airtable (OP-2688).
+const STATUS_MISION = ["Próxima", "Activa", "Actual", "Termino"] as const;
 const TIPOS_RECURSO = ["PDF", "Video", "Artículo", "Template", "Herramienta", "Otro"] as const;
 
 // Vercel Serverless Functions limitan el body de la request a 4.5 MB. El
@@ -707,8 +709,8 @@ function MisionRow({
   const days = daysLeft(mision.fecha_limite);
   // "Activa" = recién publicada. "Actual" = ya notificada, sigue en curso.
   // Ambos son "en curso" desde el punto de vista del founder.
-  const isEnCurso = mision.status === "Activa" || mision.status === "Actual";
-  const isCerrada = mision.status === "Cerrada";
+  const isEnCurso = isMisionEnCurso(mision.status);
+  const isCerrada = isMisionTerminada(mision.status);
   const isTerminada = mode === "view" && !!completada;
 
   async function patch(field: string, value: unknown) {
@@ -1315,7 +1317,7 @@ export function ClaseCard({
       {clase.misionesData
         .filter(
           (m) =>
-            mode === "admin" || m.status === "Activa" || m.status === "Actual",
+            mode === "admin" || isMisionEnCurso(m.status),
         )
         .map((mision) => (
           <MisionRow
