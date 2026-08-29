@@ -1717,15 +1717,20 @@ async function doUpsertAsistencia(data: {
 }): Promise<void> {
   const naturalKey = `${data.startupId}-${data.claseId}`;
 
-  // Buscar el existente por la clave natural id_asistencia (más confiable que los
-  // link fields, que pueden tardar en indexar). Fallback al match por link fields.
+  // Match PRIMARIO por los link fields (startup_record, clase_record). Es la única
+  // clave confiable: descubrimos (WI-1820, 2026-07-06) que la gran mayoría de records
+  // históricos tienen id_asistencia = UUID aleatorio (creados por un flujo externo,
+  // no por createAsistencia), así que comparar contra la clave natural nunca matchea
+  // y se crean duplicados. Los link fields sí reflejan la (startup, clase) real.
+  // Fallback a id_asistencia por si algún record viejo trae la clave natural pero
+  // aún no tiene los links indexados.
   const all = await base(Tables.ASISTENCIAS).select().all();
   const existing = all.find((r) => {
     const fields = r.fields as Record<string, unknown>;
-    if (fields.id_asistencia === naturalKey) return true;
     const startupRec = fields.startup_record as string[] | undefined;
     const claseRec = fields.clase_record as string[] | undefined;
-    return startupRec?.includes(data.startupId) && claseRec?.includes(data.claseId);
+    if (startupRec?.includes(data.startupId) && claseRec?.includes(data.claseId)) return true;
+    return fields.id_asistencia === naturalKey;
   });
 
   if (existing) {
