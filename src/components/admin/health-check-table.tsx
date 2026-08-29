@@ -50,7 +50,7 @@ function progressHealth(done: number, total: number): HealthLevel {
 // a la migración del campo.
 function esBeca100(s: ApplicationRecord): boolean {
   if (s.payment_status === "Beca 100%") return true;
-  const pagadas: (string | undefined)[] = ["Cuota 1 pagada", "Cuota 2 pagada", "Cuota 3 pagada"];
+  const pagadas: (string | undefined)[] = ["Cuota 1 pagada", "Cuota 2 pagada", "Cuota 3 pagada", "Cuota 4 pagada"];
   return Number(s.discount_percent) === 100 && !pagadas.includes(s.payment_status);
 }
 

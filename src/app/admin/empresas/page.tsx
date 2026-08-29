@@ -170,6 +170,7 @@ export default async function EmpresasPage() {
                         startupName={a.startup_name ?? "—"}
                         contactName={[a.first_name, a.last_name].filter(Boolean).join(" ") || undefined}
                         paymentStatus={a.payment_status}
+                        totalCuotas={a.total_cuotas}
                       />
                     </td>
                   </tr>

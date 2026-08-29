@@ -49,6 +49,7 @@ const PAGADO_STATUSES = new Set([
   "Cuota 1 pagada",
   "Cuota 2 pagada",
   "Cuota 3 pagada",
+  "Cuota 4 pagada", // planes de 4 cuotas — sin esto la auditoría los ignoraba
 ]);
 
 // Estados de postulación que representan a un founder inscrito con acceso al
