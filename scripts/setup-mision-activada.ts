@@ -60,7 +60,7 @@ const TEMPLATE = {
 </div>
 
 <p style="color:#334155;font-size:15px;line-height:1.6;margin:0 0 8px;">
-  <strong style="color:#0f172a;">Fecha límite:</strong> {{fecha_limite}}
+  <strong style="color:#0f172a;">Fecha límite:</strong> {{fecha_limite}} (Chile)
 </p>
 
 <div style="margin:32px 0;text-align:center;">
@@ -68,7 +68,7 @@ const TEMPLATE = {
 </div>
 
 <p style="color:#64748b;font-size:13px;line-height:1.5;margin:24px 0 0;">
-  Si tenés dudas, respondé a este correo o escribí en el canal de Slack del cohort.
+  Si tienes dudas, responde a este correo o escribe en el canal de Slack del cohort.
 </p>`,
 };
 
