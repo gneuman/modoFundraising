@@ -1,0 +1,126 @@
+{
+  "name": "Slack Interactivity ACK (200)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-interactivity",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "b1a0c000-0000-4000-8000-000000000001",
+      "name": "Webhook Slack",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        0
+      ],
+      "webhookId": "slack-interactivity-ack",
+      "notes": "Production URL de este nodo va en api.slack.com → tu app → Interactivity & Shortcuts → Request URL. Ej: https://TU-N8N/webhook/slack-interactivity. POST, responseMode=responseNode para que responda el nodo Respond to Webhook."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body?.type }}",
+              "rightValue": "url_verification",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1a0c000-0000-4000-8000-000000000002",
+      "name": "¿url_verification?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        0
+      ],
+      "notes": "Slack manda {type:'url_verification', challenge:'...'} al validar. Si es eso, devolvemos el challenge. Los clics de botón caen por la rama false y solo respondemos 200."
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.body?.challenge }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "b1a0c000-0000-4000-8000-000000000003",
+      "name": "Responder challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2528,
+        -96
+      ],
+      "notes": "Devuelve el challenge tal cual para que Slack valide el Request URL."
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "b1a0c000-0000-4000-8000-000000000004",
+      "name": "Responder 200 (ok)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2528,
+        96
+      ],
+      "notes": "Para clics de botones tipo url: Slack solo necesita un 200. Ignoramos el payload."
+    }
+  ],
+  "connections": {
+    "Webhook Slack": {
+      "main": [
+        [
+          {
+            "node": "¿url_verification?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿url_verification?": {
+      "main": [
+        [
+          {
+            "node": "Responder challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 200 (ok)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
