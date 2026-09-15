@@ -1,0 +1,8 @@
+
+# Hooks y scripts de shell: SIEMPRE LF.
+# Un hook con CRLF falla con "bad interpreter" en Git Bash y en cualquier
+# shell POSIX. Como se ejecutan desde disco tras el checkout, aqui la
+# normalizacion no es cosmetica.
+*.mjs           text eol=lf
+*.sh            text eol=lf
+.githooks/*     text eol=lf

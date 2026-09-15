@@ -1,0 +1,72 @@
+#!/bin/sh
+# Valida que el nombre del branch siga la convencion GNB Labs:
+#   gneuman/<TEAM-ID>-<slug>
+#
+# El TEAM-ID (INT-42, OP-2339, CLI-15) es lo que Linear necesita para
+# asociar branch <-> issue. Sin el, el issue nunca cambia de estado.
+#
+# Ademas bloquea el push directo a ramas base: todo cambio va por PR.
+
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+# Detached HEAD: dejar pasar
+if [ -z "$BRANCH" ]; then
+  exit 0
+fi
+
+# BLOQUEAR push directo a ramas base — todo pasa por PR.
+# 'development' esta en la lista: desde 2026-09-14 el trabajo sale de
+# development, asi que es rama base y se protege igual que main.
+case "$BRANCH" in
+  master|main|development|develop|staging|production)
+    echo ""
+    echo "🚫 Push directo a '$BRANCH' bloqueado."
+    echo ""
+    echo "   Regla GNB Labs: todo cambio va por Pull Request."
+    echo "   1. Crea un issue en Linear (si no existe)."
+    echo "   2. 'Copy git branch name' del issue → git switch -c <nombre>"
+    echo "   3. git commit + git push -u origin HEAD"
+    echo "   4. Abre el PR a mano:  gh pr create --base development"
+    echo ""
+    echo "   Si REALMENTE necesitas pushear directo (hotfix critico):"
+    echo "     git push --no-verify"
+    echo "   Pero antes considera si hay una alternativa."
+    echo ""
+    exit 1
+    ;;
+esac
+
+# Patron obligatorio: <usuario>/<TEAM-ID>-<slug>
+#   - <TEAM-ID> = 2-5 letras + guion + numero (INT-42, OP-2339, CLI-15).
+#     Es lo que Linear detecta para asociar branch <-> issue.
+#   - No exigimos nombre de repo en el branch: el working directory
+#     ya te dice en que repo estas.
+PATTERN='^[a-z0-9-]+/[A-Za-z]{2,5}-[0-9]+'
+
+if echo "$BRANCH" | grep -Eq "$PATTERN"; then
+  exit 0
+fi
+
+echo ""
+echo "⚠️  Branch '$BRANCH' NO sigue la convencion GNB Labs."
+echo ""
+echo "   Formato esperado: gneuman/<TEAM-ID>-<slug>"
+echo "   Ejemplo:          gneuman/int-42-crm-inbox"
+echo ""
+echo "   Copialo con 'Copy git branch name' desde el issue en Linear."
+echo "   Sin TEAM-ID (ej. INT-42) Linear NO puede asociar el branch al issue,"
+echo "   y el ticket se queda en Todo aunque el PR se mergee."
+echo ""
+
+# En interactivo, pregunta. En CI/no-tty, deja pasar con warning.
+if [ -t 1 ]; then
+  printf "¿Pushear de todos modos? [y/N] "
+  read -r RESPUESTA < /dev/tty
+  case "$RESPUESTA" in
+    y|Y|yes|YES) exit 0 ;;
+    *) echo "Push cancelado. Renombra el branch con: git branch -m <nuevo-nombre>"; exit 1 ;;
+  esac
+else
+  echo "(no-tty: dejando pasar con warning)"
+  exit 0
+fi
